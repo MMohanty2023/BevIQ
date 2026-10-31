@@ -1,0 +1,46 @@
+{
+  "ALLBrand": {
+    "total_rows": 189619,
+    "non_null_upcs": 111011,
+    "unique_upcs": 110814,
+    "duplicate_upc_rows": 197,
+    "scientific_notation_count": 16,
+    "unique_alt_upcs": 17663
+  },
+  "AIMaster": {
+    "total_rows": 189752,
+    "non_null_upcs": 111144,
+    "unique_upcs": 110947,
+    "duplicate_upc_rows": 197,
+    "scientific_notation_count": 16,
+    "unique_alt_upcs": 17670
+  },
+  "Beer": {
+    "total_rows": 50441,
+    "non_null_upcs": 50441,
+    "unique_upcs": 14924,
+    "duplicate_upc_rows": 35517,
+    "scientific_notation_count": 39025
+  },
+  "RTDs": {
+    "total_rows": 153026,
+    "non_null_upcs": 152528,
+    "unique_upcs": 67548,
+    "duplicate_upc_rows": 84980,
+    "scientific_notation_count": 95929
+  },
+  "Spirits": {
+    "total_rows": 41554,
+    "non_null_upcs": 41554,
+    "unique_upcs": 25182,
+    "duplicate_upc_rows": 16372,
+    "scientific_notation_count": 19209
+  },
+  "Wine": {
+    "total_rows": 61031,
+    "non_null_upcs": 61031,
+    "unique_upcs": 29542,
+    "duplicate_upc_rows": 31489,
+    "scientific_notation_count": 37401
+  }
+}

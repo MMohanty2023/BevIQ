@@ -1,0 +1,54 @@
+# Environment & Credentials
+.env
+*.env.local
+
+# Python bytecode & cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Database files & local SQLite caches
+db_storage/
+*.sqlite
+*.sqlite3
+*.db
+
+# Persistent Vector index binary files
+vector_indices/
+*.pkl
+*.pickle
+
+# Large CSV datasets & raw company data
+*.csv
+$*.csv
+
+# Temporary generated reports & exports
+generated_reports/
+*.tmp
+*.log
+
+# IDE & Operating System files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
