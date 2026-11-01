@@ -7,7 +7,7 @@ from engines.vector_engine import vector_engine
 
 def setup_environment():
     print("=" * 65)
-    print("      BEVERAGE DATA ASSISTANT - INITIALIZATION SEQUENCE")
+    print("              BEVIQ - INITIALIZATION SEQUENCE")
     print("=" * 65)
 
     # 1. Check if SQLite cache exists and has records

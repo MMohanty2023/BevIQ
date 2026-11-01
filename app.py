@@ -10,6 +10,8 @@ from engines.comparison_engine import comparison_engine
 from engines.vector_engine import vector_engine
 from engines.rag_orchestrator import rag_orchestrator
 from data_ingestion.loader import ingest_all_to_sqlite
+from document_rag import ingest as ingest_document, list_documents
+from engines.upc_match_engine import upc_match_engine
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
 app.config['SECRET_KEY'] = 'beverage-data-assistant-secret-key-2026'
@@ -25,13 +27,19 @@ def index():
 
 @app.route('/api/chat', methods=['POST'])
 def api_chat():
-    data = request.get_json() or {}
+    data = request.form if request.form else (request.get_json() or {})
     message = data.get('message', '').strip()
+    session_id = data.get('session_id', 'default-session')
     if not message:
         return jsonify({'error': 'Message cannot be empty'}), 400
 
     try:
-        response = rag_orchestrator.route_and_execute(message)
+        uploaded = None
+        if 'file' in request.files and request.files['file'].filename:
+            uploaded = ingest_document(request.files['file'], session_id)
+        response = rag_orchestrator.route_and_execute(message, session_id=session_id)
+        if uploaded:
+            response['uploaded_document'] = uploaded
         return jsonify(response)
     except Exception as e:
         return jsonify({
@@ -42,23 +50,48 @@ def api_chat():
             'download_token': None
         }), 500
 
+@app.route('/api/documents', methods=['GET'])
+def api_documents():
+    return jsonify({'documents': list_documents(request.args.get('session_id', 'default-session'))})
+
+@app.route('/api/upc-audit', methods=['POST'])
+def api_upc_audit():
+    data = request.get_json() or {}
+    category = data.get('category')
+    limit = None if data.get('full_review') else max(1, min(int(data.get('limit', 100)), 1000))
+    records = upc_match_engine.audit(category, limit)
+    import uuid
+    token = str(uuid.uuid4())[:8]
+    columns = list(records[0].keys()) if records else [
+        'category', 'status', 'current_upc', 'suggested_upc', 'alternate_upc',
+        'confidence', 'source_file', 'source_row', 'source_brand', 'source_product',
+        'source_flavour', 'source_size', 'source_category', 'master_brand',
+        'master_product', 'master_size', 'master_row', 'remarks'
+    ]
+    import pandas as pd
+    pd.DataFrame(records, columns=columns).to_csv(REPORTS_DIR / f'report_{token}.csv', index=False)
+    return jsonify({'records': records, 'record_count': len(records), 'download_token': token,
+                    'columns': columns, 'read_only': True,
+                    'message': 'Review-only report. No master product or UPC was changed.'})
+
 @app.route('/api/compare', methods=['POST'])
 def api_compare():
     data = request.get_json() or {}
     comp_type = data.get('type', 'all_missing')
     limit = int(data.get('limit', 250))
+    search = (data.get('search') or '').strip()[:100]
 
     try:
         if comp_type == 'all_missing':
-            res = comparison_engine.compare_all_missing_in_master(limit_per_category=limit)
+            res = comparison_engine.compare_all_missing_in_master(limit_per_category=limit, search=search or None)
         elif comp_type == 'master_vs_beer':
-            res = comparison_engine.compare_master_vs_categorization('cat_beer', limit=limit)
+            res = comparison_engine.compare_master_vs_categorization('cat_beer', limit=limit, search=search or None)
         elif comp_type == 'master_vs_rtd':
-            res = comparison_engine.compare_master_vs_categorization('cat_rtd', limit=limit)
+            res = comparison_engine.compare_master_vs_categorization('cat_rtd', limit=limit, search=search or None)
         elif comp_type == 'master_vs_spirits':
-            res = comparison_engine.compare_master_vs_categorization('cat_spirits', limit=limit)
+            res = comparison_engine.compare_master_vs_categorization('cat_spirits', limit=limit, search=search or None)
         elif comp_type == 'master_vs_wine':
-            res = comparison_engine.compare_master_vs_categorization('cat_wine', limit=limit)
+            res = comparison_engine.compare_master_vs_categorization('cat_wine', limit=limit, search=search or None)
         elif comp_type == 'allbrand_vs_supplier':
             res = comparison_engine.compare_allbrand_vs_supplier(limit=limit)
         elif comp_type == 'beer_vs_rtd':
@@ -143,6 +176,6 @@ def api_export_csv(token):
 
 if __name__ == '__main__':
     port = int(os.getenv("PORT", 5000))
-    print(f"Starting Beverage Data Assistant on http://127.0.0.1:{port}")
-    app.run(host='0.0.0.0', port=port, debug=False)
+    print(f"Starting BevIQ on http://127.0.0.1:{port}")
+    app.run(host='0.0.0.0', port=port, debug=False, threaded=True)
 

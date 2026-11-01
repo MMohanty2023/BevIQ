@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Beverage Data Assistant | Offline AI & Multi-Dataset Engine</title>
+    <title>BevIQ | Beverage Intelligence</title>
     <style>
         :root {
             --bg-page: #090d16;
@@ -699,6 +699,109 @@
             0%, 80%, 100% { transform: scale(0); opacity: 0.3; }
             40% { transform: scale(1); opacity: 1; }
         }
+
+        /* Simple interface refresh: quieter surfaces, clearer spacing, fewer effects. */
+        :root {
+            --bg-page: #0b1120;
+            --bg-surface: #111827;
+            --bg-card: #172033;
+            --bg-hover: #202b40;
+            --border-color: #29364d;
+            --border-light: #394862;
+            --text-main: #f1f5f9;
+            --text-secondary: #a8b4c7;
+            --text-muted: #718096;
+            --accent-blue: #60a5fa;
+        }
+
+        body { font-size: 14px; }
+
+        header {
+            padding: .75rem 1.25rem;
+            background: #111827;
+            box-shadow: 0 1px 0 rgba(255,255,255,.05);
+        }
+
+        .brand-icon {
+            width: 34px;
+            height: 34px;
+            border-radius: 8px;
+            background: #2563eb;
+            box-shadow: none;
+        }
+
+        .brand-title { font-size: 1rem; }
+        .brand-subtitle { font-size: .7rem; color: #93c5fd; }
+        .status-strip { gap: .4rem; }
+        .pill-badge { padding: .25rem .55rem; font-size: .7rem; }
+
+        .nav-tabs-wrapper {
+            padding: 0 1.25rem;
+            gap: .15rem;
+            background: #0f172a;
+        }
+
+        .nav-tab-btn {
+            padding: .7rem .9rem;
+            font-size: .82rem;
+            font-weight: 600;
+        }
+
+        .main-content {
+            max-width: 1320px;
+            padding: 1rem 1.25rem;
+        }
+
+        .quick-prompts-bar {
+            padding: .6rem .75rem;
+            margin-bottom: .75rem;
+            gap: .4rem;
+            border-radius: 9px;
+        }
+
+        .prompt-chip {
+            padding: .3rem .65rem;
+            font-size: .74rem;
+            transform: none !important;
+        }
+
+        .chat-layout {
+            height: calc(100vh - 205px);
+            min-height: 480px;
+            border-radius: 10px;
+            box-shadow: 0 10px 24px rgba(0,0,0,.18);
+        }
+
+        .chat-history { padding: 1.1rem; gap: .85rem; }
+        .chat-bubble { padding: .9rem 1rem; border-radius: 10px; font-size: .88rem; }
+        .bot-message { width: min(94%, 900px); }
+        .bot-message-header { margin-bottom: .5rem; }
+        .chat-input-bar { padding: .7rem .85rem; }
+        .text-input-field { padding: .65rem .85rem; }
+        .btn-submit-send { padding: 0 1rem; }
+
+        .studio-grid { gap: .85rem; }
+        .studio-sidebar, .studio-main, .pane-card {
+            border-radius: 10px;
+            box-shadow: none;
+        }
+        .studio-main, .pane-card { padding: 1rem; }
+        .metric-cards-grid { gap: .6rem; }
+        .metric-box { padding: .75rem; border-radius: 8px; }
+        .metric-box-value { font-size: 1.35rem; }
+
+        @media (max-width: 760px) {
+            header { align-items: flex-start; gap: .65rem; flex-direction: column; }
+            .status-strip { width: 100%; }
+            .nav-tabs-wrapper { overflow-x: auto; padding: 0 .5rem; }
+            .nav-tab-btn { white-space: nowrap; padding: .65rem .7rem; }
+            .main-content { padding: .75rem .6rem; }
+            .quick-prompts-bar { align-items: flex-start; flex-wrap: wrap; }
+            .chat-layout { height: calc(100vh - 260px); min-height: 520px; }
+            .chat-form { gap: .45rem; }
+            .btn-submit-send { padding: 0 .8rem; }
+            .metric-cards-grid { grid-template-columns: repeat(2, 1fr); }
+        }
     </style>
 </head>
 <body>
@@ -710,8 +813,8 @@
                 <svg viewBox="0 0 24 24"><path d="M7 2h10v2l-2 3v13a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V7L5 4V2h2zm2 5h6v-1.5L16 4H8l1 1.5V7zm5 3H10v2h4v-2z"/></svg>
             </div>
             <div>
-                <div class="brand-title">BEVERAGE DATA ASSISTANT</div>
-                <div class="brand-subtitle">Offline RAG & Multi-Dataset Comparison System</div>
+                <div class="brand-title">BEVIQ</div>
+                <div class="brand-subtitle">Beverage Intelligence, Simply</div>
             </div>
         </div>
 
@@ -752,7 +855,7 @@
             <!-- Quick Prompts Bar -->
             <div class="quick-prompts-bar">
                 <span class="prompt-label">⚡ Quick Queries:</span>
-                <span class="prompt-chip urgent" onclick="triggerQuickPrompt('beer, wine, rtd or spirits missing upc kon kon se hai check karo master brands me se jo hai nahi vo batao or count bhi or csv bhi chaiye mujhe')">
+                <span class="prompt-chip urgent" onclick="triggerQuickPrompt('Review Beer, Wine, RTD, and Spirits UPCs against AllMasterBrand. Show which category UPCs are missing in MasterBrand, include counts, full product details, and a downloadable CSV report.')">
                     🚨 Missing in Master: Beer, Wine, RTD & Spirits
                 </span>
                 <span class="prompt-chip" onclick="triggerQuickPrompt('Find UPC 0852955008021 in master data')">
@@ -770,11 +873,14 @@
                 <span class="prompt-chip" onclick="triggerQuickPrompt('Show duplicate UPCs across all files')">
                     ⚠️ Duplicate UPCs Audit
                 </span>
+                <span class="prompt-chip urgent" onclick="triggerQuickPrompt('Check Beer Wine RTD Spirits products where brand flavour size match AllMasterBrand but UPC is missing; suggest alternate UPC')">
+                    🔗 Product Match → Alternate UPC
+                </span>
                 <span class="prompt-chip" onclick="triggerQuickPrompt('Count total products in each category')">
                     📊 Category Counts
                 </span>
-                <span class="prompt-chip" onclick="triggerQuickPrompt('Show all products belonging to brand Michelob Ultra')">
-                    🏷️ Michelob Ultra
+                <span class="prompt-chip" onclick="triggerQuickPrompt('What can you do?')">
+                    💬 Normal Chat & Help
                 </span>
             </div>
 
@@ -784,21 +890,27 @@
                     <div class="chat-bubble bot-message">
                         <div class="bot-message-header">
                             <div class="bot-identity">
-                                🤖 Beverage Intelligence Core
+                                🤖 BevIQ Assistant
                             </div>
                             <div>Local Engine • Ready</div>
                         </div>
                         <div class="bot-markdown">
-                            <p>Hello! I am your <strong>Offline Beverage Data Assistant</strong>. All <strong>702,207 records</strong> from your 7 CSV datasets and your MySQL <code>beverage_db</code> database are fully indexed.</p>
-                            <p>You can ask questions in <strong>English or Hinglish</strong> to find UPCs, audit missing records, compare categorization sheets, validate Beer vs RTDs, or generate downloadable CSV discrepancy reports.</p>
+                            <p>Hello! I am your <strong>BevIQ Assistant</strong>. All <strong>702,207 records</strong> from your 7 CSV datasets and your MySQL <code>beverage_db</code> database are fully indexed.</p>
+                            <p>You can also use me for <strong>normal chat</strong> in English or Hinglish. I can find UPCs, audit missing records, compare categorization sheets, answer questions from uploaded documents, or generate downloadable CSV reports.</p>
+                            <p style="color: #93c5fd; font-size: 0.82rem;">UPC audits are review-only: no master product or UPC is changed automatically.</p>
                         </div>
                     </div>
                 </div>
 
                 <!-- Input Controls -->
                 <div class="chat-input-bar">
+                    <div style="display:flex; align-items:center; gap:.65rem; margin-bottom:.65rem; color:var(--text-secondary); font-size:.8rem;">
+                        <label for="document-upload" class="prompt-chip">📎 Attach PDF / image / document</label>
+                        <input type="file" id="document-upload" accept=".pdf,.docx,.txt,.md,.csv,.xlsx,.xls,.png,.jpg,.jpeg,.webp,.bmp,.tiff" style="display:none" onchange="showSelectedDocument(this)">
+                        <span id="selected-document" style="color:var(--accent-emerald);"></span>
+                    </div>
                     <form class="chat-form" onsubmit="submitUserChat(event)">
-                        <input type="text" id="chat-input-box" class="text-input-field" placeholder="Ask any question in English or Hinglish (e.g. 'beer, wine, rtd or spirits missing upc check karo', 'Find UPC 0852955008021')..." autocomplete="off">
+                        <input type="text" id="chat-input-box" class="text-input-field" placeholder="Chat normally or ask about products, UPCs, datasets, or uploaded files..." autocomplete="off">
                         <button type="submit" id="chat-submit-btn" class="btn-submit-send">
                             Send Query ➔
                         </button>
@@ -874,6 +986,14 @@
                     <!-- Filter Bar -->
                     <div class="table-filter-bar">
                         <input type="text" id="studio-search-filter" class="search-filter-input" placeholder="Quick filter by UPC, brand name, category, or source file..." oninput="filterStudioTable()">
+                        <select id="studio-status-filter" class="search-filter-input" onchange="filterStudioTable(false)" style="max-width: 210px; cursor: pointer;">
+                            <option value="">All statuses</option>
+                            <option value="exact match">Exact Match</option>
+                            <option value="partial match">Partial Match</option>
+                            <option value="missing">Missing in Master</option>
+                            <option value="mismatch">Mismatch</option>
+                            <option value="duplicate">Duplicate</option>
+                        </select>
                     </div>
 
                     <!-- Table -->
@@ -1027,10 +1147,15 @@ JDBC URL: jdbc:mysql://127.0.0.1:3307/beverage_db
     <!-- Client Script (100% Offline & Pure JS) -->
     <script>
         let currentStudioRecords = [];
-
-        document.addEventListener("DOMContentLoaded", function() {
-            executeComparison('all_missing');
-        });
+        let currentStudioPreset = 'all_missing';
+        let lastServerSearch = '';
+        let studioSearchTimer = null;
+        let studioLoaded = false;
+        const chatSessionId = localStorage.getItem('beverage_chat_session') ||
+            (window.crypto && typeof window.crypto.randomUUID === 'function'
+                ? window.crypto.randomUUID()
+                : `session-${Date.now()}-${Math.random().toString(16).slice(2)}`);
+        localStorage.setItem('beverage_chat_session', chatSessionId);
 
         function switchTab(tabId, btn) {
             document.querySelectorAll('.nav-tab-btn').forEach(b => b.classList.remove('active'));
@@ -1038,6 +1163,10 @@ JDBC URL: jdbc:mysql://127.0.0.1:3307/beverage_db
 
             btn.classList.add('active');
             document.getElementById('tab-' + tabId).classList.add('active');
+            if (tabId === 'comparison' && !studioLoaded) {
+                studioLoaded = true;
+                executeComparison('all_missing');
+            }
         }
 
         function triggerQuickPrompt(query) {
@@ -1046,13 +1175,21 @@ JDBC URL: jdbc:mysql://127.0.0.1:3307/beverage_db
             submitUserChat(new Event('submit'));
         }
 
+        function showSelectedDocument(input) {
+            const label = document.getElementById('selected-document');
+            label.textContent = input.files.length ? `Selected: ${input.files[0].name}` : '';
+        }
+
         function submitUserChat(e) {
             if (e) e.preventDefault();
             const input = document.getElementById('chat-input-box');
+            const sendButton = document.getElementById('chat-submit-btn');
             const message = input.value.trim();
             if (!message) return;
 
             input.value = '';
+            input.disabled = true;
+            if (sendButton) sendButton.disabled = true;
             appendChatMessage(message, 'user');
 
             // Add loading indicator
@@ -1062,7 +1199,7 @@ JDBC URL: jdbc:mysql://127.0.0.1:3307/beverage_db
             loadingBubble.id = 'bot-loading-indicator';
             loadingBubble.innerHTML = `
                 <div class="bot-message-header">
-                    <div class="bot-identity">🤖 Beverage Intelligence Core</div>
+                    <div class="bot-identity">🤖 BevIQ Assistant</div>
                     <div>Auditing 702k+ records...</div>
                 </div>
                 <div>
@@ -1077,12 +1214,23 @@ JDBC URL: jdbc:mysql://127.0.0.1:3307/beverage_db
             history.appendChild(loadingBubble);
             history.scrollTop = history.scrollHeight;
 
+            const formData = new FormData();
+            formData.append('message', message);
+            formData.append('session_id', chatSessionId);
+            const fileInput = document.getElementById('document-upload');
+            if (fileInput.files.length) formData.append('file', fileInput.files[0]);
+
             fetch('/api/chat', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: message })
+                body: formData
             })
-            .then(res => res.json())
+            .then(async res => {
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) {
+                    throw new Error(data.error || data.answer || `Request failed (${res.status})`);
+                }
+                return data;
+            })
             .then(data => {
                 loadingBubble.remove();
                 appendBotResponse(data);
@@ -1090,7 +1238,25 @@ JDBC URL: jdbc:mysql://127.0.0.1:3307/beverage_db
             .catch(err => {
                 loadingBubble.remove();
                 appendChatMessage(`⚠️ Query Error: ${err.message}`, 'bot');
+            })
+            .finally(() => {
+                input.disabled = false;
+                if (sendButton) sendButton.disabled = false;
+                if (fileInput.files.length) {
+                    fileInput.value = '';
+                    document.getElementById('selected-document').textContent = '';
+                }
+                input.focus();
             });
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
         }
 
         function appendChatMessage(text, sender) {
@@ -1109,7 +1275,7 @@ JDBC URL: jdbc:mysql://127.0.0.1:3307/beverage_db
 
             const headerHtml = `
                 <div class="bot-message-header">
-                    <div class="bot-identity">🤖 Beverage Intelligence Core</div>
+                    <div class="bot-identity">🤖 BevIQ Assistant</div>
                     <div>Retrieved ${data.record_count || 0} records</div>
                 </div>
             `;
@@ -1138,7 +1304,7 @@ JDBC URL: jdbc:mysql://127.0.0.1:3307/beverage_db
                 bodyHtml += `
                     <div class="source-pill-bar">
                         <span><strong>Verified Sources:</strong></span>
-                        ${data.source_files.map(sf => `<span class="source-chip">${sf}</span>`).join('')}
+                        ${data.source_files.map(sf => `<span class="source-chip">${escapeHtml(sf)}</span>`).join('')}
                     </div>
                 `;
             }
@@ -1150,7 +1316,10 @@ JDBC URL: jdbc:mysql://127.0.0.1:3307/beverage_db
 
         function renderRecordsTable(records) {
             if (!records || records.length === 0) return '';
-            const cols = Object.keys(records[0]).filter(k => !k.startsWith('_')).slice(0, 6);
+            const auditCols = ['status', 'current_upc', 'suggested_upc', 'alternate_upc', 'source_brand', 'source_description', 'source_size', 'master_brand', 'master_description', 'master_size', 'description_match_score', 'confidence'];
+            const cols = records[0].hasOwnProperty('current_upc')
+                ? auditCols.filter(k => Object.prototype.hasOwnProperty.call(records[0], k))
+                : Object.keys(records[0]).filter(k => !k.startsWith('_')).slice(0, 6);
 
             let html = `
                 <div style="margin-top: 0.85rem;">
@@ -1160,7 +1329,7 @@ JDBC URL: jdbc:mysql://127.0.0.1:3307/beverage_db
                     <div class="markdown-table-wrapper" style="max-height: 280px; overflow-y: auto;">
                         <table class="styled-table">
                             <thead>
-                                <tr>${cols.map(c => `<th>${c.replace(/_/g, ' ').toUpperCase()}</th>`).join('')}</tr>
+                                <tr>${cols.map(c => `<th>${escapeHtml(c.replace(/_/g, ' ').toUpperCase())}</th>`).join('')}</tr>
                             </thead>
                             <tbody>
             `;
@@ -1168,9 +1337,9 @@ JDBC URL: jdbc:mysql://127.0.0.1:3307/beverage_db
             records.forEach(r => {
                 html += `<tr>`;
                 cols.forEach(c => {
-                    let val = r[c] || '';
+                    let val = escapeHtml(r[c] || '');
                     if (c === 'status') {
-                        val = renderBadgeHtml(val);
+                        val = renderBadgeHtml(r[c] || '');
                     }
                     html += `<td>${val}</td>`;
                 });
@@ -1254,14 +1423,16 @@ JDBC URL: jdbc:mysql://127.0.0.1:3307/beverage_db
         }
 
         function formatInlineMd(text) {
-            return text
+            return escapeHtml(text)
                 .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
                 .replace(/\*(.*?)\*/g, '<em>$1</em>')
                 .replace(/`(.*?)`/g, '<code>$1</code>');
         }
 
         /* Comparison Studio Engine */
-        function executeComparison(presetType, btn) {
+        function executeComparison(presetType, btn, search = '') {
+            studioLoaded = true;
+            currentStudioPreset = presetType;
             if (btn) {
                 document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
@@ -1273,7 +1444,7 @@ JDBC URL: jdbc:mysql://127.0.0.1:3307/beverage_db
             fetch('/api/compare', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ type: presetType, limit: 250 })
+                body: JSON.stringify({ type: presetType, limit: 250, search: search })
             })
             .then(res => res.json())
             .then(data => {
@@ -1322,19 +1493,30 @@ JDBC URL: jdbc:mysql://127.0.0.1:3307/beverage_db
             });
         }
 
-        function filterStudioTable() {
+        function filterStudioTable(allowServerSearch = true) {
             const query = document.getElementById('studio-search-filter').value.toLowerCase().trim();
-            if (!query) {
+            const status = document.getElementById('studio-status-filter').value.toLowerCase();
+
+            if (allowServerSearch && query !== lastServerSearch) {
+                clearTimeout(studioSearchTimer);
+                studioSearchTimer = setTimeout(() => {
+                    lastServerSearch = query;
+                    executeComparison(currentStudioPreset, null, query);
+                }, 350);
+            }
+            if (!query && !status) {
                 renderStudioTable(currentStudioRecords);
                 return;
             }
 
             const filtered = currentStudioRecords.filter(r => {
-                return (r.upc && r.upc.toLowerCase().includes(query)) ||
+                const matchesText = !query || (r.upc && r.upc.toLowerCase().includes(query)) ||
                        (r.brand && r.brand.toLowerCase().includes(query)) ||
                        (r.product && r.product.toLowerCase().includes(query)) ||
                        (r.category && r.category.toLowerCase().includes(query)) ||
                        (r.source_file && r.source_file.toLowerCase().includes(query));
+                const matchesStatus = !status || (r.status && r.status.toLowerCase().includes(status));
+                return matchesText && matchesStatus;
             });
 
             renderStudioTable(filtered);

@@ -1,4 +1,4 @@
-# Beverage Data Assistant (Offline RAG & Comparison Engine)
+# BevIQ (Offline RAG & Beverage Comparison Engine)
 
 An enterprise-grade, locally running, 100% offline AI Assistant and Data Comparison Engine built with **Flask**, **Pandas**, **PyMySQL**, **SQLite WAL**, and **Local Vector Search**, specifically designed for large-scale beverage company data management (over **702,000+ product records** across 7 CSV files).
 
@@ -39,6 +39,16 @@ Supports integration with **DBeaver** on **MySQL localhost:3307** and local **Ol
 
 6. **Interactive Web Dashboard & CSV Reports**:
    - Modern, responsive Flask UI with chat interface, quick-prompt pills, live comparison filters, and one-click CSV report exports.
+
+7. **Conversation-scoped Document RAG**:
+   - Attach PDF, DOCX, TXT/MD, CSV, XLSX, or image files directly in chat.
+   - Ask follow-up questions against uploaded documents with page/sheet source references.
+   - Image OCR uses local Tesseract when installed; files stay under `generated_reports/uploads/`.
+
+8. **Conservative Missing-UPC Product Matching**:
+   - Checks AllBrand against Beer, RTD, Spirits, and Wine using brand/product/size similarity after exact and alternate UPC checks.
+   - Runs UPC-first review across the categorization sheets, reports every bounded/full-review row, and exports review-only CSV data with suggested alternate UPCs; it never changes source data automatically.
+   - Reports suggested UPCs with confidence and source rows; it never overwrites master data automatically.
 
 ---
 
@@ -144,6 +154,7 @@ If you also wish to enable generative conversational answers:
 | **Category Gap Analysis** | `"Find all UPCs available in Master but missing in Beer"` |
 | **Beer vs. RTD Validation** | `"Compare Beer and RTD categorization"` |
 | **Duplicate Audit** | `"Show duplicate UPCs across all files"` |
+| **Product Match / Alternate UPC** | `"Check products where brand flavour size match but UPC is missing; suggest alternate UPC"` |
 | **Category Aggregation** | `"Count total products in each category"` |
 | **Brand Inquiry** | `"Show all products belonging to brand Michelob Ultra"` |
 | **Supplier Inquiry** | `"Find all products with supplier Gallo"` |

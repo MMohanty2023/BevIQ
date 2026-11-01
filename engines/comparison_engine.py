@@ -10,7 +10,7 @@ class ComparisonEngine:
     def __init__(self, db=None):
         self.db = db or db_manager
 
-    def compare_master_vs_categorization(self, cat_key='cat_beer', limit=500):
+    def compare_master_vs_categorization(self, cat_key='cat_beer', limit=500, search=None):
         """
         Compare AIMasterBrandData vs a Categorization Sheet (Beer, RTDs, Spirits, or Wine).
         Classifies records into Exact Match, Partial Match, Mismatch, Missing in Master, Duplicate.
@@ -24,6 +24,12 @@ class ComparisonEngine:
         cat_count = self.db.query(f"SELECT COUNT(*) as c FROM `{cat_table}`")[0]['c']
 
         # 2. Overlap query (matching UPCs)
+        search_clause = ""
+        search_params = ()
+        if search:
+            search_clause = " AND (LOWER(COALESCE(m.BrandName,'')) LIKE ? OR LOWER(COALESCE(c.norm_brand,'')) LIKE ? OR LOWER(COALESCE(c.Product,'')) LIKE ? OR c.clean_upc LIKE ?)"
+            needle = f"%{search.lower()}%"
+            search_params = (needle, needle, needle, f"%{search}%")
         match_sql = f"""
         SELECT 
             c.clean_upc AS upc,
@@ -38,10 +44,10 @@ class ComparisonEngine:
             COALESCE(c.Product, c.clean_upc) AS cat_product_desc
         FROM `{cat_table}` c
         JOIN `{master_table}` m ON c.clean_upc = m.clean_upc
-        WHERE c.clean_upc != ''
+        WHERE c.clean_upc != ''{search_clause}
         LIMIT {limit}
         """
-        matches = self.db.query(match_sql)
+        matches = self.db.query(match_sql, search_params)
 
         # Classify each match
         records = []
@@ -80,6 +86,12 @@ class ComparisonEngine:
             })
 
         # 3. Missing in Master (present in Cat Sheet but missing from Master)
+        missing_search_clause = ""
+        missing_search_params = ()
+        if search:
+            missing_search_clause = " AND (LOWER(COALESCE(c.norm_brand,'')) LIKE ? OR LOWER(COALESCE(c.Product,'')) LIKE ? OR c.clean_upc LIKE ?)"
+            needle = f"%{search.lower()}%"
+            missing_search_params = (needle, needle, f"%{search}%")
         missing_in_master_sql = f"""
         SELECT 
             c.clean_upc AS upc,
@@ -89,10 +101,10 @@ class ComparisonEngine:
             COALESCE(c.Product, c.clean_upc) AS cat_product_desc
         FROM `{cat_table}` c
         LEFT JOIN `{master_table}` m ON c.clean_upc = m.clean_upc
-        WHERE m.clean_upc IS NULL AND c.clean_upc != ''
+        WHERE m.clean_upc IS NULL AND c.clean_upc != ''{missing_search_clause}
         LIMIT {min(limit, 200)}
         """
-        missing_rows = self.db.query(missing_in_master_sql)
+        missing_rows = self.db.query(missing_in_master_sql, missing_search_params)
         for r in missing_rows:
             records.append({
                 "upc": r.get('upc'),
@@ -118,8 +130,14 @@ class ComparisonEngine:
         total_cat_upcs = self.db.query(f"SELECT COUNT(DISTINCT clean_upc) as c FROM `{cat_table}` WHERE clean_upc != ''")[0]['c']
         missing_from_master_total = total_cat_upcs - total_matched_count
 
+        category_labels = {
+            "cat_beer": "Beer",
+            "cat_rtd": "RTD",
+            "cat_spirits": "Spirits",
+            "cat_wine": "Wine",
+        }
         return {
-            "comparison_type": f"Master vs {cat_key}",
+            "comparison_type": f"Master vs {category_labels.get(cat_key, cat_key)}",
             "summary": {
                 "master_total_records": master_count,
                 "categorization_total_records": cat_count,
@@ -326,7 +344,7 @@ class ComparisonEngine:
             "records": results
         }
 
-    def compare_all_missing_in_master(self, limit_per_category=200):
+    def compare_all_missing_in_master(self, limit_per_category=200, search=None):
         """
         Compare all 4 categorization sheets (Beer, Wine, RTD, Spirits) against AIMasterBrandData.
         Identifies all UPCs that exist in categorization sheets but are missing from Master Brands.
@@ -370,6 +388,12 @@ class ComparisonEngine:
             })
 
             # Retrieve sample missing records
+            search_clause = ""
+            search_params = ()
+            if search:
+                search_clause = f" AND (LOWER(COALESCE(c.{brand_col},'')) LIKE ? OR LOWER(COALESCE(c.{prod_col},'')) LIKE ? OR c.clean_upc LIKE ?)"
+                needle = f"%{search.lower()}%"
+                search_params = (needle, needle, f"%{search}%")
             missing_sql = f"""
             SELECT 
                 '{cat_name}' AS category,
@@ -382,10 +406,10 @@ class ComparisonEngine:
                 'UPC exists in {fname} but is missing from Master Brands' AS reason
             FROM `{tbl}` c
             LEFT JOIN `{master_table}` m ON c.clean_upc = m.clean_upc
-            WHERE m.clean_upc IS NULL AND c.clean_upc != ''
+            WHERE m.clean_upc IS NULL AND c.clean_upc != ''{search_clause}
             LIMIT {limit_per_category}
             """
-            rows = self.db.query(missing_sql)
+            rows = self.db.query(missing_sql, search_params)
             all_missing_records.extend(rows)
 
         return {

@@ -1,6 +1,7 @@
 import re
 import json
 import uuid
+import time
 import requests
 import pandas as pd
 from config import OLLAMA_HOST, OLLAMA_MODEL, REPORTS_DIR
@@ -8,19 +9,27 @@ from engines.sql_engine import sql_engine
 from engines.comparison_engine import comparison_engine
 from engines.vector_engine import vector_engine
 from data_ingestion.normalizer import normalize_upc
+from document_rag import search as search_documents
 
 class RAGOrchestrator:
     def __init__(self):
         self.ollama_host = OLLAMA_HOST
         self.ollama_model = OLLAMA_MODEL
+        self._ollama_status = None
+        self._ollama_status_checked_at = 0.0
 
     def is_ollama_available(self):
         """Check if local Ollama server is running."""
+        now = time.monotonic()
+        if self._ollama_status is not None and now - self._ollama_status_checked_at < 10:
+            return self._ollama_status
         try:
             r = requests.get(f"{self.ollama_host}/api/tags", timeout=1.0)
-            return r.status_code == 200
+            self._ollama_status = r.status_code == 200
         except Exception:
-            return False
+            self._ollama_status = False
+        self._ollama_status_checked_at = now
+        return self._ollama_status
 
     def query_ollama(self, prompt, system_prompt=None):
         """Send prompt to local Ollama instance."""
@@ -38,7 +47,7 @@ class RAGOrchestrator:
             pass
         return None
 
-    def route_and_execute(self, user_query):
+    def route_and_execute(self, user_query, session_id='default-session'):
         """
         Understands natural language questions in English and Hinglish,
         executes relevant RAG / DB retrieval, and synthesizes accurate response.
@@ -51,6 +60,73 @@ class RAGOrchestrator:
         report_records = []
         source_files = []
 
+        # Always prioritize explicit normal-chat messages over catalog retrieval.
+        local_general = self._local_general_response(q)
+        if local_general:
+            return self._format_response(local_general, [], [], token)
+
+        # Keep ordinary conversation away from the product vector index. The
+        # index is useful for catalog questions, but it can produce false hits
+        # for words such as "day", "joke", or "India" in product names.
+        catalog_terms = [
+            'upc', 'barcode', 'product', 'brand', 'supplier', 'vendor',
+            'beer', 'wine', 'rtd', 'spirits', 'master', 'categorization',
+            'dataset', 'category', 'missing', 'compare', 'duplicate', 'audit', 'search', 'find'
+        ]
+        document_terms = ['document', 'pdf', 'file', 'upload', 'uploaded', 'image', 'sheet']
+        has_catalog_intent = bool(re.search(r'\b\d{10,14}\b', q)) or any(term in q_lower for term in catalog_terms)
+        has_document_intent = any(term in q_lower for term in document_terms)
+        if not has_catalog_intent and not has_document_intent:
+            if self.is_ollama_available():
+                general = self.query_ollama(
+                    q,
+                    "You are BevIQ, a friendly general chat assistant. Answer normal questions naturally in the user's language. Use beverage data only when the user asks for it."
+                )
+                if general:
+                    return self._format_response(general, [], [], token)
+            if not self._is_hinglish(q_lower):
+                return self._format_response(
+                    "### 💬 Normal Chat\n\nI’m ready for normal conversation. You can ask casual questions, request a joke, or chat freely. Start local Ollama for richer open-ended knowledge answers; database and document questions work offline.",
+                    [], [], token
+                )
+            return self._format_response(
+                "### 💬 Normal Chat\n\nMain normal conversation ke liye ready hoon. Aap casual questions, greetings, jokes, ya general baat kar sakte ho. Open-ended knowledge answers ke liye local Ollama start karna hoga; database/document questions abhi bhi offline mode mein available hain.",
+                [], [], token
+            )
+
+        # Direct aggregates should never fall through to the slower vector index.
+        is_master_brand_count = bool(re.search(r'\b(how many|number of|count|kitne|kitni|gino)\b', q_lower)) and 'brand' in q_lower
+        if is_master_brand_count:
+            category = next((f'cat_{name}' for name in ('beer', 'wine', 'rtd', 'spirits') if re.search(rf'\b{name}\b', q_lower)), None)
+            brand_count = sql_engine.count_brands(category) if category else sql_engine.count_master_brands()
+            label = category.replace('cat_', '').upper() if category else 'Master'
+            if self._is_hinglish(q_lower):
+                answer = f"### 📊 {label} Brand Summary\n\n{label} sheet mein **{brand_count:,} unique brands** hain."
+            else:
+                answer = f"### 📊 {label} Brand Summary\n\nThe {label.lower()} sheet contains **{brand_count:,} unique brands**."
+            return self._format_response(answer, [], [], token)
+
+        # Uploaded documents are scoped to the browser conversation. If a relevant
+        # chunk exists, answer from it before falling back to the beverage catalog.
+        document_hits = search_documents(q, session_id)
+        if document_hits:
+            context = "\n\n".join(
+                f"[{hit['filename']} - page/section {hit['page']}]\n{hit['content']}"
+                for hit in document_hits
+            )
+            if self.is_ollama_available():
+                prompt = f"Use only this uploaded-document context to answer the question. Cite filename and page/section.\n\nContext:\n{context}\n\nQuestion: {q}"
+                answer = self.query_ollama(prompt, "You answer questions about user-uploaded documents. If the answer is not in context, say so clearly.")
+            else:
+                answer = None
+            if not answer:
+                answer = "### 📄 Uploaded Document Answer\n\n" + "\n\n".join(
+                    f"**{hit['filename']} — page/section {hit['page']}**\n{hit['content'][:1200]}"
+                    for hit in document_hits
+                )
+            return self._format_response(answer, document_hits,
+                                         [hit['filename'] for hit in document_hits], token)
+
         # 1. Check for UPC pattern (10 to 14 digits or 'upc' keyword)
         upc_match = re.search(r'\b(\d{10,14})\b', q)
         is_upc_query = bool(upc_match) or 'upc' in q_lower or 'barcode' in q_lower
@@ -62,8 +138,61 @@ class RAGOrchestrator:
         is_missing = any(w in q_lower for w in ['missing', 'not found', 'absent', 'nahi hai', 'gap'])
         is_duplicate = any(w in q_lower for w in ['duplicate', 'repeated', 'multiple', 'dohra'])
         is_category_count = bool(re.search(r'\b(count|category count|gino|total count)\b', q_lower)) or 'total products in each' in q_lower
-        is_brand_search = any(w in q_lower for w in ['brand', 'products belonging to', 'show products for', 'products of'])
+        is_product_upc_gap = any(w in q_lower for w in [
+            'alternate upc', 'alternate barcode', 'same product', 'product match',
+            'upc missing', 'brand flavour size', 'brand flavor size',
+            'allmasterbrand', 'all master'
+        ])
+        # A supplier-only question should use the supplier search path below.
+        # Brand profile is reserved for questions asking for product attributes.
+        is_brand_profile = any(w in q_lower for w in [
+            'flavour', 'flavor', 'size', 'origin', 'country',
+            'details', 'profile'
+        ]) and not is_product_upc_gap
         is_supplier_search = any(w in q_lower for w in ['supplier', 'vendor']) and not is_compare
+        is_brand_search = any(w in q_lower for w in ['brand', 'products belonging to', 'show products for', 'products of', 'search', 'find']) and not is_supplier_search
+
+        if is_product_upc_gap:
+            from engines.upc_match_engine import upc_match_engine
+            category = next((f'cat_{name}' for name in ('beer', 'rtd', 'spirits', 'wine') if name in q_lower), None)
+            report_records = upc_match_engine.audit(category, limit=None)
+            source_files = ['$ALLBrand_202610291524.csv', 'Categorization 2026 - Beer.csv', 'Categorization 2026 - RTDs.csv', 'Categorization 2026 - Spirits.csv', 'Categorization 2026 - Wine.csv']
+            ans = f"### 🔎 UPC-First Product Audit\n\nReviewed **{len(report_records)} category records** against AllBrand. The report includes exact UPC status, missing UPC details, product/flavour/size matches, and suggested alternate UPCs. **No data was changed.** Review the CSV before making any manual update."
+            return self._format_response(ans, report_records, source_files, token)
+
+        if is_brand_profile:
+            brand_guess = self._extract_brand_guess(q)
+            profile = sql_engine.brand_profile(brand_guess)
+            report_records = profile['records']
+            source_files = sorted({r.get('source_file') for r in report_records if r.get('source_file')})
+            join = lambda values, fallback='Not available': ', '.join(values[:20]) if values else fallback
+            if self._is_hinglish(q_lower):
+                ans = f"""### 🏷️ {profile['query_brand']} Brand Profile
+
+**Unique brand names**: {profile['unique_brand_count']:,} | **Total records**: {profile['total_records']:,}
+
+- **Categories / sheets**: {', '.join(f"{c['category']} ({c['count']:,})" for c in profile['categories']) or 'Not found'}
+- **Flavours ({profile['unique_flavour_count']:,} distinct)**: {join(profile['flavours'])}
+- **Sizes / packs ({profile['unique_size_count']:,} distinct)**: {join(profile['sizes'])}
+- **Suppliers**: {join(profile['suppliers'])}
+- **Origin / domestic-import**: {join(profile['origins'])}
+- **Distinct UPCs**: {profile['unique_upc_count']:,}
+
+Neeche matching product records aur UPC details diye gaye hain."""
+            else:
+                ans = f"""### 🏷️ {profile['query_brand']} Brand Profile
+
+**Unique brand names**: {profile['unique_brand_count']:,} | **Total records**: {profile['total_records']:,}
+
+- **Categories / sheets**: {', '.join(f"{c['category']} ({c['count']:,})" for c in profile['categories']) or 'Not found'}
+- **Flavours ({profile['unique_flavour_count']:,} distinct)**: {join(profile['flavours'])}
+- **Sizes / packs ({profile['unique_size_count']:,} distinct)**: {join(profile['sizes'])}
+- **Suppliers**: {join(profile['suppliers'])}
+- **Origin / domestic-import**: {join(profile['origins'])}
+- **Distinct UPCs**: {profile['unique_upc_count']:,}
+
+Matching product records and UPC details are shown below."""
+            return self._format_response(ans, report_records, source_files, token)
 
         # Handle Query Execution by Intent:
 
@@ -151,7 +280,22 @@ Yahan sabhi 4 categories (Beer, Wine, RTD, Spirits) ka Master Brands (`AIMasterB
             source_files = ["AIMasterBrandData.csv", f"Categorization 2026 - {cat_name}.csv"]
             summary = res['summary']
 
-            ans = f"""### 🔍 Master Data vs {cat_name} Categorization Comparison
+            if self._is_hinglish(q_lower):
+                    ans = f"""### 🔍 Master Data vs {cat_name} Categorization Comparison
+
+- **Master mein total records**: {summary['master_total_records']:,}
+- **{cat_name} sheet mein total records**: {summary['categorization_total_records']:,}
+- **{cat_name} ke unique UPCs**: {summary['categorization_unique_upcs']:,}
+- **Dono sheets mein matching UPCs**: {summary['matching_upcs_in_both']:,} ({summary['match_rate_pct']}%)
+- **Master mein missing UPCs**: {summary['missing_from_master_total']:,}
+
+Sample review mein:
+- **Exact matches**: {summary['exact_matches_in_sample']}
+- **Partial brand matches**: {summary['partial_matches_in_sample']}
+- **Brand mismatch**: {summary['mismatches_in_sample']}
+- **Missing records**: {summary['missing_in_sample']}"""
+            else:
+                    ans = f"""### 🔍 Master Data vs {cat_name} Categorization Comparison
 
 - **Master Total Records**: {summary['master_total_records']:,}
 - **{cat_name} Total Records**: {summary['categorization_total_records']:,}
@@ -223,12 +367,20 @@ The requested UPC was **not found** in any of the 7 beverage datasets.
         # G. Brand Search
         if is_brand_search or any(b in q_lower for b in ['michelob', 'modelo', 'bud light', 'corona', 'twisted tea', 'titos', 'la marca']):
             # Extract brand name guess
-            brand_guess = re.sub(r'(?i)(show|find|search|all|products|belonging|to|brand|karo|dikhao)', '', q).strip()
+            brand_guess = re.sub(r'(?i)(show|find|search|all|products?|product|description|belonging|to|for|brand|karo|dikhao)', '', q).strip()
             if not brand_guess:
                 brand_guess = q
-            res = sql_engine.search_brand(brand_guess, limit=100)
+            res = sql_engine.search_catalog(brand_guess, limit=100)
             report_records = res['records']
-            source_files = ["AIMasterBrandData.csv"]
+            source_files = sorted({r.get('source_file') for r in report_records if r.get('source_file')})
+
+            if res['total_matches'] > 0:
+                sample = report_records[0]
+                if self._is_hinglish(q_lower):
+                    ans = f"### 🔎 Catalog Search: '{res['query']}'\n\nAll sheets mein **{res['total_matches']} matching record(s)** mile.\n\n**Sample product description**: {sample.get('product_description') or 'Not available'}\n\nNeeche brand, product description, flavour, size, supplier, origin aur UPC details hain."
+                else:
+                    ans = f"### 🔎 Catalog Search: '{res['query']}'\n\nFound **{res['total_matches']} matching record(s)** across the Master, Beer, Wine, RTD and Spirits sheets.\n\n**Sample product description**: {sample.get('product_description') or 'Not available'}\n\nThe results include brand, product description, flavour, size, supplier, origin and UPC details."
+                return self._format_response(ans, report_records, source_files, token)
 
             if res['total_matches'] > 0:
                 ans = f"""### 🏷️ Brand Search: '{res['query_brand']}'
@@ -284,12 +436,77 @@ Answer with source file references and exact details:"""
 Retrieved **{len(docs)} highly relevant beverage records** from local vector storage:
 """ + "\n".join([f"- **{d['brand']}** (`UPC: {d['upc']}`): {d['description']} *(Source: `{d['source_file']}`, Row: {d['original_row']})*" for d in docs[:5]])
         else:
+            if self.is_ollama_available():
+                general = self.query_ollama(q, "You are a helpful general chat assistant with beverage-data expertise. Be concise, honest, and answer in the user's language. Do not invent database facts unless they are in context.")
+                if general:
+                    return self._format_response(general, [], [], token)
+            local_general = self._local_general_response(q)
+            if local_general:
+                return self._format_response(local_general, [], [], token)
             ans = f"""### ℹ️ No Direct Records Found
 
 No matching beverage records were retrieved for query: *"{q}"*.
 - Try searching with a 13-digit UPC, exact brand name (e.g. *Michelob Ultra*, *Modelo*, *Titos*), or comparison keywords (e.g. *Compare Master with Beer*)."""
 
         return self._format_response(ans, report_records, source_files, token)
+
+    def _local_general_response(self, query):
+        """Keep basic normal chat useful even when Ollama is not running."""
+        text = query.lower().strip()
+        if not self._is_hinglish(text):
+            if re.search(r'^(hi|hello|hey|hii)\b', text):
+                return "### 👋 Hello!\n\nI’m the BevIQ Assistant. You can chat normally or ask about beverage data, UPCs, comparisons, and uploaded documents."
+            if 'how are you' in text:
+                return "### 🙂 I’m ready!\n\nYou can chat casually or ask me about a product, UPC, PDF, image, or dataset."
+            if 'capital of india' in text:
+                return "### 🇮🇳 Answer\n\nThe capital of India is **New Delhi**."
+            if re.search(r'\b(joke|funny|make me laugh)\b', text) and re.search(r'\b(tell|give|share|about|hear|make)\b', text):
+                return "### 😄 Joke\n\nWhy did the data analyst drink coffee? To clear the **cache**!"
+            if any(word in text for word in ['thank you', 'thanks']):
+                return "### 😊 You’re welcome!\n\nGlad to help. Ask me anything whenever you like."
+            if any(word in text for word in ['what can you do', 'help', 'features']):
+                return "### 💡 BevIQ Help\n\n- Normal chat in English or Hinglish\n- UPC, brand, supplier, and category search\n- Beer, Wine, RTD, and Spirits comparisons\n- Missing/product-match UPC audits\n- Questions about uploaded PDF, image, DOCX, CSV, and XLSX files\n\nEnable local Ollama for richer open-ended answers."
+        if re.search(r'^(hi|hello|hey|hii|namaste|नमस्ते)\b', text):
+            return "### 👋 Hello!\n\nMain BevIQ Assistant hoon. Aap normal chat, beverage data, UPC lookup, comparisons, ya uploaded documents ke baare mein pooch sakte ho."
+        if any(word in text for word in ['how are you', 'kaise ho', 'kya haal']):
+            return "### 🙂 Main ready hoon!\n\nAap casual chat kar sakte ho ya koi product, UPC, PDF, image, ya dataset question pooch sakte ho."
+        if 'capital of india' in text or 'india ki capital' in text:
+            return "### 🇮🇳 Answer\n\nIndia ki capital **New Delhi** hai."
+        if (
+            re.search(r'\b(joke|funny|hansi|hasao)\b', text)
+            and re.search(r'\b(tell|give|share|about|suna|sunao|batao|make)\b', text)
+        ):
+            return "### 😄 Joke\n\nData analyst ne coffee kyun pi? Kyunki usse apna **cache** clear karna tha!"
+        if any(word in text for word in ['thank you', 'thanks', 'dhanyavaad', 'shukriya']):
+            return "### 😊 Welcome\n\nKhushi hui! Jab chahein pooch sakte ho."
+        if any(word in text for word in ['what can you do', 'help', 'kya kar sakte', 'features', 'madad']):
+            return "### 💡 BevIQ Help\n\n- Normal chat in English/Hinglish\n- UPC, brand, supplier aur category search\n- Beer, Wine, RTD aur Spirits comparison\n- Missing/product-match UPC audit\n- PDF, image, DOCX, CSV aur XLSX upload karke questions\n\nOpen-ended general answers ke liye local Ollama enable kar sakte ho."
+        return None
+
+    def _is_hinglish(self, text):
+        """Lightweight language hint for deterministic offline replies."""
+        hindi_markers = [
+            'kya', 'hai', 'hain', 'hoon', 'karna', 'karo', 'kaise', 'kyun',
+            'mujhe', 'mera', 'mere', 'aap', 'apka', 'batao', 'dikhao',
+            'chahiye', 'nahi', 'mein'
+        ]
+        return bool(re.search(r'[\u0900-\u097f]', text)) or any(
+            re.search(rf'\b{re.escape(marker)}\b', text) for marker in hindi_markers
+        )
+
+    def _extract_brand_guess(self, query):
+        """Remove profile question words while keeping a multi-word brand name."""
+        cleaned = re.sub(r'[^a-zA-Z0-9&.\- ]+', ' ', query)
+        stop_words = {
+            'mujhe', 'batao', 'dikhao', 'show', 'find', 'tell', 'me', 'about',
+            'how', 'many', 'what', 'which', 'are', 'is', 'the', 'this', 'brand',
+            'ke', 'ka', 'ki', 'hain', 'hai', 'kya', 'mein', 'me', 'present',
+            'kitne', 'kitni', 'flavour', 'flavours', 'flavor', 'flavors',
+            'size', 'sizes', 'supplier', 'suppliers', 'origin', 'origins',
+            'country', 'details', 'profile', 'and', 'or', 'aur', 'please', 'products'
+        }
+        words = [word for word in cleaned.split() if word.lower() not in stop_words]
+        return ' '.join(words).strip() or query.strip()
 
     def _format_response(self, markdown_text, records, source_files, token):
         # Save records for CSV download
@@ -306,7 +523,8 @@ No matching beverage records were retrieved for query: *"{q}"*.
             "source_files": source_files,
             "record_count": len(records),
             "records": records[:100],  # send first 100 to UI table
-            "download_token": token if records else None
+            "download_token": token if records else None,
+            "read_only": True
         }
 
 rag_orchestrator = RAGOrchestrator()
