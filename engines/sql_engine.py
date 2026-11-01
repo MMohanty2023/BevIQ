@@ -1,0 +1,306 @@
+import pandas as pd
+import logging
+from collections import Counter
+from config import CSV_FILES
+from database.db_manager import db_manager
+from data_ingestion.normalizer import normalize_upc
+
+logger = logging.getLogger("SQLEngine")
+
+class SQLEngine:
+    def __init__(self, db=None):
+        self.db = db or db_manager
+
+    def lookup_upc(self, upc_query):
+        """
+        Exact search for a UPC across Master and Categorization tables.
+        Returns matching records with source files and original rows.
+        """
+        clean = normalize_upc(upc_query)
+        results = []
+
+        # 1. Search in AIMaster
+        master_table = CSV_FILES['ai_master']['table']
+        m_rows = self.db.query(f"""
+            SELECT 'AIMaster' as source, source_file, original_row, clean_upc, clean_alt_upc, BrandName, ExtendedBrandName, SupplierName, ProductName, Size, Price, Segment
+            FROM `{master_table}`
+            WHERE clean_upc = ? OR clean_alt_upc = ?
+        """, (clean, clean))
+        results.extend(m_rows)
+
+        # 2. Search in AllBrand if not in Master
+        allbrand_table = CSV_FILES['all_brands']['table']
+        ab_rows = self.db.query(f"""
+            SELECT 'AllBrand' as source, source_file, original_row, clean_upc, clean_alt_upc, BrandName, ExtendedBrandName, SupplierName, ProductName, Size, Price, Remarks
+            FROM `{allbrand_table}`
+            WHERE clean_upc = ? OR clean_alt_upc = ?
+        """, (clean, clean))
+        results.extend(ab_rows)
+
+        # 3. Search in Beer
+        beer_table = CSV_FILES['cat_beer']['table']
+        b_rows = self.db.query(f"""
+            SELECT 'Beer' as source, source_file, original_row, clean_upc, Beer_Brands_Value as BrandName, Beer_Category_Value as Category, Beer_Vendors_Value as SupplierName, Product, Status
+            FROM `{beer_table}`
+            WHERE clean_upc = ?
+        """, (clean,))
+        results.extend(b_rows)
+
+        # 4. Search in RTDs
+        rtd_table = CSV_FILES['cat_rtd']['table']
+        r_rows = self.db.query(f"""
+            SELECT 'RTD' as source, source_file, original_row, clean_upc, Brands_Value as BrandName, RTD_Category_Value as Category, RTD_Alcohol_Base_Value as AlcoholBase, Product, PD_Status
+            FROM `{rtd_table}`
+            WHERE clean_upc = ?
+        """, (clean,))
+        results.extend(r_rows)
+
+        # 5. Search in Spirits
+        spirits_table = CSV_FILES['cat_spirits']['table']
+        s_rows = self.db.query(f"""
+            SELECT 'Spirits' as source, source_file, original_row, clean_upc, Spirits_Brands_Value as BrandName, Spirits_Category_Value as Category, Spirits_Suppliers_Value as SupplierName, Product, PD_Status
+            FROM `{spirits_table}`
+            WHERE clean_upc = ?
+        """, (clean,))
+        results.extend(s_rows)
+
+        # 6. Search in Wine
+        wine_table = CSV_FILES['cat_wine']['table']
+        w_rows = self.db.query(f"""
+            SELECT 'Wine' as source, source_file, original_row, clean_upc, Brands_Value as BrandName, Categories_Value as Category, Wine_Suppliers_Value as SupplierName, Product, PD_Status
+            FROM `{wine_table}`
+            WHERE clean_upc = ?
+        """, (clean,))
+        results.extend(w_rows)
+
+        return {
+            "query_upc": upc_query,
+            "normalized_upc": clean,
+            "total_matches": len(results),
+            "found_in_files": list(set([r['source_file'] for r in results])),
+            "records": results
+        }
+
+    def search_brand(self, brand_query, limit=50):
+        """Search products by brand name across master and categorization datasets."""
+        term = f"%{brand_query.strip().upper()}%"
+        master_table = CSV_FILES['ai_master']['table']
+        rows = self.db.query(f"""
+            SELECT source_file, original_row, clean_upc, BrandName, ExtendedBrandName, SupplierName, ProductName, Size, Price, Segment
+            FROM `{master_table}`
+            WHERE norm_brand LIKE ?
+            LIMIT {limit}
+        """, (term,))
+
+        return {
+            "query_brand": brand_query,
+            "total_matches": len(rows),
+            "records": rows
+        }
+
+    def search_catalog(self, query, limit=100):
+        """Search brand names and product descriptions across every beverage sheet."""
+        term = f"%{query.strip()}%"
+        datasets = [
+            ("Master", CSV_FILES['ai_master']['table'], "norm_brand, BrandName, ProductName, Flavor, Flavor_1, Size, SupplierName, Appellation, clean_upc, source_file, original_row", "ProductName"),
+            ("Beer", CSV_FILES['cat_beer']['table'], "norm_brand, Beer_Brands_Value, Product, Beer_Mezzo_Styles_Value, Beer_Size_Groups_Value, Beer_Vendors_Value, Beer_DomVsImp_Value, clean_upc, source_file, original_row", "Product"),
+            ("Wine", CSV_FILES['cat_wine']['table'], "norm_brand, Brands_Value, Product, Flavor_Groups_Value, Flavors_Value, Size_Packages_Value, Wine_Suppliers_Value, DomVsImp_Value, clean_upc, source_file, original_row", "Product"),
+            ("RTD", CSV_FILES['cat_rtd']['table'], "norm_brand, Brands_Value, Product, RTD_Size_Value, clean_upc, source_file, original_row", "Product"),
+            ("Spirits", CSV_FILES['cat_spirits']['table'], "norm_brand, Spirits_Brands_Value, Product, Spirits_Flavors_Value, Spirits_Flavor_Scents_Value, Spirits_Sizes_Value, Spirits_Suppliers_Value, Spirits_DomVsImp_Value, clean_upc, source_file, original_row", "Product"),
+        ]
+        results = []
+        for category, table, columns, product_column in datasets:
+            rows = self.db.query(
+                f"SELECT {columns} FROM `{table}` WHERE norm_brand LIKE ? OR LOWER(COALESCE({product_column}, '')) LIKE LOWER(?) LIMIT {int(limit)}",
+                (term, term)
+            )
+            for row in rows:
+                if category == "Master":
+                    brand, product, flavour, size = row.get("BrandName"), row.get("ProductName"), " / ".join(str(row.get(k) or "") for k in ("Flavor", "Flavor_1") if str(row.get(k) or "").strip()), row.get("Size")
+                    supplier, origin = row.get("SupplierName"), row.get("Appellation")
+                elif category == "Beer":
+                    brand, product, flavour, size = row.get("Beer_Brands_Value"), row.get("Product"), row.get("Beer_Mezzo_Styles_Value"), row.get("Beer_Size_Groups_Value")
+                    supplier, origin = row.get("Beer_Vendors_Value"), row.get("Beer_DomVsImp_Value")
+                elif category == "Wine":
+                    brand, product, flavour, size = row.get("Brands_Value"), row.get("Product"), " / ".join(str(row.get(k) or "") for k in ("Flavor_Groups_Value", "Flavors_Value") if str(row.get(k) or "").strip()), row.get("Size_Packages_Value")
+                    supplier, origin = row.get("Wine_Suppliers_Value"), row.get("DomVsImp_Value")
+                elif category == "RTD":
+                    brand, product, flavour, size = row.get("Brands_Value"), row.get("Product"), "", row.get("RTD_Size_Value")
+                    supplier, origin = "", ""
+                else:
+                    brand, product, flavour, size = row.get("Spirits_Brands_Value"), row.get("Product"), " / ".join(str(row.get(k) or "") for k in ("Spirits_Flavors_Value", "Spirits_Flavor_Scents_Value") if str(row.get(k) or "").strip()), row.get("Spirits_Sizes_Value")
+                    supplier, origin = row.get("Spirits_Suppliers_Value"), row.get("Spirits_DomVsImp_Value")
+                results.append({
+                    "category": category, "brand": brand or "", "product_description": product or "",
+                    "flavour": flavour or "", "size": size or "", "supplier": supplier or "",
+                    "origin": origin or "", "upc": row.get("clean_upc") or "",
+                    "source_file": row.get("source_file"), "original_row": row.get("original_row")
+                })
+                if len(results) >= int(limit):
+                    return {"query": query, "total_matches": len(results), "records": results}
+        return {"query": query, "total_matches": len(results), "records": results}
+
+    def brand_profile(self, brand_query, limit=500):
+        """Return brand facts across the master and all categorization sheets."""
+        term = f"%{brand_query.strip().upper()}%"
+        datasets = [
+            ("Master", CSV_FILES['ai_master']['table'],
+             "norm_brand, BrandName, ProductCategory, Flavor, Flavor_1, Size, SupplierName, Appellation, ProductName, clean_upc, source_file, original_row"),
+            ("Beer", CSV_FILES['cat_beer']['table'],
+             "norm_brand, Beer_Brands_Value, Beer_Mezzo_Styles_Value, Beer_Size_Groups_Value, Beer_Vendors_Value, Beer_DomVsImp_Value, Product, clean_upc, source_file, original_row"),
+            ("Wine", CSV_FILES['cat_wine']['table'],
+             "norm_brand, Brands_Value, Flavor_Groups_Value, Flavors_Value, Size_Packages_Value, Wine_Suppliers_Value, DomVsImp_Value, Product, clean_upc, source_file, original_row"),
+            ("RTD", CSV_FILES['cat_rtd']['table'],
+             "norm_brand, Brands_Value, RTD_Size_Value, Product, clean_upc, source_file, original_row"),
+            ("Spirits", CSV_FILES['cat_spirits']['table'],
+             "norm_brand, Spirits_Brands_Value, Spirits_Flavors_Value, Spirits_Flavor_Scents_Value, Spirits_Sizes_Value, Spirits_Suppliers_Value, Spirits_DomVsImp_Value, Product, clean_upc, source_file, original_row"),
+        ]
+
+        records = []
+        for category, table, columns in datasets:
+            rows = self.db.query(
+                f"SELECT {columns} FROM `{table}` WHERE norm_brand LIKE ? LIMIT {int(limit)}",
+                (term,)
+            )
+            for row in rows:
+                if category == "Master":
+                    flavour = " / ".join(str(row.get(k) or "") for k in ("Flavor", "Flavor_1") if str(row.get(k) or "").strip())
+                    brand = row.get("BrandName")
+                    size = row.get("Size")
+                    supplier = row.get("SupplierName")
+                    origin = row.get("Appellation")
+                    product = row.get("ProductName")
+                elif category == "Beer":
+                    flavour = row.get("Beer_Mezzo_Styles_Value")
+                    brand = row.get("Beer_Brands_Value")
+                    size = row.get("Beer_Size_Groups_Value")
+                    supplier = row.get("Beer_Vendors_Value")
+                    origin = row.get("Beer_DomVsImp_Value")
+                    product = row.get("Product")
+                elif category == "Wine":
+                    flavour = " / ".join(str(row.get(k) or "") for k in ("Flavor_Groups_Value", "Flavors_Value") if str(row.get(k) or "").strip())
+                    brand = row.get("Brands_Value")
+                    size = row.get("Size_Packages_Value")
+                    supplier = row.get("Wine_Suppliers_Value")
+                    origin = row.get("DomVsImp_Value")
+                    product = row.get("Product")
+                elif category == "RTD":
+                    flavour = ""
+                    brand = row.get("Brands_Value")
+                    size = row.get("RTD_Size_Value")
+                    supplier = ""
+                    origin = ""
+                    product = row.get("Product")
+                else:
+                    flavour = " / ".join(str(row.get(k) or "") for k in ("Spirits_Flavors_Value", "Spirits_Flavor_Scents_Value") if str(row.get(k) or "").strip())
+                    brand = row.get("Spirits_Brands_Value")
+                    size = row.get("Spirits_Sizes_Value")
+                    supplier = row.get("Spirits_Suppliers_Value")
+                    origin = row.get("Spirits_DomVsImp_Value")
+                    product = row.get("Product")
+                records.append({
+                    "category": category, "brand": brand or brand_query, "flavour": flavour,
+                    "size": size, "supplier": supplier, "origin": origin,
+                    "product": product, "upc": row.get("clean_upc"),
+                    "source_file": row.get("source_file"), "original_row": row.get("original_row")
+                })
+
+        def values(key):
+            return sorted({str(r[key]).strip() for r in records if str(r.get(key) or "").strip()})
+
+        return {
+            "query_brand": brand_query,
+            "total_records": len(records),
+            "unique_brand_count": len({str(r.get("brand") or "").strip().upper() for r in records if str(r.get("brand") or "").strip()}),
+            "unique_flavour_count": len(values("flavour")),
+            "unique_size_count": len(values("size")),
+            "unique_upc_count": len({str(r.get("upc") or "").strip() for r in records if str(r.get("upc") or "").strip()}),
+            "categories": [{"category": name, "count": count} for name, count in Counter(r["category"] for r in records).most_common()],
+            "flavours": values("flavour"), "sizes": values("size"),
+            "suppliers": values("supplier"), "origins": values("origin"),
+            "records": records,
+        }
+
+    def search_supplier(self, supplier_query, limit=50):
+        """Search products and supplier details by supplier name."""
+        term = f"%{supplier_query.strip().upper()}%"
+        master_table = CSV_FILES['ai_master']['table']
+        rows = self.db.query(f"""
+            SELECT source_file, original_row, clean_upc, BrandName, ExtendedBrandName, SupplierName, SupplierCode, ProductName, Price
+            FROM `{master_table}`
+            WHERE norm_supplier LIKE ?
+            LIMIT {limit}
+        """, (term,))
+
+        return {
+            "query_supplier": supplier_query,
+            "total_matches": len(rows),
+            "records": rows
+        }
+
+    def count_master_brands(self):
+        """Return the distinct normalized brand count from the master catalog."""
+        return self.count_brands()
+
+    def count_brands(self, category=None):
+        """Return distinct brand count for the master or requested category sheet."""
+        table = CSV_FILES.get(category or 'ai_master', CSV_FILES['ai_master'])['table']
+        rows = self.db.query(
+            f"SELECT COUNT(DISTINCT norm_brand) AS brand_count FROM `{table}` "
+            "WHERE TRIM(COALESCE(norm_brand, '')) != ''"
+        )
+        return int(rows[0].get('brand_count') or 0) if rows else 0
+
+    def count_by_category(self):
+        """Aggregates product counts by category across Master and Categorization tables."""
+        master_table = CSV_FILES['ai_master']['table']
+        m_counts = self.db.query(f"""
+            SELECT ProductName as category, COUNT(*) as product_count
+            FROM `{master_table}`
+            GROUP BY ProductName
+            ORDER BY product_count DESC
+        """)
+
+        beer_table = CSV_FILES['cat_beer']['table']
+        b_counts = self.db.query(f"""
+            SELECT Beer_Category_Value as category, COUNT(*) as product_count
+            FROM `{beer_table}`
+            GROUP BY Beer_Category_Value
+            ORDER BY product_count DESC
+        """)
+
+        rtd_table = CSV_FILES['cat_rtd']['table']
+        r_counts = self.db.query(f"""
+            SELECT RTD_Category_Value as category, COUNT(*) as product_count
+            FROM `{rtd_table}`
+            GROUP BY RTD_Category_Value
+            ORDER BY product_count DESC
+        """)
+
+        return {
+            "master_categories": m_counts,
+            "beer_categories": b_counts,
+            "rtd_categories": r_counts
+        }
+
+    def get_dataset_overview(self):
+        """Returns row counts and metrics for each active table."""
+        stats = []
+        for key, conf in CSV_FILES.items():
+            tbl = conf['table']
+            try:
+                row_count = self.db.query(f"SELECT COUNT(*) as c FROM `{tbl}`")[0]['c']
+                upc_count = self.db.query(f"SELECT COUNT(DISTINCT clean_upc) as c FROM `{tbl}` WHERE clean_upc != ''")[0]['c']
+            except Exception:
+                row_count = 0
+                upc_count = 0
+            stats.append({
+                "dataset_key": key,
+                "file_name": conf['file'],
+                "table_name": tbl,
+                "total_rows": row_count,
+                "unique_upcs": upc_count
+            })
+        return stats
+
+sql_engine = SQLEngine()

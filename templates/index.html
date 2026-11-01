@@ -1,0 +1,1526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BevIQ | Beverage Intelligence</title>
+    <style>
+        :root {
+            --bg-page: #090d16;
+            --bg-surface: #0f172a;
+            --bg-card: #141e33;
+            --bg-hover: #1e293b;
+            --border-color: #27354f;
+            --border-light: #334155;
+            --text-main: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --accent-blue: #38bdf8;
+            --accent-primary: #2563eb;
+            --accent-emerald: #10b981;
+            --accent-amber: #f59e0b;
+            --accent-rose: #f43f5e;
+            --accent-purple: #a855f7;
+            --accent-orange: #fb923c;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-page);
+            color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.5;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Top Header */
+        header {
+            background: linear-gradient(180deg, #0f172a 0%, #0c1222 100%);
+            border-bottom: 1px solid var(--border-color);
+            padding: 0.85rem 1.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+
+        .brand-container {
+            display: flex;
+            align-items: center;
+            gap: 0.85rem;
+        }
+
+        .brand-icon {
+            width: 38px;
+            height: 38px;
+            background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.25);
+        }
+
+        .brand-icon svg {
+            width: 20px;
+            height: 20px;
+            fill: #ffffff;
+        }
+
+        .brand-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            background: linear-gradient(90deg, #f8fafc 0%, #94a3b8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .brand-subtitle {
+            font-size: 0.72rem;
+            color: var(--accent-blue);
+            font-weight: 500;
+        }
+
+        .status-strip {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            flex-wrap: wrap;
+        }
+
+        .pill-badge {
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 0.3rem 0.75rem;
+            border-radius: 9999px;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            border: 1px solid transparent;
+        }
+
+        .pill-mysql { background: rgba(16, 185, 129, 0.12); color: #34d399; border-color: rgba(16, 185, 129, 0.3); }
+        .pill-db { background: rgba(56, 189, 248, 0.12); color: #38bdf8; border-color: rgba(56, 189, 248, 0.3); }
+        .pill-offline { background: rgba(168, 85, 247, 0.12); color: #c084fc; border-color: rgba(168, 85, 247, 0.3); }
+
+        /* Navigation Bar */
+        .nav-tabs-wrapper {
+            background: #0d1424;
+            border-bottom: 1px solid var(--border-color);
+            padding: 0 1.75rem;
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .nav-tab-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 0.88rem;
+            font-weight: 600;
+            padding: 0.85rem 1.25rem;
+            cursor: pointer;
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s ease;
+        }
+
+        .nav-tab-btn:hover {
+            color: var(--text-main);
+        }
+
+        .nav-tab-btn.active {
+            color: var(--accent-blue);
+        }
+
+        .nav-tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--accent-blue);
+            border-radius: 3px 3px 0 0;
+            box-shadow: 0 -2px 8px rgba(56, 189, 248, 0.5);
+        }
+
+        /* Layout Container */
+        .main-content {
+            flex: 1;
+            padding: 1.25rem 1.75rem;
+            max-width: 1700px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        .tab-panel {
+            display: none;
+        }
+
+        .tab-panel.active {
+            display: block;
+        }
+
+        /* Quick Prompt Bar */
+        .quick-prompts-bar {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 0.75rem 1rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            overflow-x: auto;
+            scrollbar-width: thin;
+        }
+
+        .prompt-label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--accent-blue);
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+
+        .prompt-chip {
+            background: #1a253c;
+            border: 1px solid #2a3b5c;
+            color: #cbd5e1;
+            font-size: 0.78rem;
+            font-weight: 500;
+            padding: 0.35rem 0.85rem;
+            border-radius: 9999px;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.15s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .prompt-chip:hover {
+            background: #243454;
+            color: #ffffff;
+            border-color: var(--accent-blue);
+            transform: translateY(-1px);
+        }
+
+        .prompt-chip.urgent {
+            background: rgba(244, 63, 94, 0.15);
+            border-color: rgba(244, 63, 94, 0.4);
+            color: #fda4af;
+            font-weight: 600;
+        }
+
+        .prompt-chip.urgent:hover {
+            background: rgba(244, 63, 94, 0.25);
+            border-color: #f43f5e;
+            color: #ffffff;
+        }
+
+        /* Chat Assistant View */
+        .chat-layout {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            height: calc(100vh - 250px);
+            min-height: 520px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+        }
+
+        .chat-history {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+            scrollbar-width: thin;
+        }
+
+        .chat-bubble {
+            max-width: 90%;
+            padding: 1.15rem 1.4rem;
+            border-radius: 14px;
+            font-size: 0.92rem;
+            line-height: 1.6;
+            animation: fadeIn 0.25s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .user-message {
+            align-self: flex-end;
+            background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%);
+            color: #ffffff;
+            border-bottom-right-radius: 3px;
+            box-shadow: 0 4px 15px rgba(37, 99, 235, 0.25);
+        }
+
+        .bot-message {
+            align-self: flex-start;
+            background: #111a2e;
+            color: var(--text-main);
+            border: 1px solid #23314d;
+            border-bottom-left-radius: 3px;
+            width: 95%;
+        }
+
+        .bot-message-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .bot-identity {
+            display: flex;
+            align-items: center;
+            gap: 0.45rem;
+            font-weight: 600;
+            color: var(--accent-blue);
+        }
+
+        /* Markdown Elements in Bot Messages */
+        .bot-markdown h3 {
+            font-size: 1.1rem;
+            margin: 0.6rem 0 0.4rem 0;
+            color: #ffffff;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .bot-markdown h4 {
+            font-size: 0.95rem;
+            margin: 0.8rem 0 0.3rem 0;
+            color: #cbd5e1;
+            font-weight: 600;
+        }
+
+        .bot-markdown p {
+            margin-bottom: 0.6rem;
+        }
+
+        .bot-markdown ul, .bot-markdown ol {
+            padding-left: 1.4rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .bot-markdown li {
+            margin-bottom: 0.3rem;
+        }
+
+        .bot-markdown code {
+            background: rgba(56, 189, 248, 0.12);
+            color: #7dd3fc;
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        }
+
+        /* Table Styling */
+        .markdown-table-wrapper {
+            overflow-x: auto;
+            margin: 0.85rem 0;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background: #0b1120;
+        }
+
+        .styled-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.83rem;
+            text-align: left;
+        }
+
+        .styled-table th {
+            background: #162238;
+            color: #cbd5e1;
+            font-weight: 600;
+            padding: 0.65rem 0.9rem;
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
+            top: 0;
+        }
+
+        .styled-table td {
+            padding: 0.6rem 0.9rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            color: #e2e8f0;
+        }
+
+        .styled-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .styled-table tr:hover {
+            background: rgba(56, 189, 248, 0.04);
+        }
+
+        /* Status Badges */
+        .status-badge {
+            display: inline-block;
+            font-size: 0.73rem;
+            font-weight: 700;
+            padding: 0.2rem 0.55rem;
+            border-radius: 9999px;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .status-exact { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); }
+        .status-partial { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); }
+        .status-mismatch { background: rgba(244, 63, 94, 0.2); color: #fb7185; border: 1px solid rgba(244, 63, 94, 0.4); }
+        .status-missing { background: rgba(239, 68, 68, 0.22); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.45); }
+        .status-duplicate { background: rgba(168, 85, 247, 0.2); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.4); }
+        .status-verify { background: rgba(251, 146, 60, 0.2); color: #fdba74; border: 1px solid rgba(251, 146, 60, 0.4); }
+
+        /* Download Button */
+        .btn-download-csv {
+            background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+            color: #ffffff;
+            font-size: 0.84rem;
+            font-weight: 600;
+            padding: 0.45rem 1rem;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            box-shadow: 0 3px 10px rgba(16, 185, 129, 0.25);
+        }
+
+        .btn-download-csv:hover {
+            background: linear-gradient(135deg, #047857 0%, #059669 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 5px 15px rgba(16, 185, 129, 0.35);
+        }
+
+        /* Source Pills */
+        .source-pill-bar {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            flex-wrap: wrap;
+            margin-top: 0.75rem;
+            padding-top: 0.6rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .source-chip {
+            background: #1a253d;
+            border: 1px solid #283756;
+            color: #94a3b8;
+            padding: 0.18rem 0.55rem;
+            border-radius: 5px;
+            font-family: monospace;
+        }
+
+        /* Input Controls */
+        .chat-input-bar {
+            background: #0f182b;
+            border-top: 1px solid var(--border-color);
+            padding: 0.85rem 1.25rem;
+        }
+
+        .chat-form {
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .text-input-field {
+            flex: 1;
+            background: #090e1a;
+            border: 1px solid #23314d;
+            border-radius: 10px;
+            padding: 0.75rem 1.15rem;
+            font-size: 0.92rem;
+            color: #ffffff;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .text-input-field:focus {
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
+        }
+
+        .btn-submit-send {
+            background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%);
+            color: #ffffff;
+            border: none;
+            border-radius: 10px;
+            padding: 0 1.5rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.45rem;
+            transition: all 0.2s;
+        }
+
+        .btn-submit-send:hover {
+            background: linear-gradient(135deg, #1e40af 0%, #1d4ed8 100%);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+        }
+
+        /* Comparison Studio View */
+        .studio-grid {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 1.25rem;
+        }
+
+        .studio-sidebar {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+        }
+
+        .sidebar-heading {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            letter-spacing: 0.05em;
+            margin-bottom: 0.4rem;
+            padding: 0 0.5rem;
+        }
+
+        .preset-btn {
+            background: transparent;
+            border: 1px solid transparent;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            font-weight: 500;
+            padding: 0.65rem 0.85rem;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: left;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            transition: all 0.15s ease;
+        }
+
+        .preset-btn:hover {
+            background: #18233c;
+            color: #ffffff;
+        }
+
+        .preset-btn.active {
+            background: rgba(37, 99, 235, 0.18);
+            border-color: rgba(37, 99, 235, 0.5);
+            color: #60a5fa;
+            font-weight: 600;
+        }
+
+        .preset-btn.urgent-preset {
+            color: #f87171;
+        }
+
+        .preset-btn.urgent-preset.active {
+            background: rgba(244, 63, 94, 0.18);
+            border-color: rgba(244, 63, 94, 0.5);
+            color: #fb7185;
+        }
+
+        .studio-main {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+
+        .studio-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .studio-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: #ffffff;
+        }
+
+        .studio-subtitle {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        /* Metric Cards */
+        .metric-cards-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.85rem;
+        }
+
+        .metric-box {
+            background: #0f182c;
+            border: 1px solid #1e2c47;
+            border-radius: 10px;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .metric-box-title {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .metric-box-value {
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: #ffffff;
+            margin-top: 0.25rem;
+        }
+
+        .metric-exact { color: #34d399; }
+        .metric-mismatch { color: #fbbf24; }
+        .metric-missing { color: #f87171; }
+
+        /* Filter Search Box */
+        .table-filter-bar {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+        }
+
+        .search-filter-input {
+            flex: 1;
+            background: #090e1a;
+            border: 1px solid #23314d;
+            border-radius: 8px;
+            padding: 0.5rem 0.85rem;
+            font-size: 0.85rem;
+            color: #ffffff;
+            outline: none;
+        }
+
+        /* DBeaver & Datasets Panes */
+        .pane-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 1.5rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .card-heading {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .code-block {
+            background: #070b14;
+            border: 1px solid #1a253d;
+            border-radius: 8px;
+            padding: 0.85rem 1.15rem;
+            font-family: monospace;
+            font-size: 0.85rem;
+            color: #38bdf8;
+            margin: 0.5rem 0 1rem 0;
+            user-select: all;
+        }
+
+        /* Loading Spinner */
+        .loading-dots {
+            display: inline-flex;
+            gap: 4px;
+            align-items: center;
+        }
+
+        .loading-dot {
+            width: 6px;
+            height: 6px;
+            background: var(--accent-blue);
+            border-radius: 50%;
+            animation: bounce 1.2s infinite ease-in-out;
+        }
+
+        .loading-dot:nth-child(2) { animation-delay: 0.2s; }
+        .loading-dot:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); opacity: 0.3; }
+            40% { transform: scale(1); opacity: 1; }
+        }
+
+        /* Simple interface refresh: quieter surfaces, clearer spacing, fewer effects. */
+        :root {
+            --bg-page: #0b1120;
+            --bg-surface: #111827;
+            --bg-card: #172033;
+            --bg-hover: #202b40;
+            --border-color: #29364d;
+            --border-light: #394862;
+            --text-main: #f1f5f9;
+            --text-secondary: #a8b4c7;
+            --text-muted: #718096;
+            --accent-blue: #60a5fa;
+        }
+
+        body { font-size: 14px; }
+
+        header {
+            padding: .75rem 1.25rem;
+            background: #111827;
+            box-shadow: 0 1px 0 rgba(255,255,255,.05);
+        }
+
+        .brand-icon {
+            width: 34px;
+            height: 34px;
+            border-radius: 8px;
+            background: #2563eb;
+            box-shadow: none;
+        }
+
+        .brand-title { font-size: 1rem; }
+        .brand-subtitle { font-size: .7rem; color: #93c5fd; }
+        .status-strip { gap: .4rem; }
+        .pill-badge { padding: .25rem .55rem; font-size: .7rem; }
+
+        .nav-tabs-wrapper {
+            padding: 0 1.25rem;
+            gap: .15rem;
+            background: #0f172a;
+        }
+
+        .nav-tab-btn {
+            padding: .7rem .9rem;
+            font-size: .82rem;
+            font-weight: 600;
+        }
+
+        .main-content {
+            max-width: 1320px;
+            padding: 1rem 1.25rem;
+        }
+
+        .quick-prompts-bar {
+            padding: .6rem .75rem;
+            margin-bottom: .75rem;
+            gap: .4rem;
+            border-radius: 9px;
+        }
+
+        .prompt-chip {
+            padding: .3rem .65rem;
+            font-size: .74rem;
+            transform: none !important;
+        }
+
+        .chat-layout {
+            height: calc(100vh - 205px);
+            min-height: 480px;
+            border-radius: 10px;
+            box-shadow: 0 10px 24px rgba(0,0,0,.18);
+        }
+
+        .chat-history { padding: 1.1rem; gap: .85rem; }
+        .chat-bubble { padding: .9rem 1rem; border-radius: 10px; font-size: .88rem; }
+        .bot-message { width: min(94%, 900px); }
+        .bot-message-header { margin-bottom: .5rem; }
+        .chat-input-bar { padding: .7rem .85rem; }
+        .text-input-field { padding: .65rem .85rem; }
+        .btn-submit-send { padding: 0 1rem; }
+
+        .studio-grid { gap: .85rem; }
+        .studio-sidebar, .studio-main, .pane-card {
+            border-radius: 10px;
+            box-shadow: none;
+        }
+        .studio-main, .pane-card { padding: 1rem; }
+        .metric-cards-grid { gap: .6rem; }
+        .metric-box { padding: .75rem; border-radius: 8px; }
+        .metric-box-value { font-size: 1.35rem; }
+
+        @media (max-width: 760px) {
+            header { align-items: flex-start; gap: .65rem; flex-direction: column; }
+            .status-strip { width: 100%; }
+            .nav-tabs-wrapper { overflow-x: auto; padding: 0 .5rem; }
+            .nav-tab-btn { white-space: nowrap; padding: .65rem .7rem; }
+            .main-content { padding: .75rem .6rem; }
+            .quick-prompts-bar { align-items: flex-start; flex-wrap: wrap; }
+            .chat-layout { height: calc(100vh - 260px); min-height: 520px; }
+            .chat-form { gap: .45rem; }
+            .btn-submit-send { padding: 0 .8rem; }
+            .metric-cards-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <header>
+        <div class="brand-container">
+            <div class="brand-icon">
+                <svg viewBox="0 0 24 24"><path d="M7 2h10v2l-2 3v13a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V7L5 4V2h2zm2 5h6v-1.5L16 4H8l1 1.5V7zm5 3H10v2h4v-2z"/></svg>
+            </div>
+            <div>
+                <div class="brand-title">BEVIQ</div>
+                <div class="brand-subtitle">Beverage Intelligence, Simply</div>
+            </div>
+        </div>
+
+        <div class="status-strip">
+            <span class="pill-badge pill-mysql" id="mysql-badge">
+                ● MySQL 3307: Connected (beverage_db)
+            </span>
+            <span class="pill-badge pill-db">
+                ⚡ 702,207 Records Ready
+            </span>
+            <span class="pill-badge pill-offline">
+                🛡️ 100% Offline & Secure
+            </span>
+        </div>
+    </header>
+
+    <!-- Nav Tabs -->
+    <div class="nav-tabs-wrapper">
+        <button class="nav-tab-btn active" onclick="switchTab('chat', this)">
+            💬 AI Assistant
+        </button>
+        <button class="nav-tab-btn" onclick="switchTab('comparison', this)">
+            ⚖️ Comparison Studio
+        </button>
+        <button class="nav-tab-btn" onclick="switchTab('dbeaver', this)">
+            🐬 DBeaver & MySQL 3307
+        </button>
+        <button class="nav-tab-btn" onclick="switchTab('datasets', this)">
+            📊 Datasets & Schema
+        </button>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="main-content">
+
+        <!-- TAB 1: AI CHAT ASSISTANT -->
+        <div id="tab-chat" class="tab-panel active">
+            <!-- Quick Prompts Bar -->
+            <div class="quick-prompts-bar">
+                <span class="prompt-label">⚡ Quick Queries:</span>
+                <span class="prompt-chip urgent" onclick="triggerQuickPrompt('Review Beer, Wine, RTD, and Spirits UPCs against AllMasterBrand. Show which category UPCs are missing in MasterBrand, include counts, full product details, and a downloadable CSV report.')">
+                    🚨 Missing in Master: Beer, Wine, RTD & Spirits
+                </span>
+                <span class="prompt-chip" onclick="triggerQuickPrompt('Find UPC 0852955008021 in master data')">
+                    🔍 Find UPC 0852955008021
+                </span>
+                <span class="prompt-chip" onclick="triggerQuickPrompt('Compare AIMasterBrandData with Beer categorization')">
+                    🍺 Master vs Beer Sheet
+                </span>
+                <span class="prompt-chip" onclick="triggerQuickPrompt('Compare All Brand Sheet with Supplier Sheet')">
+                    🏢 AllBrand vs Supplier Master
+                </span>
+                <span class="prompt-chip" onclick="triggerQuickPrompt('Compare Beer and RTD categorization')">
+                    🔄 Beer vs RTD Validation
+                </span>
+                <span class="prompt-chip" onclick="triggerQuickPrompt('Show duplicate UPCs across all files')">
+                    ⚠️ Duplicate UPCs Audit
+                </span>
+                <span class="prompt-chip urgent" onclick="triggerQuickPrompt('Check Beer Wine RTD Spirits products where brand flavour size match AllMasterBrand but UPC is missing; suggest alternate UPC')">
+                    🔗 Product Match → Alternate UPC
+                </span>
+                <span class="prompt-chip" onclick="triggerQuickPrompt('Count total products in each category')">
+                    📊 Category Counts
+                </span>
+                <span class="prompt-chip" onclick="triggerQuickPrompt('What can you do?')">
+                    💬 Normal Chat & Help
+                </span>
+            </div>
+
+            <!-- Chat View -->
+            <div class="chat-layout">
+                <div class="chat-history" id="chat-history">
+                    <div class="chat-bubble bot-message">
+                        <div class="bot-message-header">
+                            <div class="bot-identity">
+                                🤖 BevIQ Assistant
+                            </div>
+                            <div>Local Engine • Ready</div>
+                        </div>
+                        <div class="bot-markdown">
+                            <p>Hello! I am your <strong>BevIQ Assistant</strong>. All <strong>702,207 records</strong> from your 7 CSV datasets and your MySQL <code>beverage_db</code> database are fully indexed.</p>
+                            <p>You can also use me for <strong>normal chat</strong> in English or Hinglish. I can find UPCs, audit missing records, compare categorization sheets, answer questions from uploaded documents, or generate downloadable CSV reports.</p>
+                            <p style="color: #93c5fd; font-size: 0.82rem;">UPC audits are review-only: no master product or UPC is changed automatically.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Input Controls -->
+                <div class="chat-input-bar">
+                    <div style="display:flex; align-items:center; gap:.65rem; margin-bottom:.65rem; color:var(--text-secondary); font-size:.8rem;">
+                        <label for="document-upload" class="prompt-chip">📎 Attach PDF / image / document</label>
+                        <input type="file" id="document-upload" accept=".pdf,.docx,.txt,.md,.csv,.xlsx,.xls,.png,.jpg,.jpeg,.webp,.bmp,.tiff" style="display:none" onchange="showSelectedDocument(this)">
+                        <span id="selected-document" style="color:var(--accent-emerald);"></span>
+                    </div>
+                    <form class="chat-form" onsubmit="submitUserChat(event)">
+                        <input type="text" id="chat-input-box" class="text-input-field" placeholder="Chat normally or ask about products, UPCs, datasets, or uploaded files..." autocomplete="off">
+                        <button type="submit" id="chat-submit-btn" class="btn-submit-send">
+                            Send Query ➔
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: COMPARISON STUDIO -->
+        <div id="tab-comparison" class="tab-panel">
+            <div class="studio-grid">
+                <!-- Sidebar Presets -->
+                <div class="studio-sidebar">
+                    <div class="sidebar-heading">Audit Presets</div>
+                    <button class="preset-btn urgent-preset active" onclick="executeComparison('all_missing', this)">
+                        🚨 All Missing in Master
+                    </button>
+                    <button class="preset-btn" onclick="executeComparison('master_vs_beer', this)">
+                        🍺 Master vs Beer
+                    </button>
+                    <button class="preset-btn" onclick="executeComparison('master_vs_rtd', this)">
+                        🍹 Master vs RTDs
+                    </button>
+                    <button class="preset-btn" onclick="executeComparison('master_vs_spirits', this)">
+                        🥃 Master vs Spirits
+                    </button>
+                    <button class="preset-btn" onclick="executeComparison('master_vs_wine', this)">
+                        🍷 Master vs Wine
+                    </button>
+                    <button class="preset-btn" onclick="executeComparison('allbrand_vs_supplier', this)">
+                        🏢 AllBrand vs Supplier
+                    </button>
+                    <button class="preset-btn" onclick="executeComparison('beer_vs_rtd', this)">
+                        🔄 Beer vs RTD Validation
+                    </button>
+                    <button class="preset-btn" onclick="executeComparison('duplicate_upcs', this)">
+                        📑 Duplicate UPC Audit
+                    </button>
+                </div>
+
+                <!-- Main Studio Output -->
+                <div class="studio-main">
+                    <div class="studio-header">
+                        <div>
+                            <div class="studio-title" id="studio-title">Missing UPC Audit: Beer, Wine, RTD & Spirits vs Master</div>
+                            <div class="studio-subtitle" id="studio-subtitle">Evaluating missing records across all categorization datasets</div>
+                        </div>
+                        <a id="studio-download-link" href="#" class="btn-download-csv" style="display:none;">
+                            📥 Download Full CSV Report
+                        </a>
+                    </div>
+
+                    <!-- Metric Summary Cards -->
+                    <div class="metric-cards-grid">
+                        <div class="metric-box">
+                            <div class="metric-box-title">Total Records Evaluated</div>
+                            <div class="metric-box-value" id="card-total">305,552</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-box-title">Matched in Master</div>
+                            <div class="metric-box-value metric-exact" id="card-matched">185,016</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-box-title">Missing from Master</div>
+                            <div class="metric-box-value metric-missing" id="card-missing">120,536</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-box-title">Missing Ratio</div>
+                            <div class="metric-box-value metric-mismatch" id="card-ratio">39.4%</div>
+                        </div>
+                    </div>
+
+                    <!-- Filter Bar -->
+                    <div class="table-filter-bar">
+                        <input type="text" id="studio-search-filter" class="search-filter-input" placeholder="Quick filter by UPC, brand name, category, or source file..." oninput="filterStudioTable()">
+                        <select id="studio-status-filter" class="search-filter-input" onchange="filterStudioTable(false)" style="max-width: 210px; cursor: pointer;">
+                            <option value="">All statuses</option>
+                            <option value="exact match">Exact Match</option>
+                            <option value="partial match">Partial Match</option>
+                            <option value="missing">Missing in Master</option>
+                            <option value="mismatch">Mismatch</option>
+                            <option value="duplicate">Duplicate</option>
+                        </select>
+                    </div>
+
+                    <!-- Table -->
+                    <div class="markdown-table-wrapper" style="max-height: 440px; overflow-y: auto;">
+                        <table class="styled-table" id="studio-data-table">
+                            <thead>
+                                <tr id="studio-table-header">
+                                    <th>Category</th>
+                                    <th>UPC (13 Digit)</th>
+                                    <th>Status</th>
+                                    <th>Brand Name</th>
+                                    <th>Product Description</th>
+                                    <th>Source File & Row</th>
+                                </tr>
+                            </thead>
+                            <tbody id="studio-table-body">
+                                <tr>
+                                    <td colspan="6" style="text-align:center; padding: 2.5rem; color: #94a3b8;">
+                                        <div class="loading-dots"><div class="loading-dot"></div><div class="loading-dot"></div><div class="loading-dot"></div></div>
+                                        <div style="margin-top: 0.5rem;">Loading comparison data...</div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 3: DBEAVER & MYSQL 3307 -->
+        <div id="tab-dbeaver" class="tab-panel">
+            <div class="pane-card">
+                <div class="card-heading">
+                    🐬 DBeaver MySQL 3307 Direct Integration
+                </div>
+                <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1rem;">
+                    Your MySQL Server 8.0 on port <strong>3307</strong> is connected! DBeaver can directly query the <code>beverage_db</code> database containing all 7 datasets:
+                </p>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;">
+                    <div>
+                        <h4 style="font-size: 0.9rem; color: #ffffff; margin-bottom: 0.5rem;">DBeaver Connection Parameters:</h4>
+                        <div class="code-block">
+Host: localhost (or 127.0.0.1)<br>
+Port: 3307<br>
+Database: beverage_db<br>
+Username: root<br>
+Password: Madhu@123<br>
+JDBC URL: jdbc:mysql://127.0.0.1:3307/beverage_db
+                        </div>
+                    </div>
+                    <div>
+                        <h4 style="font-size: 0.9rem; color: #ffffff; margin-bottom: 0.5rem;">Available Tables in DBeaver:</h4>
+                        <ul style="color: var(--text-secondary); font-size: 0.85rem; padding-left: 1.2rem; line-height: 1.8;">
+                            <li><code>aimasterbranddata</code> — 189,752 Master Records</li>
+                            <li><code>allbrand_data</code> — 189,619 Records</li>
+                            <li><code>beer_data</code> — 50,441 Categorization Records</li>
+                            <li><code>rtd_data</code> — 153,026 Categorization Records</li>
+                            <li><code>spirits_data</code> — 41,554 Categorization Records</li>
+                            <li><code>wine_data</code> — 61,031 Categorization Records</li>
+                            <li><code>supplier_data</code> — 16,784 Supplier Records</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 4: DATASETS & SCHEMA -->
+        <div id="tab-datasets" class="tab-panel">
+            <div class="pane-card">
+                <div class="card-heading">
+                    📊 Comprehensive Beverage Dataset Catalog (702,207 Records)
+                </div>
+                <div class="markdown-table-wrapper">
+                    <table class="styled-table">
+                        <thead>
+                            <tr>
+                                <th>Dataset Name</th>
+                                <th>Primary Entity</th>
+                                <th>Total Rows</th>
+                                <th>Total Cols</th>
+                                <th>UPC Format</th>
+                                <th>Delimiter</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>$ALLBrand_202610291524.csv</strong></td>
+                                <td>All Brands Catalog</td>
+                                <td>189,619</td>
+                                <td>45</td>
+                                <td>UPCCode (13 Digits)</td>
+                                <td>Pipe (<code>|</code>)</td>
+                            </tr>
+                            <tr>
+                                <td><strong>AIMasterBrandData.csv</strong></td>
+                                <td>Master Brand Catalog</td>
+                                <td>189,752</td>
+                                <td>22</td>
+                                <td>UPCCode (13 Digits)</td>
+                                <td>Pipe (<code>|</code>)</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Categorization 2026 - Beer.csv</strong></td>
+                                <td>Beer Categorization</td>
+                                <td>50,441</td>
+                                <td>16</td>
+                                <td>13 Digit Barcode in Product</td>
+                                <td>Comma (<code>,</code>)</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Categorization 2026 - RTDs.csv</strong></td>
+                                <td>RTD Categorization</td>
+                                <td>153,026</td>
+                                <td>10</td>
+                                <td>13 Digit Barcode in Product</td>
+                                <td>Comma (<code>,</code>)</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Categorization 2026 - Spirits.csv</strong></td>
+                                <td>Spirits Categorization</td>
+                                <td>41,554</td>
+                                <td>16</td>
+                                <td>13 Digit Barcode in Product</td>
+                                <td>Comma (<code>,</code>)</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Categorization 2026 - Wine.csv</strong></td>
+                                <td>Wine Categorization</td>
+                                <td>61,031</td>
+                                <td>18</td>
+                                <td>13 Digit Barcode in Product</td>
+                                <td>Comma (<code>,</code>)</td>
+                            </tr>
+                            <tr>
+                                <td><strong>$Supplier_202610291521.csv</strong></td>
+                                <td>Supplier Master Sheet</td>
+                                <td>16,784</td>
+                                <td>11</td>
+                                <td>SupplierCode / SupplierId</td>
+                                <td>Pipe (<code>|</code>)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Client Script (100% Offline & Pure JS) -->
+    <script>
+        let currentStudioRecords = [];
+        let currentStudioPreset = 'all_missing';
+        let lastServerSearch = '';
+        let studioSearchTimer = null;
+        let studioLoaded = false;
+        const chatSessionId = localStorage.getItem('beverage_chat_session') ||
+            (window.crypto && typeof window.crypto.randomUUID === 'function'
+                ? window.crypto.randomUUID()
+                : `session-${Date.now()}-${Math.random().toString(16).slice(2)}`);
+        localStorage.setItem('beverage_chat_session', chatSessionId);
+
+        function switchTab(tabId, btn) {
+            document.querySelectorAll('.nav-tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+
+            btn.classList.add('active');
+            document.getElementById('tab-' + tabId).classList.add('active');
+            if (tabId === 'comparison' && !studioLoaded) {
+                studioLoaded = true;
+                executeComparison('all_missing');
+            }
+        }
+
+        function triggerQuickPrompt(query) {
+            switchTab('chat', document.querySelectorAll('.nav-tab-btn')[0]);
+            document.getElementById('chat-input-box').value = query;
+            submitUserChat(new Event('submit'));
+        }
+
+        function showSelectedDocument(input) {
+            const label = document.getElementById('selected-document');
+            label.textContent = input.files.length ? `Selected: ${input.files[0].name}` : '';
+        }
+
+        function submitUserChat(e) {
+            if (e) e.preventDefault();
+            const input = document.getElementById('chat-input-box');
+            const sendButton = document.getElementById('chat-submit-btn');
+            const message = input.value.trim();
+            if (!message) return;
+
+            input.value = '';
+            input.disabled = true;
+            if (sendButton) sendButton.disabled = true;
+            appendChatMessage(message, 'user');
+
+            // Add loading indicator
+            const history = document.getElementById('chat-history');
+            const loadingBubble = document.createElement('div');
+            loadingBubble.className = 'chat-bubble bot-message';
+            loadingBubble.id = 'bot-loading-indicator';
+            loadingBubble.innerHTML = `
+                <div class="bot-message-header">
+                    <div class="bot-identity">🤖 BevIQ Assistant</div>
+                    <div>Auditing 702k+ records...</div>
+                </div>
+                <div>
+                    <span class="loading-dots">
+                        <span class="loading-dot"></span>
+                        <span class="loading-dot"></span>
+                        <span class="loading-dot"></span>
+                    </span>
+                    <span style="color: var(--text-secondary); font-size: 0.88rem; margin-left: 0.5rem;">Analyzing records and cross-referencing Master datasets...</span>
+                </div>
+            `;
+            history.appendChild(loadingBubble);
+            history.scrollTop = history.scrollHeight;
+
+            const formData = new FormData();
+            formData.append('message', message);
+            formData.append('session_id', chatSessionId);
+            const fileInput = document.getElementById('document-upload');
+            if (fileInput.files.length) formData.append('file', fileInput.files[0]);
+
+            fetch('/api/chat', {
+                method: 'POST',
+                body: formData
+            })
+            .then(async res => {
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) {
+                    throw new Error(data.error || data.answer || `Request failed (${res.status})`);
+                }
+                return data;
+            })
+            .then(data => {
+                loadingBubble.remove();
+                appendBotResponse(data);
+            })
+            .catch(err => {
+                loadingBubble.remove();
+                appendChatMessage(`⚠️ Query Error: ${err.message}`, 'bot');
+            })
+            .finally(() => {
+                input.disabled = false;
+                if (sendButton) sendButton.disabled = false;
+                if (fileInput.files.length) {
+                    fileInput.value = '';
+                    document.getElementById('selected-document').textContent = '';
+                }
+                input.focus();
+            });
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function appendChatMessage(text, sender) {
+            const history = document.getElementById('chat-history');
+            const bubble = document.createElement('div');
+            bubble.className = `chat-bubble ${sender === 'user' ? 'user-message' : 'bot-message'}`;
+            bubble.textContent = text;
+            history.appendChild(bubble);
+            history.scrollTop = history.scrollHeight;
+        }
+
+        function appendBotResponse(data) {
+            const history = document.getElementById('chat-history');
+            const bubble = document.createElement('div');
+            bubble.className = 'chat-bubble bot-message';
+
+            const headerHtml = `
+                <div class="bot-message-header">
+                    <div class="bot-identity">🤖 BevIQ Assistant</div>
+                    <div>Retrieved ${data.record_count || 0} records</div>
+                </div>
+            `;
+
+            let bodyHtml = `<div class="bot-markdown">${parseSimpleMarkdown(data.answer)}</div>`;
+
+            // Action / Download Bar
+            if (data.download_token) {
+                bodyHtml += `
+                    <div style="margin-top: 1rem; display: flex; align-items: center; justify-content: space-between; background: #0c1424; padding: 0.75rem 1rem; border-radius: 8px; border: 1px solid var(--border-color);">
+                        <span style="font-size: 0.84rem; color: #cbd5e1;"><strong>Complete Discrepancy Dataset:</strong> Ready for export</span>
+                        <a href="/api/export-csv/${data.download_token}" class="btn-download-csv">
+                            📥 Download CSV Report (${data.record_count} Records)
+                        </a>
+                    </div>
+                `;
+            }
+
+            // Results Table if available
+            if (data.records && data.records.length > 0) {
+                bodyHtml += renderRecordsTable(data.records.slice(0, 20));
+            }
+
+            // Sources pill strip
+            if (data.source_files && data.source_files.length > 0) {
+                bodyHtml += `
+                    <div class="source-pill-bar">
+                        <span><strong>Verified Sources:</strong></span>
+                        ${data.source_files.map(sf => `<span class="source-chip">${escapeHtml(sf)}</span>`).join('')}
+                    </div>
+                `;
+            }
+
+            bubble.innerHTML = headerHtml + bodyHtml;
+            history.appendChild(bubble);
+            history.scrollTop = history.scrollHeight;
+        }
+
+        function renderRecordsTable(records) {
+            if (!records || records.length === 0) return '';
+            const auditCols = ['status', 'current_upc', 'suggested_upc', 'alternate_upc', 'source_brand', 'source_description', 'source_size', 'master_brand', 'master_description', 'master_size', 'description_match_score', 'confidence'];
+            const cols = records[0].hasOwnProperty('current_upc')
+                ? auditCols.filter(k => Object.prototype.hasOwnProperty.call(records[0], k))
+                : Object.keys(records[0]).filter(k => !k.startsWith('_')).slice(0, 6);
+
+            let html = `
+                <div style="margin-top: 0.85rem;">
+                    <div style="font-size: 0.78rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 0.35rem; text-transform: uppercase;">
+                        Sample Discrepancy Records (Showing ${records.length} preview rows):
+                    </div>
+                    <div class="markdown-table-wrapper" style="max-height: 280px; overflow-y: auto;">
+                        <table class="styled-table">
+                            <thead>
+                                <tr>${cols.map(c => `<th>${escapeHtml(c.replace(/_/g, ' ').toUpperCase())}</th>`).join('')}</tr>
+                            </thead>
+                            <tbody>
+            `;
+
+            records.forEach(r => {
+                html += `<tr>`;
+                cols.forEach(c => {
+                    let val = escapeHtml(r[c] || '');
+                    if (c === 'status') {
+                        val = renderBadgeHtml(r[c] || '');
+                    }
+                    html += `<td>${val}</td>`;
+                });
+                html += `</tr>`;
+            });
+
+            html += `</tbody></table></div></div>`;
+            return html;
+        }
+
+        function renderBadgeHtml(status) {
+            const s = (status || '').toLowerCase();
+            if (s.includes('exact')) return `<span class="status-badge status-exact">Exact Match</span>`;
+            if (s.includes('partial')) return `<span class="status-badge status-partial">Partial Match</span>`;
+            if (s.includes('missing')) return `<span class="status-badge status-missing">Missing in Master</span>`;
+            if (s.includes('duplicate')) return `<span class="status-badge status-duplicate">Duplicate</span>`;
+            if (s.includes('mismatch')) return `<span class="status-badge status-mismatch">Mismatch</span>`;
+            return `<span class="status-badge status-verify">Requires Verify</span>`;
+        }
+
+        /* 100% Self-Contained Offline Markdown Parser */
+        function parseSimpleMarkdown(md) {
+            if (!md) return '';
+
+            let lines = md.split('\n');
+            let output = [];
+            let inTable = false;
+            let tableHeaderDone = false;
+
+            for (let i = 0; i < lines.length; i++) {
+                let line = lines[i].trim();
+
+                // Markdown Table detection
+                if (line.startsWith('|') && line.endsWith('|')) {
+                    if (!inTable) {
+                        inTable = true;
+                        tableHeaderDone = false;
+                        output.push('<div class="markdown-table-wrapper"><table class="styled-table">');
+                    }
+
+                    // Check separator line | :--- | :--- |
+                    if (line.includes('---')) {
+                        tableHeaderDone = true;
+                        continue;
+                    }
+
+                    let cells = line.split('|').slice(1, -1).map(c => c.trim());
+                    let tag = tableHeaderDone ? 'td' : 'th';
+                    let rowHtml = '<tr>' + cells.map(c => `<${tag}>${formatInlineMd(c)}</${tag}>`).join('') + '</tr>';
+                    
+                    if (!tableHeaderDone) {
+                        output.push('<thead>' + rowHtml + '</thead><tbody>');
+                    } else {
+                        output.push(rowHtml);
+                    }
+                    continue;
+                } else if (inTable) {
+                    inTable = false;
+                    output.push('</tbody></table></div>');
+                }
+
+                // Headers
+                if (line.startsWith('### ')) {
+                    output.push(`<h3>${formatInlineMd(line.substring(4))}</h3>`);
+                } else if (line.startsWith('#### ')) {
+                    output.push(`<h4>${formatInlineMd(line.substring(5))}</h4>`);
+                } else if (line.startsWith('- ')) {
+                    output.push(`<ul><li>${formatInlineMd(line.substring(2))}</li></ul>`);
+                } else if (line.startsWith('1. ') || line.startsWith('2. ') || line.startsWith('3. ') || line.startsWith('4. ')) {
+                    output.push(`<ol start="${line.substring(0, 1)}"><li>${formatInlineMd(line.substring(3))}</li></ol>`);
+                } else if (line.length > 0) {
+                    output.push(`<p>${formatInlineMd(line)}</p>`);
+                }
+            }
+
+            if (inTable) {
+                output.push('</tbody></table></div>');
+            }
+
+            return output.join('');
+        }
+
+        function formatInlineMd(text) {
+            return escapeHtml(text)
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/`(.*?)`/g, '<code>$1</code>');
+        }
+
+        /* Comparison Studio Engine */
+        function executeComparison(presetType, btn, search = '') {
+            studioLoaded = true;
+            currentStudioPreset = presetType;
+            if (btn) {
+                document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            }
+
+            const tbody = document.getElementById('studio-table-body');
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 2.5rem; color: #94a3b8;"><div class="loading-dots"><div class="loading-dot"></div><div class="loading-dot"></div><div class="loading-dot"></div></div><div style="margin-top: 0.5rem;">Auditing across Master & Categorization sheets...</div></td></tr>`;
+
+            fetch('/api/compare', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ type: presetType, limit: 250, search: search })
+            })
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('studio-title').textContent = data.comparison_type;
+                const dl = document.getElementById('studio-download-link');
+                if (data.download_token) {
+                    dl.href = `/api/export-csv/${data.download_token}`;
+                    dl.style.display = 'inline-flex';
+                }
+
+                // Summary Stats
+                const sm = data.summary || {};
+                document.getElementById('card-total').textContent = (sm.total_categorization_upcs || sm.master_total_records || sm.records_analyzed || data.records.length || 0).toLocaleString();
+                document.getElementById('card-matched').textContent = (sm.total_matched_in_master || sm.exact_matches || sm.verified_non_rtd || sm.matching_upcs_in_both || 0).toLocaleString();
+                document.getElementById('card-missing').textContent = (sm.total_missing_from_master || sm.missing_from_master_total || sm.missing_in_supplier_sheet || 0).toLocaleString();
+                document.getElementById('card-ratio').textContent = sm.overall_missing_pct ? `${sm.overall_missing_pct}%` : (sm.match_rate_pct ? `${sm.match_rate_pct}% Match` : 'N/A');
+
+                currentStudioRecords = data.records || [];
+                renderStudioTable(currentStudioRecords);
+            })
+            .catch(err => {
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 2rem; color: #f87171;">Error executing comparison: ${err.message}</td></tr>`;
+            });
+        }
+
+        function renderStudioTable(records) {
+            const tbody = document.getElementById('studio-table-body');
+            tbody.innerHTML = '';
+
+            if (!records || records.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 2rem; color: #94a3b8;">No discrepancy records found.</td></tr>`;
+                return;
+            }
+
+            records.forEach(r => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><strong>${r.category || (r.source_file ? r.source_file.replace('.csv', '') : 'Item')}</strong></td>
+                    <td><code>${r.upc || r.clean_upc || r.supplier_code || 'N/A'}</code></td>
+                    <td>${renderBadgeHtml(r.status)}</td>
+                    <td>${r.brand || r.master_brand || r.brand_name || r.beer_brand || 'N/A'}</td>
+                    <td>${r.product || r.product_desc || r.brand_supplier_name || 'N/A'}</td>
+                    <td style="font-size: 0.78rem; color: var(--text-secondary);">${r.source_file || r.master_file || ''} (Row ${r.original_row || r.master_row || 'N/A'})</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function filterStudioTable(allowServerSearch = true) {
+            const query = document.getElementById('studio-search-filter').value.toLowerCase().trim();
+            const status = document.getElementById('studio-status-filter').value.toLowerCase();
+
+            if (allowServerSearch && query !== lastServerSearch) {
+                clearTimeout(studioSearchTimer);
+                studioSearchTimer = setTimeout(() => {
+                    lastServerSearch = query;
+                    executeComparison(currentStudioPreset, null, query);
+                }, 350);
+            }
+            if (!query && !status) {
+                renderStudioTable(currentStudioRecords);
+                return;
+            }
+
+            const filtered = currentStudioRecords.filter(r => {
+                const matchesText = !query || (r.upc && r.upc.toLowerCase().includes(query)) ||
+                       (r.brand && r.brand.toLowerCase().includes(query)) ||
+                       (r.product && r.product.toLowerCase().includes(query)) ||
+                       (r.category && r.category.toLowerCase().includes(query)) ||
+                       (r.source_file && r.source_file.toLowerCase().includes(query));
+                const matchesStatus = !status || (r.status && r.status.toLowerCase().includes(status));
+                return matchesText && matchesStatus;
+            });
+
+            renderStudioTable(filtered);
+        }
+    </script>
+</body>
+</html>
