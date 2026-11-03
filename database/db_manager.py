@@ -9,8 +9,18 @@ logger = logging.getLogger("DBManager")
 class DBManager:
     def __init__(self, use_mysql=False, mysql_password=None):
         self.use_mysql = use_mysql
+        self._active_backend = "mysql" if use_mysql else "sqlite"
         self.mysql_password = mysql_password if mysql_password is not None else MYSQL_PASSWORD
         self.sqlite_path = str(SQLITE_PATH)
+
+    def set_mysql_backend(self, enabled):
+        """Select MySQL as primary or return to the local SQLite fallback."""
+        self.use_mysql = bool(enabled)
+        self._active_backend = "mysql" if self.use_mysql else "sqlite"
+
+    def backend_name(self):
+        """Return the backend currently selected for application queries."""
+        return self._active_backend
 
     def test_mysql_connection(self, password=None):
         """Test if MySQL server on port 3307 is reachable and authenticates."""
@@ -73,6 +83,7 @@ class DBManager:
             ok, _ = self.test_mysql_connection()
             if ok:
                 return self.get_mysql_connection()
+            self.set_mysql_backend(False)
         return self.get_sqlite_connection()
 
     def query(self, sql, params=None):

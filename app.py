@@ -132,6 +132,7 @@ def api_db_status():
     mysql_ok, mysql_msg = db_manager.test_mysql_connection()
     ollama_ok = rag_orchestrator.is_ollama_available()
     return jsonify({
+        'active_backend': db_manager.backend_name(),
         'mysql_connected': mysql_ok,
         'mysql_message': mysql_msg,
         'mysql_port': MYSQL_PORT,
@@ -151,13 +152,17 @@ def api_configure_db():
     ok, msg = db_manager.test_mysql_connection(password=password)
 
     if not ok:
+        db_manager.set_mysql_backend(False)
         return jsonify({'success': False, 'message': msg}), 400
+
+    db_manager.set_mysql_backend(True)
 
     if migrate:
         mig_ok, mig_msg = migrate_data_to_mysql(password=password)
-        return jsonify({'success': mig_ok, 'message': mig_msg})
+        return jsonify({'success': mig_ok, 'message': mig_msg, 'backend': db_manager.backend_name()})
 
-    return jsonify({'success': True, 'message': f"Connected to MySQL on port {MYSQL_PORT} successfully!"})
+    return jsonify({'success': True, 'message': f"Connected to MySQL on port {MYSQL_PORT} successfully!",
+                    'backend': db_manager.backend_name()})
 
 @app.route('/api/rebuild-index', methods=['POST'])
 def api_rebuild_index():
