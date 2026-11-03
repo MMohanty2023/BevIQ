@@ -955,12 +955,11 @@
             <div class="dashboard-grid">
                 <div>
                     <div class="studio-title">Beverage Dashboard</div>
-                    <div class="studio-subtitle">Live catalog health and Power BI-ready metrics</div>
                 </div>
                 <div id="dashboard-error" class="dashboard-card" style="display:none; color:#fda4af;"></div>
                 <div class="dashboard-kpis">
                     <div class="dashboard-card"><h3>Total records</h3><div class="dashboard-number" id="dashboard-total-records">—</div></div>
-                    <div class="dashboard-card"><h3>Unique UPCs</h3><div class="dashboard-number" id="dashboard-total-upcs">—</div></div>
+                    <div class="dashboard-card"><h3>Dataset UPC entries</h3><div class="dashboard-number" id="dashboard-total-upcs">—</div><div class="dashboard-subtle">Sum of distinct UPCs by dataset; overlaps may exist</div></div>
                     <div class="dashboard-card"><h3>Datasets</h3><div class="dashboard-number" id="dashboard-dataset-count">—</div></div>
                     <div class="dashboard-card"><h3>Active backend</h3><div class="dashboard-number" id="dashboard-backend">—</div><div class="dashboard-subtle" id="dashboard-backend-detail">Checking MySQL schema and SQLite fallback status...</div></div>
                 </div>
@@ -975,13 +974,16 @@
                 <div class="analytics-grid">
                     <div class="dashboard-card">
                         <h3>UPC availability summary</h3>
-                        <div class="dashboard-subtle">Records with a usable UPC versus records where the UPC is missing</div>
+                        <div class="dashboard-subtle">Master Brand and categorization UPCs shown separately</div>
                         <div class="upc-quality">
-                            <div class="upc-pie" id="dashboard-upc-pie" role="img" aria-label="UPC available versus missing pie chart"></div>
+                            <div class="upc-pie" id="dashboard-upc-pie" role="img" aria-label="Master Brand, Beer, RTD, Wine, and Spirits UPC pie chart"></div>
                             <div class="legend-list">
-                                <div class="legend-item"><span><i class="legend-dot" style="background:var(--accent-emerald)"></i>Available</span><strong id="dashboard-upc-available">—</strong></div>
-                                <div class="legend-item"><span><i class="legend-dot" style="background:var(--accent-rose)"></i>Missing</span><strong id="dashboard-upc-missing">—</strong></div>
-                                <div class="legend-item"><span>Total records</span><strong id="dashboard-upc-total">—</strong></div>
+                                <div class="legend-item"><span><i class="legend-dot" style="background:#38bdf8"></i>Master Brand UPC</span><strong id="dashboard-upc-master">—</strong></div>
+                                <div class="legend-item"><span><i class="legend-dot" style="background:#f59e0b"></i>Beer UPC</span><strong id="dashboard-upc-beer">—</strong></div>
+                                <div class="legend-item"><span><i class="legend-dot" style="background:#a78bfa"></i>RTD UPC</span><strong id="dashboard-upc-rtd">—</strong></div>
+                                <div class="legend-item"><span><i class="legend-dot" style="background:#f472b6"></i>Wine UPC</span><strong id="dashboard-upc-wine">—</strong></div>
+                                <div class="legend-item"><span><i class="legend-dot" style="background:#14b8a6"></i>Spirits UPC</span><strong id="dashboard-upc-spirits">—</strong></div>
+                                <div class="legend-item"><span>Total UPC records</span><strong id="dashboard-upc-total">—</strong></div>
                             </div>
                         </div>
                     </div>
@@ -1004,14 +1006,15 @@
                 </div>
                 <div class="dashboard-card">
                     <div style="display:flex; justify-content:space-between; align-items:center; gap:.75rem; margin-bottom:.6rem;">
-                        <div><h3 style="margin:0;">Dataset health</h3><div class="dashboard-subtle">Counts from the active database</div></div>
+                        <div><h3 style="margin:0;">Dataset health</h3><div class="dashboard-subtle">Counts from the active database</div><div class="dashboard-subtle" id="dashboard-refresh-time">Last refreshed: —</div></div>
                         <a id="dashboard-export-link" class="btn-download-csv" href="/api/dashboard/export/ai_master?limit=50000">Power BI CSV</a>
                     </div>
-                    <div style="overflow-x:auto;"><table class="dashboard-table"><thead><tr><th>Dataset</th><th>Rows</th><th>Unique UPCs</th><th>Source file</th></tr></thead><tbody id="dashboard-datasets"><tr><td colspan="4">Open Dashboard to load live data.</td></tr></tbody></table></div>
+                    <div style="overflow-x:auto;"><table class="dashboard-table"><thead><tr><th>Dataset</th><th>Rows</th><th>Distinct UPCs</th><th>Source file</th></tr></thead><tbody id="dashboard-datasets"><tr><td colspan="4">Open Dashboard to load live data.</td></tr></tbody></table></div>
                 </div>
                 <div class="dashboard-card">
-                    <h3>Missing UPC overview</h3>
+                    <h3>Category UPCs missing from AI Master</h3>
                     <div id="dashboard-missing-summary" class="dashboard-subtle">Loading...</div>
+                    <div id="dashboard-missing-by-category" class="legend-list" style="margin-top:.7rem;"></div>
                 </div>
                 <div class="dashboard-card database-status-card">
                     <h3>Database connection</h3>
@@ -1387,18 +1390,37 @@ JDBC URL: jdbc:mysql://127.0.0.1:3307/beverage_db
                 });
                 const quality = metrics.overall_upc || {};
                 const completion = Number(quality.completion_percentage || 0);
-                document.getElementById('dashboard-master-total').textContent = Number((metrics.master_brand || {}).total_records || 0).toLocaleString();
+                const master = metrics.master_brand || {};
+                const upcSegments = [
+                    { key: 'master', value: Number(master.distinct_upcs || 0), color: '#38bdf8' },
+                    { key: 'beer', value: Number((categories.beer || {}).distinct_upcs || 0), color: '#f59e0b' },
+                    { key: 'rtd', value: Number((categories.rtd || {}).distinct_upcs || 0), color: '#a78bfa' },
+                    { key: 'wine', value: Number((categories.wine || {}).distinct_upcs || 0), color: '#f472b6' },
+                    { key: 'spirits', value: Number((categories.spirits || {}).distinct_upcs || 0), color: '#14b8a6' },
+                ];
+                const totalDatasetUpcs = upcSegments.reduce((sum, segment) => sum + segment.value, 0);
+                let angle = 0;
+                const pieStops = upcSegments.map(segment => {
+                    const nextAngle = totalDatasetUpcs ? angle + (segment.value / totalDatasetUpcs) * 360 : angle;
+                    const stop = `${segment.color} ${angle}deg ${nextAngle}deg`;
+                    angle = nextAngle;
+                    return stop;
+                });
+                document.getElementById('dashboard-upc-pie').style.background = totalDatasetUpcs
+                    ? `conic-gradient(${pieStops.join(', ')})`
+                    : 'var(--border-color)';
+                upcSegments.forEach(segment => {
+                    const node = document.getElementById(`dashboard-upc-${segment.key}`);
+                    if (node) node.textContent = segment.value.toLocaleString();
+                });
+                document.getElementById('dashboard-upc-total').textContent = totalDatasetUpcs.toLocaleString();
+                document.getElementById('dashboard-master-total').textContent = Number(master.total_records || 0).toLocaleString();
                 document.getElementById('dashboard-upc-completion').textContent = `${completion.toFixed(1)}%`;
-                document.getElementById('dashboard-upc-available').textContent = Number(quality.available_upcs || 0).toLocaleString();
-                document.getElementById('dashboard-upc-missing').textContent = Number(quality.missing_upcs || 0).toLocaleString();
-                document.getElementById('dashboard-upc-total').textContent = Number(quality.total_records || 0).toLocaleString();
-                document.getElementById('dashboard-upc-pie').style.background = `conic-gradient(var(--accent-emerald) ${completion * 3.6}deg, var(--accent-rose) ${completion * 3.6}deg 360deg)`;
                 document.getElementById('dashboard-category-quality').innerHTML = Object.entries(categories).map(([name, value]) => `
                     <div class="dashboard-card category-kpi" onclick="openCategoryMissing('${name}')">
                         <h3>${name.toUpperCase()}</h3><div class="dashboard-number">${Number(value.total_records || 0).toLocaleString()}</div>
                         <div class="dashboard-subtle">${Number(value.missing_upcs || 0).toLocaleString()} missing · ${Number(value.completion_percentage || 0).toFixed(1)}% complete</div>
                     </div>`).join('');
-                const master = metrics.master_brand || {};
                 document.getElementById('dashboard-master-total-summary').textContent = Number(master.total_records || 0).toLocaleString();
                 document.getElementById('dashboard-master-brands').textContent = Number(master.unique_brands || 0).toLocaleString();
                 document.getElementById('dashboard-master-ids').textContent = Number(master.unique_master_ids || 0).toLocaleString();
@@ -1409,6 +1431,9 @@ JDBC URL: jdbc:mysql://127.0.0.1:3307/beverage_db
                     <td>${Number(dataset.unique_upcs || 0).toLocaleString()}</td><td>${escapeHtml(dataset.file_name || '')}</td></tr>`).join('');
                 const summary = missing.summary || {};
                 document.getElementById('dashboard-missing-summary').textContent = `${Number(summary.total_missing_from_master || 0).toLocaleString()} UPCs are missing from the master catalog in the current comparison.`;
+                document.getElementById('dashboard-missing-by-category').innerHTML = (summary.categories || []).map(item => `
+                    <div class="legend-item"><span>${escapeHtml(item.category)} missing from AI Master</span><strong>${Number(item.missing_from_master || 0).toLocaleString()}</strong></div>`).join('');
+                document.getElementById('dashboard-refresh-time').textContent = `Last refreshed: ${overview.generated_at ? new Date(overview.generated_at).toLocaleString() : 'Unavailable'}`;
                 document.getElementById('dashboard-database-status').innerHTML = `
                     <span class="status-chip">Active: <strong>${escapeHtml((status.active_backend || 'sqlite').toUpperCase())}</strong></span>
                     <span class="status-chip">SQLite: ${status.sqlite_connected ? 'Connected' : 'Unavailable'}</span>

@@ -44,6 +44,24 @@ def test_frontend_uses_pie_chart_and_clear_upc_copy():
     assert "mysql_schema_ready" in HTML
 
 
+def test_frontend_separates_master_and_category_upc_pie_segments():
+    for dataset in ("master", "beer", "rtd", "wine", "spirits"):
+        assert f'id="dashboard-upc-{dataset}"' in HTML
+    assert "Master Brand UPC" in HTML
+    assert "Beer UPC" in HTML
+    assert "RTD UPC" in HTML
+    assert "Wine UPC" in HTML
+    assert "Spirits UPC" in HTML
+
+
+def test_frontend_explains_powerbi_metric_definitions_and_refresh_context():
+    assert "Dataset UPC entries" in HTML
+    assert "Distinct UPCs" in HTML
+    assert "Category UPCs missing from AI Master" in HTML
+    assert 'id="dashboard-missing-by-category"' in HTML
+    assert 'id="dashboard-refresh-time"' in HTML
+
+
 def test_frontend_uses_beverage_dashboard_title_and_explains_backend():
     assert "Beverage Dashboard" in HTML
     assert "dashboard-backend-detail" in HTML

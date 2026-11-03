@@ -1,6 +1,7 @@
 import os
 import io
 import pandas as pd
+from datetime import datetime, timezone
 from pathlib import Path
 from flask import Flask, render_template, request, jsonify, send_file, send_from_directory
 from config import BASE_DIR, REPORTS_DIR, MYSQL_HOST, MYSQL_PORT, MYSQL_USER, MYSQL_DB, OLLAMA_HOST, OLLAMA_MODEL, CSV_FILES
@@ -144,6 +145,7 @@ def api_dashboard_overview():
                 'dataset_count': len(overview),
             },
             'datasets': overview,
+            'generated_at': datetime.now(timezone.utc).isoformat(),
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500

@@ -442,7 +442,8 @@ class SQLEngine:
                 COUNT(DISTINCT NULLIF(TRIM(COALESCE({brand_expression}, '')), '')) AS unique_brands,
                 COUNT(DISTINCT NULLIF(TRIM(COALESCE({id_expression}, '')), '')) AS unique_master_ids,
                 SUM(CASE WHEN LOWER(TRIM(COALESCE({upc_expression}, ''))) NOT IN ('', 'null', 'none', 'nan', 'n/a', 'na', '0') THEN 1 ELSE 0 END) AS available_upcs,
-                SUM(CASE WHEN LOWER(TRIM(COALESCE({upc_expression}, ''))) IN ('', 'null', 'none', 'nan', 'n/a', 'na', '0') THEN 1 ELSE 0 END) AS missing_upcs
+                SUM(CASE WHEN LOWER(TRIM(COALESCE({upc_expression}, ''))) IN ('', 'null', 'none', 'nan', 'n/a', 'na', '0') THEN 1 ELSE 0 END) AS missing_upcs,
+                COUNT(DISTINCT CASE WHEN LOWER(TRIM(COALESCE({upc_expression}, ''))) NOT IN ('', 'null', 'none', 'nan', 'n/a', 'na', '0') THEN TRIM({upc_expression}) END) AS distinct_upcs
             FROM `{CSV_FILES['ai_master']['table']}`
         """)[0]
 
@@ -458,20 +459,23 @@ class SQLEngine:
                 "unique_master_ids": int(master.get("unique_master_ids") or 0),
                 "records_with_upc": int(master.get("available_upcs") or 0),
                 "records_without_upc": int(master.get("missing_upcs") or 0),
+                "distinct_upcs": int(master.get("distinct_upcs") or 0),
             },
         }
 
     @staticmethod
-    def _quality_summary(total_records, available_upcs, missing_upcs, invalid_upcs=0):
+    def _quality_summary(total_records, available_upcs, missing_upcs, invalid_upcs=0, distinct_upcs=None):
         total_records = int(total_records or 0)
         available_upcs = int(available_upcs or 0)
         missing_upcs = int(missing_upcs or 0)
         invalid_upcs = int(invalid_upcs or 0)
+        distinct_upcs = int(available_upcs if distinct_upcs is None else distinct_upcs or 0)
         return {
             "total_records": total_records,
             "available_upcs": available_upcs,
             "missing_upcs": missing_upcs,
             "invalid_upcs": invalid_upcs,
+            "distinct_upcs": distinct_upcs,
             "completion_percentage": round((available_upcs / total_records) * 100, 2) if total_records else 0.0,
         }
 
@@ -483,13 +487,15 @@ class SQLEngine:
             SELECT
                 COUNT(*) AS total_records,
                 SUM(CASE WHEN LOWER(TRIM(COALESCE({upc_expression}, ''))) NOT IN ('', 'null', 'none', 'nan', 'n/a', 'na', '0') THEN 1 ELSE 0 END) AS available_upcs,
-                SUM(CASE WHEN LOWER(TRIM(COALESCE({upc_expression}, ''))) IN ('', 'null', 'none', 'nan', 'n/a', 'na', '0') THEN 1 ELSE 0 END) AS missing_upcs
+                SUM(CASE WHEN LOWER(TRIM(COALESCE({upc_expression}, ''))) IN ('', 'null', 'none', 'nan', 'n/a', 'na', '0') THEN 1 ELSE 0 END) AS missing_upcs,
+                COUNT(DISTINCT CASE WHEN LOWER(TRIM(COALESCE({upc_expression}, ''))) NOT IN ('', 'null', 'none', 'nan', 'n/a', 'na', '0') THEN TRIM({upc_expression}) END) AS distinct_upcs
             FROM `{table}`
         """)[0]
         return self._quality_summary(
             row.get("total_records"),
             row.get("available_upcs"),
             row.get("missing_upcs"),
+            distinct_upcs=row.get("distinct_upcs"),
         )
 
 sql_engine = SQLEngine()
