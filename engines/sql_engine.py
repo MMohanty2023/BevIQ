@@ -98,6 +98,56 @@ class SQLEngine:
             "records": rows
         }
 
+    def search_master_brands(self, query="", master_id=None, brand=None, upc=None, product=None, limit=100):
+        """Search the Master Brand table using real columns and exact identifiers."""
+        table = CSV_FILES["ai_master"]["table"]
+        columns = [column for column in self.db.table_columns(table) if column]
+        column_lookup = {column.lower(): column for column in columns}
+        id_column = next((column_lookup[name] for name in (
+            "id", "masterbrandid", "master_brand_id", "masterbrandid", "master_id"
+        ) if name in column_lookup), None)
+        brand_column = column_lookup.get("norm_brand") or column_lookup.get("brandname")
+        product_column = column_lookup.get("productname") or column_lookup.get("product")
+        clean_upc_column = column_lookup.get("clean_upc")
+        clean_alt_column = column_lookup.get("clean_alt_upc")
+
+        master_id = master_id or query if query and not (brand or upc or product) else master_id
+        conditions = []
+        params = []
+        if master_id and id_column:
+            conditions.append(f"`{id_column}` = ?")
+            params.append(str(master_id).strip())
+        if upc and clean_upc_column:
+            normalized = normalize_upc(upc)
+            upc_conditions = [f"`{clean_upc_column}` = ?"]
+            upc_params = [normalized]
+            if clean_alt_column:
+                upc_conditions.append(f"`{clean_alt_column}` = ?")
+                upc_params.append(normalized)
+            conditions.append("(" + " OR ".join(upc_conditions) + ")")
+            params.extend(upc_params)
+        if brand and brand_column:
+            conditions.append(f"LOWER(COALESCE(`{brand_column}`, '')) LIKE LOWER(?)")
+            params.append(f"%{brand.strip()}%")
+        if product and product_column:
+            conditions.append(f"LOWER(COALESCE(`{product_column}`, '')) LIKE LOWER(?)")
+            params.append(f"%{product.strip()}%")
+        if not conditions:
+            return {"columns": columns, "records": [], "total_matches": 0, "id_column": id_column}
+
+        safe_limit = max(1, min(int(limit), 500))
+        rows = self.db.query(
+            f"SELECT * FROM `{table}` WHERE {' AND '.join(conditions)} LIMIT {safe_limit}",
+            tuple(params),
+        )
+        result_columns = list(rows[0].keys()) if rows else columns
+        return {
+            "columns": result_columns,
+            "records": rows,
+            "total_matches": len(rows),
+            "id_column": id_column,
+        }
+
     def lookup_identifier(self, identifier, limit=200):
         """Return complete source rows for an exact ID, UPC, or alternate UPC."""
         requested = str(identifier or "").strip()
@@ -364,13 +414,63 @@ class SQLEngine:
         return stats
 
     def get_dashboard_metrics(self):
-        """Return live totals used by the dashboard and Power BI extracts."""
-        overview = self.get_dataset_overview()
-        return {
-            "total_records": sum(int(item.get("total_rows") or 0) for item in overview),
-            "total_unique_upcs": sum(int(item.get("unique_upcs") or 0) for item in overview),
-            "dataset_count": len(overview),
-            "datasets": overview,
+        """Return live category, UPC-quality, and Master Brand dashboard metrics."""
+        category_keys = ("beer", "wine", "rtd", "spirits")
+        categories = {
+            key: self._table_upc_metrics(CSV_FILES[f"cat_{key}"]["table"])
+            for key in category_keys
         }
+        master = self.db.query(f"""
+            SELECT
+                COUNT(*) AS master_record_count,
+                COUNT(DISTINCT NULLIF(TRIM(COALESCE(norm_brand, '')), '')) AS unique_brands,
+                COUNT(DISTINCT NULLIF(TRIM(COALESCE(id, '')), '')) AS unique_master_ids,
+                SUM(CASE WHEN TRIM(COALESCE(clean_upc, '')) != '' THEN 1 ELSE 0 END) AS available_upcs,
+                SUM(CASE WHEN TRIM(COALESCE(clean_upc, '')) = '' THEN 1 ELSE 0 END) AS missing_upcs
+            FROM `{CSV_FILES['ai_master']['table']}`
+        """)[0]
+
+        overall_total = sum(item["total_records"] for item in categories.values())
+        overall_available = sum(item["available_upcs"] for item in categories.values())
+        overall_missing = sum(item["missing_upcs"] for item in categories.values())
+        return {
+            "categories": categories,
+            "overall_upc": self._quality_summary(overall_total, overall_available, overall_missing),
+            "master_brand": {
+                "total_records": int(master.get("master_record_count") or 0),
+                "unique_brands": int(master.get("unique_brands") or 0),
+                "unique_master_ids": int(master.get("unique_master_ids") or 0),
+                "records_with_upc": int(master.get("available_upcs") or 0),
+                "records_without_upc": int(master.get("missing_upcs") or 0),
+            },
+        }
+
+    @staticmethod
+    def _quality_summary(total_records, available_upcs, missing_upcs, invalid_upcs=0):
+        total_records = int(total_records or 0)
+        available_upcs = int(available_upcs or 0)
+        missing_upcs = int(missing_upcs or 0)
+        invalid_upcs = int(invalid_upcs or 0)
+        return {
+            "total_records": total_records,
+            "available_upcs": available_upcs,
+            "missing_upcs": missing_upcs,
+            "invalid_upcs": invalid_upcs,
+            "completion_percentage": round((available_upcs / total_records) * 100, 2) if total_records else 0.0,
+        }
+
+    def _table_upc_metrics(self, table):
+        row = self.db.query(f"""
+            SELECT
+                COUNT(*) AS total_records,
+                SUM(CASE WHEN TRIM(COALESCE(clean_upc, '')) != '' THEN 1 ELSE 0 END) AS available_upcs,
+                SUM(CASE WHEN TRIM(COALESCE(clean_upc, '')) = '' THEN 1 ELSE 0 END) AS missing_upcs
+            FROM `{table}`
+        """)[0]
+        return self._quality_summary(
+            row.get("total_records"),
+            row.get("available_upcs"),
+            row.get("missing_upcs"),
+        )
 
 sql_engine = SQLEngine()

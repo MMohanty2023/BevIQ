@@ -2,6 +2,7 @@ import sqlite3
 import pymysql
 import pandas as pd
 import logging
+from datetime import datetime, timezone
 from config import SQLITE_PATH, MYSQL_HOST, MYSQL_PORT, MYSQL_USER, MYSQL_PASSWORD, MYSQL_DB
 
 logger = logging.getLogger("DBManager")
@@ -12,6 +13,8 @@ class DBManager:
         self._active_backend = "mysql" if use_mysql else "sqlite"
         self.mysql_password = mysql_password if mysql_password is not None else MYSQL_PASSWORD
         self.sqlite_path = str(SQLITE_PATH)
+        self.last_mysql_check = None
+        self.last_sqlite_check = None
 
     def set_mysql_backend(self, enabled):
         """Select MySQL as primary or return to the local SQLite fallback."""
@@ -38,8 +41,10 @@ class DBManager:
                 cur.execute("SELECT VERSION()")
                 version = cur.fetchone()[0]
             conn.close()
+            self.last_mysql_check = datetime.now(timezone.utc).isoformat()
             return True, f"Connected to MySQL {version} on {MYSQL_HOST}:{MYSQL_PORT}"
         except Exception as e:
+            self.last_mysql_check = datetime.now(timezone.utc).isoformat()
             return False, str(e)
 
     def get_mysql_connection(self, create_db=True):
@@ -77,6 +82,39 @@ class DBManager:
         conn.execute("PRAGMA temp_store = MEMORY")
         return conn
 
+    def table_columns(self, table):
+        """Return column names for a configured table on the active backend."""
+        if self.use_mysql:
+            rows = self.query(f"SHOW COLUMNS FROM `{table}`")
+            return [row.get("Field") or row.get("field") for row in rows]
+        rows = self.query(f"PRAGMA table_info(`{table}`)")
+        return [row.get("name") for row in rows]
+
+    def database_status(self):
+        """Return safe connection state without exposing credentials."""
+        sqlite_ok = False
+        sqlite_message = "Unavailable"
+        try:
+            conn = self.get_sqlite_connection()
+            conn.close()
+            sqlite_ok = True
+            sqlite_message = "SQLite database is available"
+            self.last_sqlite_check = datetime.now(timezone.utc).isoformat()
+        except Exception as exc:
+            sqlite_message = str(exc)
+
+        mysql_ok, mysql_message = self.test_mysql_connection()
+        return {
+            "sqlite_connected": sqlite_ok,
+            "sqlite_message": sqlite_message,
+            "mysql_connected": mysql_ok,
+            "mysql_message": mysql_message,
+            "active_backend": self.backend_name(),
+            "database_name": MYSQL_DB if self.use_mysql else "beverage_data.sqlite3",
+            "last_sqlite_check": self.last_sqlite_check,
+            "last_mysql_check": self.last_mysql_check,
+        }
+
     def get_connection(self):
         """Returns MySQL connection if configured and available, otherwise SQLite."""
         if self.use_mysql:
@@ -94,7 +132,7 @@ class DBManager:
                     conn = self.get_mysql_connection()
                     try:
                         with conn.cursor() as cur:
-                            cur.execute(sql, params or ())
+                            cur.execute(sql.replace("?", "%s"), params or ())
                             return cur.fetchall()
                     finally:
                         conn.close()
@@ -119,7 +157,7 @@ class DBManager:
                 if self.test_mysql_connection()[0]:
                     conn = self.get_mysql_connection()
                     try:
-                        return pd.read_sql(sql, conn, params=params)
+                        return pd.read_sql(sql.replace("?", "%s"), conn, params=params)
                     finally:
                         conn.close()
                 self.set_mysql_backend(False)

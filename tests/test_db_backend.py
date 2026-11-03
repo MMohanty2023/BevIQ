@@ -88,3 +88,17 @@ def test_query_falls_back_to_sqlite_when_mysql_query_fails(monkeypatch):
     assert manager.query("SELECT 1") == []
     assert manager.backend_name() == "sqlite"
 
+
+def test_database_status_reports_safe_sqlite_and_mysql_fields(monkeypatch):
+    from database.db_manager import DBManager
+
+    manager = DBManager()
+    monkeypatch.setattr(manager, "test_mysql_connection", lambda password=None: (False, "not configured"))
+
+    status = manager.database_status()
+
+    assert status["sqlite_connected"] is True
+    assert status["mysql_connected"] is False
+    assert status["active_backend"] == "sqlite"
+    assert "password" not in str(status).lower()
+
