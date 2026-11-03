@@ -790,6 +790,18 @@
         .metric-box { padding: .75rem; border-radius: 8px; }
         .metric-box-value { font-size: 1.35rem; }
 
+        .dashboard-grid { display: grid; gap: 1rem; }
+        .dashboard-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: .75rem; }
+        .dashboard-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 10px; padding: 1rem; }
+        .dashboard-card h3 { font-size: .82rem; color: var(--text-secondary); margin-bottom: .35rem; font-weight: 600; }
+        .dashboard-number { font-size: 1.65rem; font-weight: 700; color: var(--text-main); }
+        .dashboard-subtle { color: var(--text-muted); font-size: .8rem; }
+        .dashboard-table { width: 100%; border-collapse: collapse; font-size: .84rem; }
+        .dashboard-table th, .dashboard-table td { padding: .65rem .7rem; text-align: left; border-bottom: 1px solid var(--border-color); }
+        .dashboard-table th { color: var(--text-secondary); font-weight: 600; }
+        .upload-preview { display: none; align-items: center; gap: .6rem; margin-top: .45rem; color: var(--text-secondary); font-size: .8rem; }
+        .upload-preview img { width: 52px; height: 52px; object-fit: cover; border-radius: 7px; border: 1px solid var(--border-color); }
+
         @media (max-width: 760px) {
             header { align-items: flex-start; gap: .65rem; flex-direction: column; }
             .status-strip { width: 100%; }
@@ -801,6 +813,7 @@
             .chat-form { gap: .45rem; }
             .btn-submit-send { padding: 0 .8rem; }
             .metric-cards-grid { grid-template-columns: repeat(2, 1fr); }
+            .dashboard-kpis { grid-template-columns: repeat(2, 1fr); }
         }
     </style>
 </head>
@@ -835,6 +848,9 @@
     <div class="nav-tabs-wrapper">
         <button class="nav-tab-btn active" onclick="switchTab('chat', this)">
             💬 AI Assistant
+        </button>
+        <button class="nav-tab-btn" onclick="switchTab('dashboard', this)">
+            Dashboard
         </button>
         <button class="nav-tab-btn" onclick="switchTab('comparison', this)">
             ⚖️ Comparison Studio
@@ -906,8 +922,9 @@
                 <div class="chat-input-bar">
                     <div style="display:flex; align-items:center; gap:.65rem; margin-bottom:.65rem; color:var(--text-secondary); font-size:.8rem;">
                         <label for="document-upload" class="prompt-chip">📎 Attach PDF / image / document</label>
-                        <input type="file" id="document-upload" accept=".pdf,.docx,.txt,.md,.csv,.xlsx,.xls,.png,.jpg,.jpeg,.webp,.bmp,.tiff" style="display:none" onchange="showSelectedDocument(this)">
+                        <input type="file" id="document-upload" accept=".pdf,.doc,.docx,.txt,.md,.csv,.xlsx,.xls,.png,.jpg,.jpeg,.webp,.bmp,.tiff" style="display:none" onchange="showSelectedDocument(this)">
                         <span id="selected-document" style="color:var(--accent-emerald);"></span>
+                        <div id="upload-preview" class="upload-preview"></div>
                     </div>
                     <form class="chat-form" onsubmit="submitUserChat(event)">
                         <input type="text" id="chat-input-box" class="text-input-field" placeholder="Chat normally or ask about products, UPCs, datasets, or uploaded files..." autocomplete="off">
@@ -919,7 +936,35 @@
             </div>
         </div>
 
-        <!-- TAB 2: COMPARISON STUDIO -->
+        <!-- TAB 2: BUSINESS DASHBOARD -->
+        <div id="tab-dashboard" class="tab-panel">
+            <div class="dashboard-grid">
+                <div>
+                    <div class="studio-title">Business Dashboard</div>
+                    <div class="studio-subtitle">Live catalog health and Power BI-ready metrics</div>
+                </div>
+                <div id="dashboard-error" class="dashboard-card" style="display:none; color:#fda4af;"></div>
+                <div class="dashboard-kpis">
+                    <div class="dashboard-card"><h3>Total records</h3><div class="dashboard-number" id="dashboard-total-records">—</div></div>
+                    <div class="dashboard-card"><h3>Unique UPCs</h3><div class="dashboard-number" id="dashboard-total-upcs">—</div></div>
+                    <div class="dashboard-card"><h3>Datasets</h3><div class="dashboard-number" id="dashboard-dataset-count">—</div></div>
+                    <div class="dashboard-card"><h3>Active backend</h3><div class="dashboard-number" id="dashboard-backend">—</div></div>
+                </div>
+                <div class="dashboard-card">
+                    <div style="display:flex; justify-content:space-between; align-items:center; gap:.75rem; margin-bottom:.6rem;">
+                        <div><h3 style="margin:0;">Dataset health</h3><div class="dashboard-subtle">Counts from the active database</div></div>
+                        <a id="dashboard-export-link" class="btn-download-csv" href="/api/dashboard/export/ai_master?limit=50000">Power BI CSV</a>
+                    </div>
+                    <div style="overflow-x:auto;"><table class="dashboard-table"><thead><tr><th>Dataset</th><th>Rows</th><th>Unique UPCs</th><th>Source file</th></tr></thead><tbody id="dashboard-datasets"><tr><td colspan="4">Open Dashboard to load live data.</td></tr></tbody></table></div>
+                </div>
+                <div class="dashboard-card">
+                    <h3>Missing UPC overview</h3>
+                    <div id="dashboard-missing-summary" class="dashboard-subtle">Loading...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 3: COMPARISON STUDIO -->
         <div id="tab-comparison" class="tab-panel">
             <div class="studio-grid">
                 <!-- Sidebar Presets -->
@@ -1151,11 +1196,17 @@ JDBC URL: jdbc:mysql://127.0.0.1:3307/beverage_db
         let lastServerSearch = '';
         let studioSearchTimer = null;
         let studioLoaded = false;
+        let dashboardLoaded = false;
         const chatSessionId = localStorage.getItem('beverage_chat_session') ||
             (window.crypto && typeof window.crypto.randomUUID === 'function'
                 ? window.crypto.randomUUID()
                 : `session-${Date.now()}-${Math.random().toString(16).slice(2)}`);
         localStorage.setItem('beverage_chat_session', chatSessionId);
+
+        fetch('/api/db-status').then(response => response.json()).then(status => {
+            const badge = document.getElementById('backend-badge');
+            if (badge) badge.textContent = `● ${(status.active_backend || 'sqlite').toUpperCase()} active`;
+        }).catch(() => {});
 
         function switchTab(tabId, btn) {
             document.querySelectorAll('.nav-tab-btn').forEach(b => b.classList.remove('active'));
@@ -1163,6 +1214,10 @@ JDBC URL: jdbc:mysql://127.0.0.1:3307/beverage_db
 
             btn.classList.add('active');
             document.getElementById('tab-' + tabId).classList.add('active');
+            if (tabId === 'dashboard' && !dashboardLoaded) {
+                dashboardLoaded = true;
+                loadDashboard();
+            }
             if (tabId === 'comparison' && !studioLoaded) {
                 studioLoaded = true;
                 executeComparison('all_missing');
@@ -1178,6 +1233,51 @@ JDBC URL: jdbc:mysql://127.0.0.1:3307/beverage_db
         function showSelectedDocument(input) {
             const label = document.getElementById('selected-document');
             label.textContent = input.files.length ? `Selected: ${input.files[0].name}` : '';
+            previewSelectedDocument(input);
+        }
+
+        function previewSelectedDocument(input) {
+            const preview = document.getElementById('upload-preview');
+            preview.innerHTML = '';
+            preview.style.display = 'none';
+            if (!input.files.length) return;
+            const file = input.files[0];
+            const wrapper = document.createElement('span');
+            wrapper.textContent = `${file.type || 'File'} · ${(file.size / 1024).toFixed(1)} KB`;
+            if (file.type.startsWith('image/')) {
+                const image = document.createElement('img');
+                image.alt = file.name;
+                image.src = URL.createObjectURL(file);
+                preview.appendChild(image);
+            }
+            preview.appendChild(wrapper);
+            preview.style.display = 'flex';
+        }
+
+        async function loadDashboard() {
+            const error = document.getElementById('dashboard-error');
+            try {
+                const [overviewResponse, missingResponse] = await Promise.all([
+                    fetch('/api/dashboard/overview'),
+                    fetch('/api/dashboard/missing-upc?limit=100')
+                ]);
+                const overview = await overviewResponse.json();
+                const missing = await missingResponse.json();
+                if (!overviewResponse.ok) throw new Error(overview.error || 'Dashboard could not be loaded');
+                document.getElementById('dashboard-total-records').textContent = Number(overview.kpis.total_records || 0).toLocaleString();
+                document.getElementById('dashboard-total-upcs').textContent = Number(overview.kpis.total_unique_upcs || 0).toLocaleString();
+                document.getElementById('dashboard-dataset-count').textContent = overview.kpis.dataset_count || 0;
+                document.getElementById('dashboard-backend').textContent = (overview.backend || 'sqlite').toUpperCase();
+                document.getElementById('dashboard-datasets').innerHTML = (overview.datasets || []).map(dataset => `
+                    <tr><td>${escapeHtml(dataset.dataset_key)}</td><td>${Number(dataset.total_rows || 0).toLocaleString()}</td>
+                    <td>${Number(dataset.unique_upcs || 0).toLocaleString()}</td><td>${escapeHtml(dataset.file_name || '')}</td></tr>`).join('');
+                const summary = missing.summary || {};
+                document.getElementById('dashboard-missing-summary').textContent = `${Number(summary.total_missing_from_master || 0).toLocaleString()} UPCs are missing from the master catalog in the current comparison.`;
+                error.style.display = 'none';
+            } catch (err) {
+                error.textContent = err.message;
+                error.style.display = 'block';
+            }
         }
 
         function submitUserChat(e) {
@@ -1200,7 +1300,7 @@ JDBC URL: jdbc:mysql://127.0.0.1:3307/beverage_db
             loadingBubble.innerHTML = `
                 <div class="bot-message-header">
                     <div class="bot-identity">🤖 BevIQ Assistant</div>
-                    <div>Auditing 702k+ records...</div>
+                    <div id="bot-loading-title">Thinking...</div>
                 </div>
                 <div>
                     <span class="loading-dots">
@@ -1208,7 +1308,7 @@ JDBC URL: jdbc:mysql://127.0.0.1:3307/beverage_db
                         <span class="loading-dot"></span>
                         <span class="loading-dot"></span>
                     </span>
-                    <span style="color: var(--text-secondary); font-size: 0.88rem; margin-left: 0.5rem;">Analyzing records and cross-referencing Master datasets...</span>
+                    <span style="color: var(--text-secondary); font-size: 0.88rem; margin-left: 0.5rem;">Understanding your question and preparing a response...</span>
                 </div>
             `;
             history.appendChild(loadingBubble);
@@ -1245,6 +1345,8 @@ JDBC URL: jdbc:mysql://127.0.0.1:3307/beverage_db
                 if (fileInput.files.length) {
                     fileInput.value = '';
                     document.getElementById('selected-document').textContent = '';
+                    document.getElementById('upload-preview').innerHTML = '';
+                    document.getElementById('upload-preview').style.display = 'none';
                 }
                 input.focus();
             });
@@ -1276,7 +1378,7 @@ JDBC URL: jdbc:mysql://127.0.0.1:3307/beverage_db
             const headerHtml = `
                 <div class="bot-message-header">
                     <div class="bot-identity">🤖 BevIQ Assistant</div>
-                    <div>Retrieved ${data.record_count || 0} records</div>
+                    <div>${(data.record_count || 0) > 0 ? `Retrieved ${data.record_count} records` : "General response"}</div>
                 </div>
             `;
 
