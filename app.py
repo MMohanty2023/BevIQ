@@ -1,8 +1,9 @@
 import os
 import io
+import pandas as pd
 from pathlib import Path
 from flask import Flask, render_template, request, jsonify, send_file, send_from_directory
-from config import BASE_DIR, REPORTS_DIR, MYSQL_HOST, MYSQL_PORT, MYSQL_USER, MYSQL_DB, OLLAMA_HOST, OLLAMA_MODEL
+from config import BASE_DIR, REPORTS_DIR, MYSQL_HOST, MYSQL_PORT, MYSQL_USER, MYSQL_DB, OLLAMA_HOST, OLLAMA_MODEL, CSV_FILES
 from database.db_manager import db_manager
 from database.mysql_migrator import migrate_data_to_mysql
 from engines.sql_engine import sql_engine
@@ -126,6 +127,60 @@ def api_stats():
             'total_unique_upcs': total_upcs,
             'datasets': overview
         })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/dashboard/overview', methods=['GET'])
+def api_dashboard_overview():
+    try:
+        overview = sql_engine.get_dataset_overview()
+        total_records = sum(int(item.get('total_rows') or 0) for item in overview)
+        total_upcs = sum(int(item.get('unique_upcs') or 0) for item in overview)
+        return jsonify({
+            'backend': db_manager.backend_name(),
+            'kpis': {
+                'total_records': total_records,
+                'total_unique_upcs': total_upcs,
+                'dataset_count': len(overview),
+            },
+            'datasets': overview,
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/dashboard/categories', methods=['GET'])
+def api_dashboard_categories():
+    try:
+        return jsonify({'backend': db_manager.backend_name(), 'categories': sql_engine.count_by_category()})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/dashboard/missing-upc', methods=['GET'])
+def api_dashboard_missing_upc():
+    try:
+        limit = max(1, min(int(request.args.get('limit', 100)), 500))
+        search = (request.args.get('search') or '').strip()[:100]
+        result = comparison_engine.compare_all_missing_in_master(limit_per_category=limit, search=search or None)
+        return jsonify({'backend': db_manager.backend_name(), **result})
+    except (TypeError, ValueError):
+        return jsonify({'error': 'limit must be a valid number'}), 400
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/dashboard/export/<dataset>', methods=['GET'])
+def api_dashboard_export(dataset):
+    if dataset not in CSV_FILES:
+        return jsonify({'error': f'Unknown dataset: {dataset}'}), 400
+    try:
+        limit = max(1, min(int(request.args.get('limit', 50000)), 50000))
+        table = CSV_FILES[dataset]['table']
+        rows = db_manager.query(f"SELECT * FROM `{table}` LIMIT {limit}")
+        frame = pd.DataFrame(rows)
+        content = frame.to_csv(index=False).encode('utf-8')
+        return send_file(io.BytesIO(content), as_attachment=True,
+                         download_name=f'beviq_{dataset}.csv', mimetype='text/csv')
+    except (TypeError, ValueError):
+        return jsonify({'error': 'limit must be a valid number'}), 400
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

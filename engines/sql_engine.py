@@ -363,4 +363,14 @@ class SQLEngine:
             })
         return stats
 
+    def get_dashboard_metrics(self):
+        """Return live totals used by the dashboard and Power BI extracts."""
+        overview = self.get_dataset_overview()
+        return {
+            "total_records": sum(int(item.get("total_rows") or 0) for item in overview),
+            "total_unique_upcs": sum(int(item.get("unique_upcs") or 0) for item in overview),
+            "dataset_count": len(overview),
+            "datasets": overview,
+        }
+
 sql_engine = SQLEngine()
