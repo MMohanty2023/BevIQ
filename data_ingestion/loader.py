@@ -95,10 +95,19 @@ def ingest_csv_to_sqlite(key, config_entry, progress_callback=None):
     # Create helpful indexes for lightning-fast queries
     logger.info(f"Creating indexes for table '{table_name}'...")
     try:
-        conn.execute(f"CREATE INDEX IF NOT EXISTS idx_{table_name}_upc ON `{table_name}`(clean_upc)")
-        conn.execute(f"CREATE INDEX IF NOT EXISTS idx_{table_name}_brand ON `{table_name}`(norm_brand)")
-        if 'norm_supplier' in chunk.columns:
-            conn.execute(f"CREATE INDEX IF NOT EXISTS idx_{table_name}_supp ON `{table_name}`(norm_supplier)")
+        available_columns = {row[1] for row in conn.execute(f"PRAGMA table_info(`{table_name}`)").fetchall()}
+        index_columns = {
+            'clean_upc': 'upc',
+            'clean_alt_upc': 'alt_upc',
+            'norm_brand': 'brand',
+            'norm_supplier': 'supplier',
+            'Id': 'id',
+            'id': 'id_value',
+            'SupplierId': 'supplier_id',
+        }
+        for column, suffix in index_columns.items():
+            if column in available_columns:
+                conn.execute(f"CREATE INDEX IF NOT EXISTS idx_{table_name}_{suffix} ON `{table_name}`(`{column}`)")
         conn.commit()
     except Exception as e:
         logger.warning(f"Index creation warning: {e}")

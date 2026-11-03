@@ -151,7 +151,14 @@ def migrate_data_to_mysql(password=None, host=None, port=None, user=None, db_nam
             with conn.cursor() as cur:
                 try:
                     cur.execute(f"CREATE INDEX `idx_{table_name}_upc` ON `{table_name}`(clean_upc(32))")
+                    if 'clean_alt_upc' in unique_cols:
+                        cur.execute(f"CREATE INDEX `idx_{table_name}_alt_upc` ON `{table_name}`(clean_alt_upc(32))")
                     cur.execute(f"CREATE INDEX `idx_{table_name}_brand` ON `{table_name}`(norm_brand(64))")
+                    if 'norm_supplier' in unique_cols:
+                        cur.execute(f"CREATE INDEX `idx_{table_name}_supplier` ON `{table_name}`(norm_supplier(64))")
+                    for id_column, suffix in [('Id', 'id'), ('id', 'id_value'), ('SupplierId', 'supplier_id')]:
+                        if id_column in unique_cols:
+                            cur.execute(f"CREATE INDEX `idx_{table_name}_{suffix}` ON `{table_name}`(`{id_column}`(64))")
                     conn.commit()
                 except Exception as ex:
                     logger.warning(f"MySQL index creation notice: {ex}")

@@ -74,25 +74,53 @@ class RAGOrchestrator:
             'dataset', 'category', 'missing', 'compare', 'duplicate', 'audit', 'search', 'find'
         ]
         document_terms = ['document', 'pdf', 'file', 'upload', 'uploaded', 'image', 'sheet']
-        has_catalog_intent = bool(re.search(r'\b\d{10,14}\b', q)) or any(term in q_lower for term in catalog_terms)
+        has_identifier_intent = bool(re.search(r'\b(?:id|identifier)\s*[:#-]?\s*[a-z0-9_-]+\b', q_lower))
+        has_catalog_intent = bool(re.search(r'\b\d{10,14}\b', q)) or has_identifier_intent or any(term in q_lower for term in catalog_terms)
         has_document_intent = any(term in q_lower for term in document_terms)
         if not has_catalog_intent and not has_document_intent:
             if self.is_ollama_available():
-                general = self.query_ollama(
-                    q,
-                    "You are BevIQ, a friendly general chat assistant. Answer normal questions naturally in the user's language. Use beverage data only when the user asks for it."
+                language = self._detect_response_language(q)
+                general_system_prompt = (
+                    "You are BevIQ, a friendly and capable general-purpose assistant. "
+                    "The user may ask about any topic, not only beverage data. "
+                    "Reply in the same language and writing style as the user's latest message. "
+                    "If the user writes in English, reply in English. "
+                    "If the user writes in Hindi using Devanagari, reply in natural Hindi using Devanagari. "
+                    "If the user writes in Hinglish/Roman Hindi, reply in natural Hinglish using Roman script. "
+                    "If the user mixes English and Hindi, naturally match that mix. "
+                    "Follow an explicit language request if the user asks for a different language. "
+                    "Keep technical terms such as Python, Flask, API, SQL, and database in English. "
+                    "Do not force beverage-related content into unrelated conversations. "
+                    "Be helpful, conversational, accurate, and do not invent facts. "
+                    f"Detected response style for this message: {language}."
                 )
+                general = self.query_ollama(q, general_system_prompt)
                 if general:
                     return self._format_response(general, [], [], token)
-            if not self._is_hinglish(q_lower):
-                return self._format_response(
-                    "### 💬 Normal Chat\n\nI’m ready for normal conversation. You can ask casual questions, request a joke, or chat freely. Start local Ollama for richer open-ended knowledge answers; database and document questions work offline.",
-                    [], [], token
+
+            detected_language = self._detect_response_language(q)
+            if detected_language == "Hindi":
+                fallback = (
+                    "### 💬 सामान्य बातचीत\\n\\n"
+                    "मैं सामान्य सवालों और बातचीत में मदद कर सकता हूँ। "
+                    "खुले सवालों के विस्तृत जवाब देने के लिए local Ollama चालू करें। "
+                    "BevIQ के database और uploaded-document वाले सवाल उपलब्ध हैं।"
                 )
-            return self._format_response(
-                "### 💬 Normal Chat\n\nMain normal conversation ke liye ready hoon. Aap casual questions, greetings, jokes, ya general baat kar sakte ho. Open-ended knowledge answers ke liye local Ollama start karna hoga; database/document questions abhi bhi offline mode mein available hain.",
-                [], [], token
-            )
+            elif detected_language == "Hinglish":
+                fallback = (
+                    "### 💬 Normal Chat\\n\\n"
+                    "Main normal questions aur casual conversation mein help kar sakta hoon. "
+                    "Detailed open-ended answers ke liye local Ollama start karein. "
+                    "BevIQ ke database aur uploaded-document questions bhi available hain."
+                )
+            else:
+                fallback = (
+                    "### 💬 Normal Chat\\n\\n"
+                    "I can help with general questions and casual conversation. "
+                    "Start local Ollama for detailed open-ended answers. "
+                    "BevIQ database and uploaded-document questions are also available."
+                )
+            return self._format_response(fallback, [], [], token)
 
         # Direct aggregates should never fall through to the slower vector index.
         is_master_brand_count = bool(re.search(r'\b(how many|number of|count|kitne|kitni|gino)\b', q_lower)) and 'brand' in q_lower
@@ -130,6 +158,7 @@ class RAGOrchestrator:
         # 1. Check for UPC pattern (10 to 14 digits or 'upc' keyword)
         upc_match = re.search(r'\b(\d{10,14})\b', q)
         is_upc_query = bool(upc_match) or 'upc' in q_lower or 'barcode' in q_lower
+        identifier_match = re.search(r'\b(?:id|identifier)\s*[:#-]?\s*([a-z0-9_-]+)\b', q_lower)
 
         # 2. Check for Comparison Intent
         is_compare = any(w in q_lower for w in ['compare', 'mismatch', 'diff', 'versus', 'vs', 'difference', 'farq'])
@@ -151,6 +180,20 @@ class RAGOrchestrator:
         ]) and not is_product_upc_gap
         is_supplier_search = any(w in q_lower for w in ['supplier', 'vendor']) and not is_compare
         is_brand_search = any(w in q_lower for w in ['brand', 'products belonging to', 'show products for', 'products of', 'search', 'find']) and not is_supplier_search
+
+        if identifier_match:
+            identifier = identifier_match.group(1)
+            res = sql_engine.lookup_identifier(identifier, limit=200)
+            report_records = res['records'] + res.get('related_records', [])
+            source_files = res.get('source_files', [])
+            if res['total_matches']:
+                primary = report_records[0] if report_records else {}
+                product = primary.get('ProductName') or primary.get('Product') or primary.get('ProductDescription') or 'Not available'
+                brand = primary.get('BrandName') or primary.get('Brands_Value') or primary.get('Beer_Brands_Value') or primary.get('Spirits_Brands_Value') or 'Not available'
+                ans = f"### ✅ Complete ID Lookup: `{res['normalized_identifier']}`\n\nFound **{res['total_matches']} direct record(s)** and **{len(res.get('related_records', []))} related record(s)** across **{len(source_files)} source file(s)**.\n\n- **Brand:** {brand}\n- **Product:** {product}\n\nAll displayed details come directly from the connected database."
+            else:
+                ans = f"### ❌ ID Not Found: `{res['normalized_identifier']}`\n\nNo exact matching ID, UPC, or alternate UPC was found in the configured beverage datasets."
+            return self._format_response(ans, report_records, source_files, token)
 
         if is_product_upc_gap:
             from engines.upc_match_engine import upc_match_engine
@@ -483,16 +526,24 @@ No matching beverage records were retrieved for query: *"{q}"*.
             return "### 💡 BevIQ Help\n\n- Normal chat in English/Hinglish\n- UPC, brand, supplier aur category search\n- Beer, Wine, RTD aur Spirits comparison\n- Missing/product-match UPC audit\n- PDF, image, DOCX, CSV aur XLSX upload karke questions\n\nOpen-ended general answers ke liye local Ollama enable kar sakte ho."
         return None
 
-    def _is_hinglish(self, text):
-        """Lightweight language hint for deterministic offline replies."""
+    def _detect_response_language(self, text):
+        """Detect the reply style from the latest user message."""
+        if re.search(r'[\\u0900-\\u097f]', text):
+            return "Hindi"
+
         hindi_markers = [
             'kya', 'hai', 'hain', 'hoon', 'karna', 'karo', 'kaise', 'kyun',
-            'mujhe', 'mera', 'mere', 'aap', 'apka', 'batao', 'dikhao',
-            'chahiye', 'nahi', 'mein'
+            'mujhe', 'mera', 'mere', 'aap', 'apka', 'aapka', 'batao',
+            'dikhao', 'chahiye', 'nahi', 'nahin', 'mein', 'mujhko',
+            'kyunki', 'acha', 'achha', 'haan'
         ]
-        return bool(re.search(r'[\u0900-\u097f]', text)) or any(
-            re.search(rf'\b{re.escape(marker)}\b', text) for marker in hindi_markers
-        )
+        if any(re.search(rf'\\b{re.escape(marker)}\\b', text.lower()) for marker in hindi_markers):
+            return "Hinglish"
+        return "English"
+
+    def _is_hinglish(self, text):
+        """Backward-compatible helper used by existing deterministic responses."""
+        return self._detect_response_language(text) in ("Hindi", "Hinglish")
 
     def _extract_brand_guess(self, query):
         """Remove profile question words while keeping a multi-word brand name."""

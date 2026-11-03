@@ -98,9 +98,69 @@ class SQLEngine:
             "records": rows
         }
 
-    def search_catalog(self, query, limit=100):
+    def lookup_identifier(self, identifier, limit=200):
+        """Return complete source rows for an exact ID, UPC, or alternate UPC."""
+        requested = str(identifier or "").strip()
+        if not requested:
+            return {"normalized_identifier": "", "total_matches": 0,
+                    "records": [], "related_records": [], "source_files": []}
+
+        normalized = normalize_upc(requested) if requested.isdigit() and 10 <= len(requested) <= 14 else requested
+        datasets = [
+            ("all_brands", "Id"),
+            ("suppliers", "SupplierId"),
+            ("ai_master", "id"),
+            ("cat_beer", None),
+            ("cat_rtd", None),
+            ("cat_spirits", None),
+            ("cat_wine", None),
+        ]
+        records = []
+        seen = set()
+        safe_limit = max(1, min(int(limit), 1000))
+        for table, id_column in datasets:
+            id_clause = f"CAST(`{id_column}` AS CHAR) = ? OR " if id_column else ""
+            params = (requested, normalized, normalized) if id_column else (normalized, normalized)
+            rows = self.db.query(
+                f"SELECT * FROM `{table}` WHERE ({id_clause}clean_upc = ? OR clean_alt_upc = ?) LIMIT {safe_limit}",
+                params,
+            )
+            for row in rows:
+                key = (table, row.get("original_row"), row.get("clean_upc"), row.get("clean_alt_upc"))
+                if key not in seen:
+                    seen.add(key)
+                    row.setdefault("_dataset", table)
+                    records.append(row)
+
+        related_upcs = {r.get("clean_upc") for r in records if r.get("clean_upc")}
+        related = []
+        for table, _ in datasets:
+            for upc in related_upcs:
+                rows = self.db.query(
+                    f"SELECT * FROM `{table}` WHERE clean_upc = ? OR clean_alt_upc = ? LIMIT {safe_limit}",
+                    (upc, upc),
+                )
+                for row in rows:
+                    key = (table, row.get("original_row"), row.get("clean_upc"), row.get("clean_alt_upc"))
+                    if key not in seen:
+                        seen.add(key)
+                        row.setdefault("_dataset", table)
+                        related.append(row)
+
+        source_files = sorted({r.get("source_file") for r in records + related if r.get("source_file")})
+        return {
+            "normalized_identifier": normalized,
+            "total_matches": len(records),
+            "records": records,
+            "related_records": related,
+            "source_files": source_files,
+        }
+
+    def search_catalog(self, query, limit=100, offset=0):
         """Search brand names and product descriptions across every beverage sheet."""
         term = f"%{query.strip()}%"
+        safe_limit = max(1, min(int(limit), 1000))
+        safe_offset = max(0, int(offset))
         datasets = [
             ("Master", CSV_FILES['ai_master']['table'], "norm_brand, BrandName, ProductName, Flavor, Flavor_1, Size, SupplierName, Appellation, clean_upc, source_file, original_row", "ProductName"),
             ("Beer", CSV_FILES['cat_beer']['table'], "norm_brand, Beer_Brands_Value, Product, Beer_Mezzo_Styles_Value, Beer_Size_Groups_Value, Beer_Vendors_Value, Beer_DomVsImp_Value, clean_upc, source_file, original_row", "Product"),
@@ -111,7 +171,7 @@ class SQLEngine:
         results = []
         for category, table, columns, product_column in datasets:
             rows = self.db.query(
-                f"SELECT {columns} FROM `{table}` WHERE norm_brand LIKE ? OR LOWER(COALESCE({product_column}, '')) LIKE LOWER(?) LIMIT {int(limit)}",
+                f"SELECT {columns} FROM `{table}` WHERE norm_brand LIKE ? OR LOWER(COALESCE({product_column}, '')) LIKE LOWER(?) LIMIT {safe_limit} OFFSET {safe_offset}",
                 (term, term)
             )
             for row in rows:
@@ -136,7 +196,7 @@ class SQLEngine:
                     "origin": origin or "", "upc": row.get("clean_upc") or "",
                     "source_file": row.get("source_file"), "original_row": row.get("original_row")
                 })
-                if len(results) >= int(limit):
+                if len(results) >= safe_limit:
                     return {"query": query, "total_matches": len(results), "records": results}
         return {"query": query, "total_matches": len(results), "records": results}
 
