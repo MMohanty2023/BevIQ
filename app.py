@@ -148,6 +148,49 @@ def api_dashboard_overview():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/dashboard/metrics', methods=['GET'])
+def api_dashboard_metrics():
+    """Return live category, UPC quality, and Master Brand dashboard metrics."""
+    try:
+        return jsonify({
+            'backend': db_manager.backend_name(),
+            **sql_engine.get_dashboard_metrics(),
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/master-brands/search', methods=['GET'])
+def api_master_brand_search():
+    master_id = (request.args.get('id') or '').strip()
+    brand = (request.args.get('brand') or '').strip()
+    upc = (request.args.get('upc') or '').strip()
+    product = (request.args.get('product') or '').strip()
+    query = (request.args.get('q') or '').strip()
+    if not any((master_id, brand, upc, product, query)):
+        return jsonify({'error': 'Provide a Master Brand ID, brand, UPC, product, or search term'}), 400
+    try:
+        limit = max(1, min(int(request.args.get('limit', 100)), 500))
+    except (TypeError, ValueError):
+        return jsonify({'error': 'limit must be a valid number'}), 400
+    try:
+        return jsonify(sql_engine.search_master_brands(
+            query=query, master_id=master_id or None, brand=brand or None,
+            upc=upc or None, product=product or None, limit=limit,
+        ))
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/master-brands/export', methods=['GET'])
+def api_master_brand_export():
+    response = api_master_brand_search()
+    if response.status_code != 200:
+        return response
+    payload = response.get_json()
+    token = str(__import__('uuid').uuid4())[:8]
+    frame = pd.DataFrame(payload.get('records') or [], columns=payload.get('columns') or None)
+    frame.to_csv(REPORTS_DIR / f'report_{token}.csv', index=False)
+    return jsonify({**payload, 'download_token': token})
+
 @app.route('/api/dashboard/categories', methods=['GET'])
 def api_dashboard_categories():
     try:
@@ -186,12 +229,10 @@ def api_dashboard_export(dataset):
 
 @app.route('/api/db-status', methods=['GET'])
 def api_db_status():
-    mysql_ok, mysql_msg = db_manager.test_mysql_connection()
+    database = db_manager.database_status()
     ollama_ok = rag_orchestrator.is_ollama_available()
     return jsonify({
-        'active_backend': db_manager.backend_name(),
-        'mysql_connected': mysql_ok,
-        'mysql_message': mysql_msg,
+        **database,
         'mysql_port': MYSQL_PORT,
         'mysql_db': MYSQL_DB,
         'dbeaver_url': f"jdbc:mysql://{MYSQL_HOST}:{MYSQL_PORT}/{MYSQL_DB}",
