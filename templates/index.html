@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BevIQ | Beverage Intelligence</title>
+    <title>BevIQ | Beverage Intelligence, Simplified</title>
     <style>
         :root {
             --bg-page: #090d16;
@@ -797,10 +797,7 @@
         .dashboard-card h2 { margin: 0; font-size: 1rem; }
         .analytics-grid { display:grid; grid-template-columns: minmax(240px, .85fr) minmax(0, 1.5fr); gap: .85rem; }
         .upc-quality { display:flex; align-items:center; gap:1.25rem; min-height:190px; }
-        .upc-donut { width:150px; height:150px; border-radius:50%; display:grid; place-items:center; flex:0 0 auto; background: conic-gradient(var(--accent-emerald) 0deg, var(--accent-emerald) 0deg, var(--accent-rose) 0deg, var(--accent-rose) 360deg); }
-        .upc-donut::after { content:''; width:92px; height:92px; border-radius:50%; background:var(--bg-card); box-shadow:0 0 0 1px var(--border-color); }
-        .upc-donut-label { position:absolute; text-align:center; z-index:1; font-weight:800; font-size:1.15rem; }
-        .donut-wrap { position:relative; display:grid; place-items:center; }
+        .upc-pie { width:150px; height:150px; border-radius:50%; flex:0 0 auto; background: conic-gradient(var(--accent-emerald) 0deg, var(--accent-emerald) 0deg, var(--accent-rose) 0deg, var(--accent-rose) 360deg); box-shadow:0 0 0 1px var(--border-color); }
         .legend-list { display:grid; gap:.55rem; font-size:.82rem; color:var(--text-secondary); }
         .legend-item { display:flex; justify-content:space-between; gap:1rem; }
         .legend-dot { width:9px; height:9px; border-radius:50%; display:inline-block; margin-right:.4rem; }
@@ -852,21 +849,10 @@
             </div>
             <div>
                 <div class="brand-title">BEVIQ</div>
-                <div class="brand-subtitle">Beverage Intelligence, Simply</div>
+                <div class="brand-subtitle">Beverage Intelligence, Simplified</div>
             </div>
         </div>
 
-        <div class="status-strip">
-            <span class="pill-badge pill-mysql" id="mysql-badge">
-                ● MySQL 3307: Connected (beverage_db)
-            </span>
-            <span class="pill-badge pill-db">
-                ⚡ 702,207 Records Ready
-            </span>
-            <span class="pill-badge pill-offline">
-                🛡️ 100% Offline & Secure
-            </span>
-        </div>
     </header>
 
     <!-- Nav Tabs -->
@@ -939,8 +925,8 @@
                             <div>Local Engine • Ready</div>
                         </div>
                         <div class="bot-markdown">
-                            <p>Hello! I am your <strong>BevIQ Assistant</strong>. All <strong>702,207 records</strong> from your 7 CSV datasets and your MySQL <code>beverage_db</code> database are fully indexed.</p>
-                            <p>You can also use me for <strong>normal chat</strong> in English or Hinglish. I can find UPCs, audit missing records, compare categorization sheets, answer questions from uploaded documents, or generate downloadable CSV reports.</p>
+                            <p>Hello! I am your <strong>BevIQ Assistant</strong>. I work with live beverage data for product matching, UPC verification, and catalog analysis across your configured datasets and database.</p>
+                            <p>You can also chat with me naturally in <strong>English or Hinglish</strong>. Ask me to find UPCs, review missing records, compare categories, analyze uploaded documents, or create downloadable CSV reports.</p>
                             <p style="color: #93c5fd; font-size: 0.82rem;">UPC audits are review-only: no master product or UPC is changed automatically.</p>
                         </div>
                     </div>
@@ -968,7 +954,7 @@
         <div id="tab-dashboard" class="tab-panel">
             <div class="dashboard-grid">
                 <div>
-                    <div class="studio-title">Business Dashboard</div>
+                    <div class="studio-title">Beverage Dashboard</div>
                     <div class="studio-subtitle">Live catalog health and Power BI-ready metrics</div>
                 </div>
                 <div id="dashboard-error" class="dashboard-card" style="display:none; color:#fda4af;"></div>
@@ -976,7 +962,7 @@
                     <div class="dashboard-card"><h3>Total records</h3><div class="dashboard-number" id="dashboard-total-records">—</div></div>
                     <div class="dashboard-card"><h3>Unique UPCs</h3><div class="dashboard-number" id="dashboard-total-upcs">—</div></div>
                     <div class="dashboard-card"><h3>Datasets</h3><div class="dashboard-number" id="dashboard-dataset-count">—</div></div>
-                    <div class="dashboard-card"><h3>Active backend</h3><div class="dashboard-number" id="dashboard-backend">—</div></div>
+                    <div class="dashboard-card"><h3>Active backend</h3><div class="dashboard-number" id="dashboard-backend">—</div><div class="dashboard-subtle" id="dashboard-backend-detail">Checking MySQL schema and SQLite fallback status...</div></div>
                 </div>
                 <div class="dashboard-kpis" id="dashboard-category-kpis">
                     <div class="dashboard-card"><h3>Beer products</h3><div class="dashboard-number" id="dashboard-beer-total">—</div></div>
@@ -988,10 +974,10 @@
                 </div>
                 <div class="analytics-grid">
                     <div class="dashboard-card">
-                        <h3>UPC data quality</h3>
-                        <div class="dashboard-subtle">Available versus missing UPCs across category sheets</div>
+                        <h3>UPC availability summary</h3>
+                        <div class="dashboard-subtle">Records with a usable UPC versus records where the UPC is missing</div>
                         <div class="upc-quality">
-                            <div class="donut-wrap"><div class="upc-donut" id="dashboard-upc-donut"></div><div class="upc-donut-label" id="dashboard-upc-donut-label">—</div></div>
+                            <div class="upc-pie" id="dashboard-upc-pie" role="img" aria-label="UPC available versus missing pie chart"></div>
                             <div class="legend-list">
                                 <div class="legend-item"><span><i class="legend-dot" style="background:var(--accent-emerald)"></i>Available</span><strong id="dashboard-upc-available">—</strong></div>
                                 <div class="legend-item"><span><i class="legend-dot" style="background:var(--accent-rose)"></i>Missing</span><strong id="dashboard-upc-missing">—</strong></div>
@@ -1000,8 +986,8 @@
                         </div>
                     </div>
                     <div class="dashboard-card">
-                        <h3>Category UPC health</h3>
-                        <div class="dashboard-subtle">Click a category to open its missing-UPC review</div>
+                        <h3>Category UPC availability</h3>
+                        <div class="dashboard-subtle">Available and missing UPC counts by category; click a category to review missing records</div>
                         <div class="category-kpi-grid" id="dashboard-category-quality"></div>
                     </div>
                 </div>
@@ -1163,7 +1149,7 @@
                     🐬 DBeaver MySQL 3307 Direct Integration
                 </div>
                 <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1rem;">
-                    Your MySQL Server 8.0 on port <strong>3307</strong> is connected! DBeaver can directly query the <code>beverage_db</code> database containing all 7 datasets:
+                    DBeaver connection details are shown below. The live connection state is checked from the server without exposing credentials.
                 </p>
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;">
@@ -1174,7 +1160,7 @@ Host: localhost (or 127.0.0.1)<br>
 Port: 3307<br>
 Database: beverage_db<br>
 Username: root<br>
-Password: Madhu@123<br>
+Password: never shown in the UI<br>
 JDBC URL: jdbc:mysql://127.0.0.1:3307/beverage_db
                         </div>
                     </div>
@@ -1296,6 +1282,31 @@ JDBC URL: jdbc:mysql://127.0.0.1:3307/beverage_db
             if (badge) badge.textContent = `● ${(status.active_backend || 'sqlite').toUpperCase()} active`;
         }).catch(() => {});
 
+        async function updateHeaderStatus() {
+            const backendBadge = document.getElementById('header-backend-status');
+            const recordBadge = document.getElementById('header-record-status');
+            const securityBadge = document.getElementById('header-security-status');
+            try {
+                const [statusResponse, overviewResponse] = await Promise.all([
+                    fetch('/api/db-status'),
+                    fetch('/api/dashboard/overview')
+                ]);
+                const status = await statusResponse.json();
+                const overview = await overviewResponse.json();
+                if (!statusResponse.ok || !overviewResponse.ok) throw new Error('status unavailable');
+                const active = (status.active_backend || overview.backend || 'sqlite').toUpperCase();
+                const connected = active === 'MYSQL' ? status.mysql_connected : status.sqlite_connected;
+                if (backendBadge) backendBadge.textContent = `${active}: ${connected ? 'Connected' : 'Unavailable'} (${status.database_name || 'unknown'})`;
+                if (recordBadge) recordBadge.textContent = `${Number((overview.kpis || {}).total_records || 0).toLocaleString()} records ready`;
+                if (securityBadge) securityBadge.textContent = active === 'SQLITE' ? 'Local SQLite • Credentials server-side' : 'MySQL connection • Credentials server-side';
+            } catch (error) {
+                if (backendBadge) backendBadge.textContent = 'Database status unavailable';
+                if (recordBadge) recordBadge.textContent = 'Live metrics unavailable';
+            }
+        }
+
+        updateHeaderStatus();
+
         function switchTab(tabId, btn) {
             document.querySelectorAll('.nav-tab-btn').forEach(b => b.classList.remove('active'));
             document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
@@ -1356,10 +1367,19 @@ JDBC URL: jdbc:mysql://127.0.0.1:3307/beverage_db
                 const missing = await missingResponse.json();
                 const status = await statusResponse.json();
                 if (!overviewResponse.ok) throw new Error(overview.error || 'Dashboard could not be loaded');
+                if (!metricsResponse.ok) throw new Error(metrics.error || 'Live dashboard metrics could not be loaded');
+                if (!missingResponse.ok) throw new Error(missing.error || 'UPC review data could not be loaded');
+                if (!statusResponse.ok) throw new Error(status.error || 'Database status could not be loaded');
                 document.getElementById('dashboard-total-records').textContent = Number(overview.kpis.total_records || 0).toLocaleString();
                 document.getElementById('dashboard-total-upcs').textContent = Number(overview.kpis.total_unique_upcs || 0).toLocaleString();
                 document.getElementById('dashboard-dataset-count').textContent = overview.kpis.dataset_count || 0;
                 document.getElementById('dashboard-backend').textContent = (overview.backend || 'sqlite').toUpperCase();
+                const backendDetail = document.getElementById('dashboard-backend-detail');
+                if (backendDetail) {
+                    backendDetail.textContent = status.active_backend === 'sqlite' && status.mysql_connected && !status.mysql_schema_ready
+                        ? 'MySQL connected; normalized MySQL schema missing, so SQLite fallback is active.'
+                        : `${(status.active_backend || 'sqlite').toUpperCase()} is serving live dashboard queries.`;
+                }
                 const categories = metrics.categories || {};
                 ['beer', 'wine', 'rtd', 'spirits'].forEach(category => {
                     const node = document.getElementById(`dashboard-${category}-total`);
@@ -1372,8 +1392,7 @@ JDBC URL: jdbc:mysql://127.0.0.1:3307/beverage_db
                 document.getElementById('dashboard-upc-available').textContent = Number(quality.available_upcs || 0).toLocaleString();
                 document.getElementById('dashboard-upc-missing').textContent = Number(quality.missing_upcs || 0).toLocaleString();
                 document.getElementById('dashboard-upc-total').textContent = Number(quality.total_records || 0).toLocaleString();
-                document.getElementById('dashboard-upc-donut-label').textContent = `${completion.toFixed(0)}%`;
-                document.getElementById('dashboard-upc-donut').style.background = `conic-gradient(var(--accent-emerald) ${completion * 3.6}deg, var(--accent-rose) ${completion * 3.6}deg 360deg)`;
+                document.getElementById('dashboard-upc-pie').style.background = `conic-gradient(var(--accent-emerald) ${completion * 3.6}deg, var(--accent-rose) ${completion * 3.6}deg 360deg)`;
                 document.getElementById('dashboard-category-quality').innerHTML = Object.entries(categories).map(([name, value]) => `
                     <div class="dashboard-card category-kpi" onclick="openCategoryMissing('${name}')">
                         <h3>${name.toUpperCase()}</h3><div class="dashboard-number">${Number(value.total_records || 0).toLocaleString()}</div>
@@ -1393,12 +1412,17 @@ JDBC URL: jdbc:mysql://127.0.0.1:3307/beverage_db
                 document.getElementById('dashboard-database-status').innerHTML = `
                     <span class="status-chip">Active: <strong>${escapeHtml((status.active_backend || 'sqlite').toUpperCase())}</strong></span>
                     <span class="status-chip">SQLite: ${status.sqlite_connected ? 'Connected' : 'Unavailable'}</span>
-                    <span class="status-chip">MySQL: ${status.mysql_connected ? 'Connected' : 'Not connected'}</span>
-                    <span class="status-chip">Database: ${escapeHtml(status.database_name || 'unknown')}</span>`;
+                    <span class="status-chip">MySQL: ${status.mysql_connected ? 'Connected' : 'Not connected'}${status.mysql_connected && !status.mysql_schema_ready ? ' · schema not ready' : ''}</span>
+                    <span class="status-chip">Database: ${escapeHtml(status.database_name || 'unknown')}</span>
+                    <span class="status-chip">${escapeHtml(status.mysql_schema_message || '')}</span>`;
                 error.style.display = 'none';
             } catch (err) {
                 error.textContent = err.message;
                 error.style.display = 'block';
+                ['dashboard-total-records', 'dashboard-total-upcs', 'dashboard-dataset-count', 'dashboard-backend', 'dashboard-master-total', 'dashboard-upc-completion', 'dashboard-upc-available', 'dashboard-upc-missing', 'dashboard-upc-total'].forEach(id => {
+                    const node = document.getElementById(id);
+                    if (node) node.textContent = '—';
+                });
             }
         }
 

@@ -63,7 +63,11 @@ def migrate_data_to_mysql(password=None, host=None, port=None, user=None, db_nam
             # Read sample to define columns
             df_sample = pd.read_csv(fname, sep=delimiter, nrows=5, dtype=str)
             raw_cols = df_sample.columns.tolist()
-            sql_cols = [clean_column_name(c) for c in raw_cols] + ['_source_file', '_original_row', 'clean_upc', 'clean_alt_upc', 'norm_brand', 'norm_supplier']
+            # Keep generated metadata names aligned with the normalizer used by both
+            # SQLite and the query engine. Leading underscores are stripped by
+            # clean_column_name(), which otherwise turns these values into blanks
+            # during reindexing and fails under MySQL strict mode.
+            sql_cols = [clean_column_name(c) for c in raw_cols] + ['source_file', 'original_row', 'clean_upc', 'clean_alt_upc', 'norm_brand', 'norm_supplier']
             
             # Deduplicate sql_cols preserving order
             unique_cols = []
@@ -78,13 +82,17 @@ def migrate_data_to_mysql(password=None, host=None, port=None, user=None, db_nam
                 # Build CREATE TABLE
                 col_defs = []
                 for c in unique_cols:
-                    if c in ['clean_upc', 'clean_alt_upc']:
+                    if c == 'clean_upc':
                         col_defs.append(f"`{c}` VARCHAR(64)")
+                    elif c == 'clean_alt_upc':
+                        # AlternateUPCCode can contain a set of UPCs such as
+                        # {081...,081...}; never truncate it in MySQL.
+                        col_defs.append(f"`{c}` TEXT")
                     elif c in ['norm_brand', 'norm_supplier', 'BrandName', 'SupplierName']:
                         col_defs.append(f"`{c}` VARCHAR(255)")
-                    elif c == '_original_row':
+                    elif c == 'original_row':
                         col_defs.append(f"`{c}` INT")
-                    elif c == '_source_file':
+                    elif c == 'source_file':
                         col_defs.append(f"`{c}` VARCHAR(128)")
                     else:
                         col_defs.append(f"`{c}` TEXT")
@@ -100,8 +108,8 @@ def migrate_data_to_mysql(password=None, host=None, port=None, user=None, db_nam
 
             for chunk in pd.read_csv(fname, sep=delimiter, chunksize=chunksize, dtype=str, on_bad_lines='skip'):
                 chunk_len = len(chunk)
-                chunk['_source_file'] = os.path.basename(fname)
-                chunk['_original_row'] = list(range(row_offset, row_offset + chunk_len))
+                chunk['source_file'] = os.path.basename(fname)
+                chunk['original_row'] = list(range(row_offset, row_offset + chunk_len))
                 row_offset += chunk_len
 
                 prod_series = chunk['Product'] if 'Product' in chunk.columns else (chunk['ProductName'] if 'ProductName' in chunk.columns else None)

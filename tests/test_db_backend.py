@@ -100,5 +100,17 @@ def test_database_status_reports_safe_sqlite_and_mysql_fields(monkeypatch):
     assert status["sqlite_connected"] is True
     assert status["mysql_connected"] is False
     assert status["active_backend"] == "sqlite"
+
+
+def test_mysql_schema_readiness_is_explicit(monkeypatch):
+    manager = DBManager()
+    monkeypatch.setattr(manager, "test_mysql_connection", lambda password=None: (True, "connected"))
+    monkeypatch.setattr(manager, "mysql_schema_status", lambda: (False, "MySQL is reachable but the normalized beverage tables are missing"))
+
+    status = manager.database_status()
+
+    assert status["mysql_connected"] is True
+    assert status["mysql_schema_ready"] is False
+    assert "normalized beverage tables" in status["mysql_schema_message"]
     assert "password" not in str(status).lower()
 

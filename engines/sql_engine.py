@@ -104,12 +104,12 @@ class SQLEngine:
         columns = [column for column in self.db.table_columns(table) if column]
         column_lookup = {column.lower(): column for column in columns}
         id_column = next((column_lookup[name] for name in (
-            "id", "masterbrandid", "master_brand_id", "masterbrandid", "master_id"
+            "id", "record_id", "masterbrandid", "master_brand_id", "master_id"
         ) if name in column_lookup), None)
         brand_column = column_lookup.get("norm_brand") or column_lookup.get("brandname")
         product_column = column_lookup.get("productname") or column_lookup.get("product")
-        clean_upc_column = column_lookup.get("clean_upc")
-        clean_alt_column = column_lookup.get("clean_alt_upc")
+        clean_upc_column = next((column_lookup[name] for name in ("clean_upc", "upccode", "upc_13_digit", "upc 13 digit", "upc13digit") if name in column_lookup), None)
+        clean_alt_column = next((column_lookup[name] for name in ("clean_alt_upc", "alternateupccode", "alternate upc code", "alternateupccode") if name in column_lookup), None)
 
         master_id = master_id or query if query and not (brand or upc or product) else master_id
         conditions = []
@@ -136,15 +136,18 @@ class SQLEngine:
             return {"columns": columns, "records": [], "total_matches": 0, "id_column": id_column}
 
         safe_limit = max(1, min(int(limit), 500))
+        where_sql = f"FROM `{table}` WHERE {' AND '.join(conditions)}"
+        count_rows = self.db.query(f"SELECT COUNT(*) AS total_matches {where_sql}", tuple(params))
         rows = self.db.query(
             f"SELECT * FROM `{table}` WHERE {' AND '.join(conditions)} LIMIT {safe_limit}",
             tuple(params),
         )
         result_columns = list(rows[0].keys()) if rows else columns
+        total_matches = int((count_rows[0].get("total_matches") or 0)) if count_rows and "total_matches" in count_rows[0] else len(rows)
         return {
             "columns": result_columns,
             "records": rows,
-            "total_matches": len(rows),
+            "total_matches": total_matches,
             "id_column": id_column,
         }
 
@@ -429,7 +432,7 @@ class SQLEngine:
             or master_column_lookup.get('master_brand_id')
         )
         master_brand_column = master_column_lookup.get('norm_brand') or master_column_lookup.get('brandname') or master_column_lookup.get('extendedbrandname')
-        master_upc_column = master_column_lookup.get('clean_upc')
+        master_upc_column = next((master_column_lookup.get(name) for name in ('clean_upc', 'upccode', 'upc_13_digit', 'upc 13 digit', 'upc13digit') if master_column_lookup.get(name)), None)
         id_expression = f"`{master_id_column}`" if master_id_column else "NULL"
         brand_expression = f"`{master_brand_column}`" if master_brand_column else "NULL"
         upc_expression = f"`{master_upc_column}`" if master_upc_column else "NULL"
@@ -438,8 +441,8 @@ class SQLEngine:
                 COUNT(*) AS master_record_count,
                 COUNT(DISTINCT NULLIF(TRIM(COALESCE({brand_expression}, '')), '')) AS unique_brands,
                 COUNT(DISTINCT NULLIF(TRIM(COALESCE({id_expression}, '')), '')) AS unique_master_ids,
-                SUM(CASE WHEN TRIM(COALESCE({upc_expression}, '')) != '' THEN 1 ELSE 0 END) AS available_upcs,
-                SUM(CASE WHEN TRIM(COALESCE({upc_expression}, '')) = '' THEN 1 ELSE 0 END) AS missing_upcs
+                SUM(CASE WHEN LOWER(TRIM(COALESCE({upc_expression}, ''))) NOT IN ('', 'null', 'none', 'nan', 'n/a', 'na', '0') THEN 1 ELSE 0 END) AS available_upcs,
+                SUM(CASE WHEN LOWER(TRIM(COALESCE({upc_expression}, ''))) IN ('', 'null', 'none', 'nan', 'n/a', 'na', '0') THEN 1 ELSE 0 END) AS missing_upcs
             FROM `{CSV_FILES['ai_master']['table']}`
         """)[0]
 
@@ -473,11 +476,14 @@ class SQLEngine:
         }
 
     def _table_upc_metrics(self, table):
+        columns = {column.lower(): column for column in (self.db.table_columns(table) if hasattr(self.db, 'table_columns') else [])}
+        upc_column = next((columns.get(name) for name in ('clean_upc', 'upccode', 'upc_13_digit', 'upc 13 digit', 'upc13digit') if columns.get(name)), None)
+        upc_expression = f"`{upc_column}`" if upc_column else "NULL"
         row = self.db.query(f"""
             SELECT
                 COUNT(*) AS total_records,
-                SUM(CASE WHEN TRIM(COALESCE(clean_upc, '')) != '' THEN 1 ELSE 0 END) AS available_upcs,
-                SUM(CASE WHEN TRIM(COALESCE(clean_upc, '')) = '' THEN 1 ELSE 0 END) AS missing_upcs
+                SUM(CASE WHEN LOWER(TRIM(COALESCE({upc_expression}, ''))) NOT IN ('', 'null', 'none', 'nan', 'n/a', 'na', '0') THEN 1 ELSE 0 END) AS available_upcs,
+                SUM(CASE WHEN LOWER(TRIM(COALESCE({upc_expression}, ''))) IN ('', 'null', 'none', 'nan', 'n/a', 'na', '0') THEN 1 ELSE 0 END) AS missing_upcs
             FROM `{table}`
         """)[0]
         return self._quality_summary(

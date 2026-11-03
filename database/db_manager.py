@@ -3,7 +3,7 @@ import pymysql
 import pandas as pd
 import logging
 from datetime import datetime, timezone
-from config import SQLITE_PATH, MYSQL_HOST, MYSQL_PORT, MYSQL_USER, MYSQL_PASSWORD, MYSQL_DB
+from config import SQLITE_PATH, MYSQL_HOST, MYSQL_PORT, MYSQL_USER, MYSQL_PASSWORD, MYSQL_DB, CSV_FILES
 
 logger = logging.getLogger("DBManager")
 
@@ -90,6 +90,25 @@ class DBManager:
         rows = self.query(f"PRAGMA table_info(`{table}`)")
         return [row.get("name") for row in rows]
 
+    def mysql_schema_status(self):
+        """Check that MySQL has the normalized tables this application queries."""
+        required = {entry["table"] for entry in CSV_FILES.values()}
+        try:
+            conn = self.get_mysql_connection(create_db=False)
+            try:
+                with conn.cursor() as cur:
+                    cur.execute("SHOW TABLES")
+                    rows = cur.fetchall()
+            finally:
+                conn.close()
+            available = {next(iter(row.values())) for row in rows}
+            missing = sorted(required - available)
+            if missing:
+                return False, f"MySQL is reachable but normalized beverage tables are missing: {', '.join(missing)}"
+            return True, "MySQL normalized beverage schema is ready"
+        except Exception as exc:
+            return False, f"MySQL schema check failed: {exc}"
+
     def database_status(self):
         """Return safe connection state without exposing credentials."""
         sqlite_ok = False
@@ -104,11 +123,14 @@ class DBManager:
             sqlite_message = str(exc)
 
         mysql_ok, mysql_message = self.test_mysql_connection()
+        mysql_schema_ready, mysql_schema_message = self.mysql_schema_status() if mysql_ok else (False, "MySQL schema was not checked because the server is unavailable")
         return {
             "sqlite_connected": sqlite_ok,
             "sqlite_message": sqlite_message,
             "mysql_connected": mysql_ok,
             "mysql_message": mysql_message,
+            "mysql_schema_ready": mysql_schema_ready,
+            "mysql_schema_message": mysql_schema_message,
             "active_backend": self.backend_name(),
             "database_name": MYSQL_DB if self.use_mysql else "beverage_data.sqlite3",
             "last_sqlite_check": self.last_sqlite_check,
@@ -171,6 +193,8 @@ class DBManager:
         finally:
             conn.close()
 
-# Global default instance
-db_manager = DBManager()
+# The application is MySQL-primary for the beverage task. Every query still
+# falls back to SQLite if MySQL becomes unavailable, so local development and
+# offline usage remain safe without silently making SQLite the intended source.
+db_manager = DBManager(use_mysql=True)
 

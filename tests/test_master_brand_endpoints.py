@@ -34,3 +34,8 @@ def test_master_brand_search_rejects_empty_filters():
 
     assert response.status_code == 400
     assert "search" in response.get_json()["error"].lower()
+
+
+def test_master_brand_export_returns_validation_error_without_500():
+    response = app_module.app.test_client().get("/api/master-brands/export")
+    assert response.status_code == 400

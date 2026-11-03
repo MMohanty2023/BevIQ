@@ -183,6 +183,8 @@ def api_master_brand_search():
 @app.route('/api/master-brands/export', methods=['GET'])
 def api_master_brand_export():
     response = api_master_brand_search()
+    if isinstance(response, tuple):
+        return response
     if response.status_code != 200:
         return response
     payload = response.get_json()

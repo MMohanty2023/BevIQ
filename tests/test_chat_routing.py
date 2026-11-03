@@ -42,3 +42,20 @@ def test_general_database_question_gets_an_answer_without_catalog_lookup(monkeyp
     result = RAGOrchestrator().route_and_execute("What is a database?")
 
     assert "organized collection" in result["answer"].lower()
+
+
+def test_how_are_you_gets_a_response(monkeypatch):
+    monkeypatch.setattr(RAGOrchestrator, "is_ollama_available", lambda self: False)
+    result = RAGOrchestrator().route_and_execute("How are you?")
+    assert "ready" in result["answer"].lower()
+
+
+def test_master_brand_brand_only_question_uses_master_search(monkeypatch):
+    class FakeSQL:
+        def search_master_brands(self, **kwargs):
+            assert kwargs["brand"] == "Kingfisher"
+            return {"records": [{"BrandName": "Kingfisher"}], "total_matches": 1}
+
+    monkeypatch.setattr("engines.rag_orchestrator.sql_engine", FakeSQL())
+    result = RAGOrchestrator().route_and_execute("Show Master Brand Kingfisher")
+    assert result["record_count"] == 1

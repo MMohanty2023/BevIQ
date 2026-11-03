@@ -194,9 +194,22 @@ class RAGOrchestrator:
         ]) and not is_product_upc_gap
         is_supplier_search = any(w in q_lower for w in ['supplier', 'vendor']) and not is_compare
         is_brand_search = any(w in q_lower for w in ['brand', 'products belonging to', 'show products for', 'products of', 'search', 'find']) and not is_supplier_search
+        master_brand_query = re.sub(r'(?i)\b(show|find|search|master|brand|with|a|an|the|in|please|dikhao|batao|karo)\b', ' ', q).strip()
+        master_brand_query = re.sub(r'\s+', ' ', master_brand_query).strip()
 
-        if is_master_brand_request and (identifier_match or upc_match):
-            brand_query = master_brand_phrase.group(1).strip() if master_brand_phrase else None
+        category_words = [name for name in ('beer', 'wine', 'rtd', 'spirits') if re.search(rf'\b{name}\b', q_lower)]
+        if len(category_words) >= 1 and not is_compare and not is_upc_query and not is_brand_search and not is_supplier_search and not is_product_upc_gap:
+            metrics = sql_engine.get_dashboard_metrics()
+            rows = []
+            for name in category_words:
+                item = metrics.get('categories', {}).get(name, {})
+                rows.append(f"- **{name.upper()}**: {int(item.get('total_records') or 0):,} records, {int(item.get('available_upcs') or 0):,} UPCs available, {int(item.get('missing_upcs') or 0):,} missing")
+            answer = "### 📊 Beverage Category Summary\n\n" + "\n".join(rows)
+            return self._format_response(answer, [], [], token)
+
+        if is_master_brand_request and not is_compare and not is_product_upc_gap and (identifier_match or upc_match or master_brand_query):
+            brand_query = (master_brand_phrase.group(1).strip() if master_brand_phrase else master_brand_query) or None
+            brand_query = re.sub(r'(?i)\s+in\s+master\s*$', '', brand_query or '').strip() or None
             master_id = identifier_match.group(1) if identifier_match else None
             res = sql_engine.search_master_brands(
                 master_id=master_id,
@@ -221,6 +234,8 @@ class RAGOrchestrator:
             else:
                 lookup_label = master_id or brand_query or (upc_match.group(1) if upc_match else q)
                 ans = f"### ❌ Master Brand Record Not Found\n\nNo Master Brand record matched `{lookup_label}`. Try the exact ID, brand name, or UPC."
+            if self._is_hinglish(q_lower):
+                ans = ans.replace("Found **", "**Mila: **").replace(" matching record(s) in the Master Brand sheet.", " matching record(s) Master Brand sheet mein.").replace("No Master Brand record matched", "Master Brand mein koi record match nahi hua")
             return self._format_response(ans, report_records, source_files, token)
 
         if identifier_match:
