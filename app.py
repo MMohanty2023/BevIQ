@@ -41,6 +41,8 @@ def api_chat():
         if uploaded:
             response['uploaded_document'] = uploaded
         return jsonify(response)
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
     except Exception as e:
         return jsonify({
             'answer': f"### ⚠️ Error processing query\n\n`{str(e)}`",
