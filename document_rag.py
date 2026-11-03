@@ -167,13 +167,15 @@ def search(query, session_id, top_k=6):
         rows = conn.execute("""SELECT document_id, session_id, page, content, filename
             FROM document_chunks_fts WHERE session_id=? AND document_chunks_fts MATCH ?
             LIMIT ?""", (session_id, fts_query, max(1, int(top_k)))).fetchall()
-        conn.close()
-        return [{"document_id": row["document_id"], "filename": row["filename"], "page": row["page"],
-                 "content": row["content"], "score": 1.0} for row in rows]
+        if rows:
+            conn.close()
+            return [{"document_id": row["document_id"], "filename": row["filename"], "page": row["page"],
+                     "content": row["content"], "score": 1.0} for row in rows]
     except sqlite3.OperationalError:
-        rows = conn.execute("""SELECT c.*, d.filename FROM document_chunks c
-            JOIN documents d ON d.document_id=c.document_id WHERE c.session_id=?""", (session_id,)).fetchall()
-        conn.close()
+        pass
+    rows = conn.execute("""SELECT c.*, d.filename FROM document_chunks c
+        JOIN documents d ON d.document_id=c.document_id WHERE c.session_id=?""", (session_id,)).fetchall()
+    conn.close()
     scored = []
     for row in rows:
         tokens = _tokens(row["content"])

@@ -42,3 +42,18 @@ def test_doc_upload_fails_with_clear_message(monkeypatch, tmp_path):
 
     with pytest.raises(ValueError, match="DOC files require conversion"):
         document_rag.ingest(storage("legacy.doc"), "session-a")
+
+
+def test_search_falls_back_for_chunks_created_before_fts_index(monkeypatch, tmp_path):
+    monkeypatch.setattr(document_rag, "DOC_DB", tmp_path / "documents.sqlite3")
+    conn = document_rag._connection()
+    conn.execute("INSERT INTO documents(document_id, session_id, filename, content_hash) VALUES(?,?,?,?)",
+                 ("legacy", "session-a", "legacy.txt", "hash"))
+    conn.execute("INSERT INTO document_chunks(document_id, session_id, chunk_index, page, content) VALUES(?,?,?,?,?)",
+                 ("legacy", "session-a", 0, "1", "Legacy supplier record"))
+    conn.commit()
+    conn.close()
+
+    hits = document_rag.search("supplier record", "session-a")
+
+    assert hits[0]["filename"] == "legacy.txt"
