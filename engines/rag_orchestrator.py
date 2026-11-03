@@ -4,12 +4,13 @@ import uuid
 import time
 import requests
 import pandas as pd
-from config import OLLAMA_HOST, OLLAMA_MODEL, REPORTS_DIR
+from config import DB_DIR, OLLAMA_HOST, OLLAMA_MODEL, REPORTS_DIR
 from engines.sql_engine import sql_engine
 from engines.comparison_engine import comparison_engine
 from engines.vector_engine import vector_engine
 from data_ingestion.normalizer import normalize_upc
 from document_rag import search as search_documents
+from engines.conversation_store import ConversationStore
 
 class RAGOrchestrator:
     def __init__(self):
@@ -17,6 +18,7 @@ class RAGOrchestrator:
         self.ollama_model = OLLAMA_MODEL
         self._ollama_status = None
         self._ollama_status_checked_at = 0.0
+        self.conversation_store = ConversationStore(DB_DIR / "conversation.sqlite3")
 
     def is_ollama_available(self):
         """Check if local Ollama server is running."""
@@ -48,6 +50,16 @@ class RAGOrchestrator:
         return None
 
     def route_and_execute(self, user_query, session_id='default-session'):
+        history = self.conversation_store.recent(session_id, limit=8)
+        original_query = user_query.strip()
+        query = self._with_conversation_context(original_query, history)
+        result = self._route_and_execute(query, session_id=session_id)
+        self.conversation_store.append(session_id, "user", original_query)
+        self.conversation_store.append(session_id, "assistant", result.get("answer", ""))
+        result["conversation_context_used"] = query != original_query
+        return result
+
+    def _route_and_execute(self, user_query, session_id='default-session'):
         """
         Understands natural language questions in English and Hinglish,
         executes relevant RAG / DB retrieval, and synthesizes accurate response.
@@ -492,6 +504,21 @@ No matching beverage records were retrieved for query: *"{q}"*.
 - Try searching with a 13-digit UPC, exact brand name (e.g. *Michelob Ultra*, *Modelo*, *Titos*), or comparison keywords (e.g. *Compare Master with Beer*)."""
 
         return self._format_response(ans, report_records, source_files, token)
+
+    def _with_conversation_context(self, query, history):
+        """Resolve short pronoun-based follow-ups without changing explicit searches."""
+        if not history:
+            return query
+        lowered = query.lower()
+        contextual = len(query.split()) <= 8 and bool(re.search(
+            r'\b(what about|and|also|it|that|this|same|iska|uska|iske|uske|aur)\b', lowered
+        ))
+        if not contextual:
+            return query
+        previous_user = next((turn["content"] for turn in reversed(history) if turn["role"] == "user"), "")
+        if not previous_user:
+            return query
+        return query + "\nPrevious user request for context: " + previous_user
 
     def _local_general_response(self, query):
         """Keep basic normal chat useful even when Ollama is not running."""
