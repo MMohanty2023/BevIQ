@@ -9,3 +9,5 @@ Task 1: complete (tests: `.venv/Scripts/python.exe -m pytest tests/test_db_backe
 Task 2: complete (tests: `.venv/Scripts/python.exe -m pytest tests/test_master_brand_endpoints.py tests/test_dashboard_endpoints.py tests/test_db_backend.py -q` → 12 passed)
 
 Task 3: complete (tests: `.venv/Scripts/python.exe -m pytest tests/test_chat_routing.py tests/test_rag_id_lookup.py tests/test_rag_audit.py -q` → 16 passed)
+
+Task 4: complete (tests: `.venv/Scripts/python.exe -m pytest tests/test_frontend_contract.py tests/test_dashboard_endpoints.py tests/test_master_brand_endpoints.py tests/test_chat_routing.py -q` → 13 passed; JavaScript syntax check passed)

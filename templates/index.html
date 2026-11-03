@@ -791,9 +791,32 @@
         .metric-box-value { font-size: 1.35rem; }
 
         .dashboard-grid { display: grid; gap: 1rem; }
-        .dashboard-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: .75rem; }
+        .dashboard-kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: .75rem; }
         .dashboard-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 10px; padding: 1rem; }
         .dashboard-card h3 { font-size: .82rem; color: var(--text-secondary); margin-bottom: .35rem; font-weight: 600; }
+        .dashboard-card h2 { margin: 0; font-size: 1rem; }
+        .analytics-grid { display:grid; grid-template-columns: minmax(240px, .85fr) minmax(0, 1.5fr); gap: .85rem; }
+        .upc-quality { display:flex; align-items:center; gap:1.25rem; min-height:190px; }
+        .upc-donut { width:150px; height:150px; border-radius:50%; display:grid; place-items:center; flex:0 0 auto; background: conic-gradient(var(--accent-emerald) 0deg, var(--accent-emerald) 0deg, var(--accent-rose) 0deg, var(--accent-rose) 360deg); }
+        .upc-donut::after { content:''; width:92px; height:92px; border-radius:50%; background:var(--bg-card); box-shadow:0 0 0 1px var(--border-color); }
+        .upc-donut-label { position:absolute; text-align:center; z-index:1; font-weight:800; font-size:1.15rem; }
+        .donut-wrap { position:relative; display:grid; place-items:center; }
+        .legend-list { display:grid; gap:.55rem; font-size:.82rem; color:var(--text-secondary); }
+        .legend-item { display:flex; justify-content:space-between; gap:1rem; }
+        .legend-dot { width:9px; height:9px; border-radius:50%; display:inline-block; margin-right:.4rem; }
+        .category-kpi-grid { display:grid; grid-template-columns:repeat(4, 1fr); gap:.65rem; }
+        .category-kpi { cursor:pointer; transition:transform .15s ease, border-color .15s ease; }
+        .category-kpi:hover { transform:translateY(-2px); border-color:var(--accent-blue); }
+        .category-kpi .dashboard-number { font-size:1.45rem; }
+        .master-summary-grid { display:grid; grid-template-columns:repeat(5, 1fr); gap:.65rem; }
+        .master-summary-item { background:rgba(56,189,248,.06); border:1px solid var(--border-color); border-radius:8px; padding:.7rem; }
+        .master-summary-item strong { display:block; font-size:1.1rem; color:var(--text-main); }
+        .master-summary-item span { color:var(--text-secondary); font-size:.72rem; }
+        .db-status-grid { display:flex; flex-wrap:wrap; gap:.55rem; font-size:.78rem; color:var(--text-secondary); }
+        .status-chip { padding:.35rem .6rem; border:1px solid var(--border-color); border-radius:999px; }
+        .master-search-grid { display:grid; grid-template-columns:repeat(4, 1fr); gap:.6rem; margin:1rem 0; }
+        .master-search-grid .btn-submit-send { min-height:40px; }
+        .master-results { max-height:520px; overflow:auto; }
         .dashboard-number { font-size: 1.65rem; font-weight: 700; color: var(--text-main); }
         .dashboard-subtle { color: var(--text-muted); font-size: .8rem; }
         .dashboard-table { width: 100%; border-collapse: collapse; font-size: .84rem; }
@@ -813,7 +836,9 @@
             .chat-form { gap: .45rem; }
             .btn-submit-send { padding: 0 .8rem; }
             .metric-cards-grid { grid-template-columns: repeat(2, 1fr); }
-            .dashboard-kpis { grid-template-columns: repeat(2, 1fr); }
+            .dashboard-kpis, .category-kpi-grid, .master-summary-grid { grid-template-columns: repeat(2, 1fr); }
+            .analytics-grid { grid-template-columns: 1fr; }
+            .master-search-grid { grid-template-columns: 1fr 1fr; }
         }
     </style>
 </head>
@@ -851,6 +876,9 @@
         </button>
         <button class="nav-tab-btn" onclick="switchTab('dashboard', this)">
             Dashboard
+        </button>
+        <button class="nav-tab-btn" onclick="switchTab('master-brands', this)">
+            Master Brands
         </button>
         <button class="nav-tab-btn" onclick="switchTab('comparison', this)">
             ⚖️ Comparison Studio
@@ -950,6 +978,44 @@
                     <div class="dashboard-card"><h3>Datasets</h3><div class="dashboard-number" id="dashboard-dataset-count">—</div></div>
                     <div class="dashboard-card"><h3>Active backend</h3><div class="dashboard-number" id="dashboard-backend">—</div></div>
                 </div>
+                <div class="dashboard-kpis" id="dashboard-category-kpis">
+                    <div class="dashboard-card"><h3>Beer products</h3><div class="dashboard-number" id="dashboard-beer-total">—</div></div>
+                    <div class="dashboard-card"><h3>Wine products</h3><div class="dashboard-number" id="dashboard-wine-total">—</div></div>
+                    <div class="dashboard-card"><h3>RTD products</h3><div class="dashboard-number" id="dashboard-rtd-total">—</div></div>
+                    <div class="dashboard-card"><h3>Spirits products</h3><div class="dashboard-number" id="dashboard-spirits-total">—</div></div>
+                    <div class="dashboard-card"><h3>Master Brand records</h3><div class="dashboard-number" id="dashboard-master-total">—</div></div>
+                    <div class="dashboard-card"><h3>UPC completion</h3><div class="dashboard-number" id="dashboard-upc-completion">—</div></div>
+                </div>
+                <div class="analytics-grid">
+                    <div class="dashboard-card">
+                        <h3>UPC data quality</h3>
+                        <div class="dashboard-subtle">Available versus missing UPCs across category sheets</div>
+                        <div class="upc-quality">
+                            <div class="donut-wrap"><div class="upc-donut" id="dashboard-upc-donut"></div><div class="upc-donut-label" id="dashboard-upc-donut-label">—</div></div>
+                            <div class="legend-list">
+                                <div class="legend-item"><span><i class="legend-dot" style="background:var(--accent-emerald)"></i>Available</span><strong id="dashboard-upc-available">—</strong></div>
+                                <div class="legend-item"><span><i class="legend-dot" style="background:var(--accent-rose)"></i>Missing</span><strong id="dashboard-upc-missing">—</strong></div>
+                                <div class="legend-item"><span>Total records</span><strong id="dashboard-upc-total">—</strong></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="dashboard-card">
+                        <h3>Category UPC health</h3>
+                        <div class="dashboard-subtle">Click a category to open its missing-UPC review</div>
+                        <div class="category-kpi-grid" id="dashboard-category-quality"></div>
+                    </div>
+                </div>
+                <div class="dashboard-card">
+                    <h3>Master Brand overview</h3>
+                    <div class="dashboard-subtle">Distinct counts from the Master Brand table</div>
+                    <div class="master-summary-grid">
+                        <div class="master-summary-item"><strong id="dashboard-master-total-summary">—</strong><span>Total records</span></div>
+                        <div class="master-summary-item"><strong id="dashboard-master-brands">—</strong><span>Unique brands</span></div>
+                        <div class="master-summary-item"><strong id="dashboard-master-ids">—</strong><span>Unique Master IDs</span></div>
+                        <div class="master-summary-item"><strong id="dashboard-master-with-upc">—</strong><span>Records with UPC</span></div>
+                        <div class="master-summary-item"><strong id="dashboard-master-without-upc">—</strong><span>Records without UPC</span></div>
+                    </div>
+                </div>
                 <div class="dashboard-card">
                     <div style="display:flex; justify-content:space-between; align-items:center; gap:.75rem; margin-bottom:.6rem;">
                         <div><h3 style="margin:0;">Dataset health</h3><div class="dashboard-subtle">Counts from the active database</div></div>
@@ -961,6 +1027,28 @@
                     <h3>Missing UPC overview</h3>
                     <div id="dashboard-missing-summary" class="dashboard-subtle">Loading...</div>
                 </div>
+                <div class="dashboard-card database-status-card">
+                    <h3>Database connection</h3>
+                    <div class="db-status-grid" id="dashboard-database-status">Checking SQLite and MySQL status...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MASTER BRAND SEARCH -->
+        <div id="tab-master-brands" class="tab-panel">
+            <div class="studio-title">Master Brand Search</div>
+            <div class="studio-subtitle">Search exact IDs, brand names, UPCs, or product names from the live Master Brand table.</div>
+            <div class="dashboard-card" style="margin-top:1rem;">
+                <form id="master-brand-search-form" class="master-search-grid" onsubmit="searchMasterBrands(event)">
+                    <input class="text-input-field" id="master-id-input" placeholder="Master Brand ID">
+                    <input class="text-input-field" id="master-brand-input" placeholder="Brand name">
+                    <input class="text-input-field" id="master-upc-input" placeholder="UPC / alternate UPC">
+                    <input class="text-input-field" id="master-product-input" placeholder="Product name">
+                    <button class="btn-submit-send" type="submit">Search Master Brands</button>
+                    <button class="btn-download-csv" type="button" onclick="clearMasterBrandSearch()">Clear</button>
+                </form>
+                <div id="master-brand-search-status" class="dashboard-subtle">Enter at least one search field.</div>
+                <div id="master-brand-results" class="master-results"></div>
             </div>
         </div>
 
@@ -1257,27 +1345,97 @@ JDBC URL: jdbc:mysql://127.0.0.1:3307/beverage_db
         async function loadDashboard() {
             const error = document.getElementById('dashboard-error');
             try {
-                const [overviewResponse, missingResponse] = await Promise.all([
+                const [overviewResponse, metricsResponse, missingResponse, statusResponse] = await Promise.all([
                     fetch('/api/dashboard/overview'),
-                    fetch('/api/dashboard/missing-upc?limit=100')
+                    fetch('/api/dashboard/metrics'),
+                    fetch('/api/dashboard/missing-upc?limit=100'),
+                    fetch('/api/db-status')
                 ]);
                 const overview = await overviewResponse.json();
+                const metrics = await metricsResponse.json();
                 const missing = await missingResponse.json();
+                const status = await statusResponse.json();
                 if (!overviewResponse.ok) throw new Error(overview.error || 'Dashboard could not be loaded');
                 document.getElementById('dashboard-total-records').textContent = Number(overview.kpis.total_records || 0).toLocaleString();
                 document.getElementById('dashboard-total-upcs').textContent = Number(overview.kpis.total_unique_upcs || 0).toLocaleString();
                 document.getElementById('dashboard-dataset-count').textContent = overview.kpis.dataset_count || 0;
                 document.getElementById('dashboard-backend').textContent = (overview.backend || 'sqlite').toUpperCase();
+                const categories = metrics.categories || {};
+                ['beer', 'wine', 'rtd', 'spirits'].forEach(category => {
+                    const node = document.getElementById(`dashboard-${category}-total`);
+                    if (node) node.textContent = Number((categories[category] || {}).total_records || 0).toLocaleString();
+                });
+                const quality = metrics.overall_upc || {};
+                const completion = Number(quality.completion_percentage || 0);
+                document.getElementById('dashboard-master-total').textContent = Number((metrics.master_brand || {}).total_records || 0).toLocaleString();
+                document.getElementById('dashboard-upc-completion').textContent = `${completion.toFixed(1)}%`;
+                document.getElementById('dashboard-upc-available').textContent = Number(quality.available_upcs || 0).toLocaleString();
+                document.getElementById('dashboard-upc-missing').textContent = Number(quality.missing_upcs || 0).toLocaleString();
+                document.getElementById('dashboard-upc-total').textContent = Number(quality.total_records || 0).toLocaleString();
+                document.getElementById('dashboard-upc-donut-label').textContent = `${completion.toFixed(0)}%`;
+                document.getElementById('dashboard-upc-donut').style.background = `conic-gradient(var(--accent-emerald) ${completion * 3.6}deg, var(--accent-rose) ${completion * 3.6}deg 360deg)`;
+                document.getElementById('dashboard-category-quality').innerHTML = Object.entries(categories).map(([name, value]) => `
+                    <div class="dashboard-card category-kpi" onclick="openCategoryMissing('${name}')">
+                        <h3>${name.toUpperCase()}</h3><div class="dashboard-number">${Number(value.total_records || 0).toLocaleString()}</div>
+                        <div class="dashboard-subtle">${Number(value.missing_upcs || 0).toLocaleString()} missing · ${Number(value.completion_percentage || 0).toFixed(1)}% complete</div>
+                    </div>`).join('');
+                const master = metrics.master_brand || {};
+                document.getElementById('dashboard-master-total-summary').textContent = Number(master.total_records || 0).toLocaleString();
+                document.getElementById('dashboard-master-brands').textContent = Number(master.unique_brands || 0).toLocaleString();
+                document.getElementById('dashboard-master-ids').textContent = Number(master.unique_master_ids || 0).toLocaleString();
+                document.getElementById('dashboard-master-with-upc').textContent = Number(master.records_with_upc || 0).toLocaleString();
+                document.getElementById('dashboard-master-without-upc').textContent = Number(master.records_without_upc || 0).toLocaleString();
                 document.getElementById('dashboard-datasets').innerHTML = (overview.datasets || []).map(dataset => `
                     <tr><td>${escapeHtml(dataset.dataset_key)}</td><td>${Number(dataset.total_rows || 0).toLocaleString()}</td>
                     <td>${Number(dataset.unique_upcs || 0).toLocaleString()}</td><td>${escapeHtml(dataset.file_name || '')}</td></tr>`).join('');
                 const summary = missing.summary || {};
                 document.getElementById('dashboard-missing-summary').textContent = `${Number(summary.total_missing_from_master || 0).toLocaleString()} UPCs are missing from the master catalog in the current comparison.`;
+                document.getElementById('dashboard-database-status').innerHTML = `
+                    <span class="status-chip">Active: <strong>${escapeHtml((status.active_backend || 'sqlite').toUpperCase())}</strong></span>
+                    <span class="status-chip">SQLite: ${status.sqlite_connected ? 'Connected' : 'Unavailable'}</span>
+                    <span class="status-chip">MySQL: ${status.mysql_connected ? 'Connected' : 'Not connected'}</span>
+                    <span class="status-chip">Database: ${escapeHtml(status.database_name || 'unknown')}</span>`;
                 error.style.display = 'none';
             } catch (err) {
                 error.textContent = err.message;
                 error.style.display = 'block';
             }
+        }
+
+        function openCategoryMissing(category) {
+            switchTab('comparison', document.querySelectorAll('.nav-tab-btn')[3]);
+            const preset = `master_vs_${category === 'rtd' ? 'rtd' : category}`;
+            executeComparison(preset);
+        }
+
+        async function searchMasterBrands(event) {
+            if (event) event.preventDefault();
+            const params = new URLSearchParams();
+            const fields = { id: 'master-id-input', brand: 'master-brand-input', upc: 'master-upc-input', product: 'master-product-input' };
+            Object.entries(fields).forEach(([key, id]) => {
+                const value = document.getElementById(id).value.trim();
+                if (value) params.set(key, value);
+            });
+            const status = document.getElementById('master-brand-search-status');
+            const results = document.getElementById('master-brand-results');
+            if (!params.toString()) { status.textContent = 'Enter at least one search field.'; results.innerHTML = ''; return; }
+            status.textContent = 'Searching the Master Brand table...';
+            results.innerHTML = '';
+            try {
+                const response = await fetch(`/api/master-brands/search?${params.toString()}`);
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || 'Master Brand search failed');
+                status.textContent = `${Number(data.total_matches || 0).toLocaleString()} matching record(s)`;
+                if (!data.records || !data.records.length) { results.innerHTML = '<div class="dashboard-subtle">No matching Master Brand records found.</div>'; return; }
+                const columns = data.columns || Object.keys(data.records[0]);
+                results.innerHTML = `<div style="overflow:auto"><table class="dashboard-table"><thead><tr>${columns.map(column => `<th>${escapeHtml(column)}</th>`).join('')}</tr></thead><tbody>${data.records.map(row => `<tr>${columns.map(column => `<td>${escapeHtml(row[column])}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+            } catch (err) { status.textContent = err.message; }
+        }
+
+        function clearMasterBrandSearch() {
+            ['master-id-input', 'master-brand-input', 'master-upc-input', 'master-product-input'].forEach(id => document.getElementById(id).value = '');
+            document.getElementById('master-brand-search-status').textContent = 'Enter at least one search field.';
+            document.getElementById('master-brand-results').innerHTML = '';
         }
 
         function submitUserChat(e) {

@@ -420,11 +420,15 @@ class SQLEngine:
             key: self._table_upc_metrics(CSV_FILES[f"cat_{key}"]["table"])
             for key in category_keys
         }
+        master_columns = self.db.table_columns(CSV_FILES['ai_master']['table']) if hasattr(self.db, 'table_columns') else []
+        master_column_lookup = {column.lower(): column for column in master_columns if column}
+        master_id_column = master_column_lookup.get('id') or master_column_lookup.get('masterbrandid') or master_column_lookup.get('master_brand_id')
+        id_expression = f"`{master_id_column}`" if master_id_column else "NULL"
         master = self.db.query(f"""
             SELECT
                 COUNT(*) AS master_record_count,
                 COUNT(DISTINCT NULLIF(TRIM(COALESCE(norm_brand, '')), '')) AS unique_brands,
-                COUNT(DISTINCT NULLIF(TRIM(COALESCE(id, '')), '')) AS unique_master_ids,
+                COUNT(DISTINCT NULLIF(TRIM(COALESCE({id_expression}, '')), '')) AS unique_master_ids,
                 SUM(CASE WHEN TRIM(COALESCE(clean_upc, '')) != '' THEN 1 ELSE 0 END) AS available_upcs,
                 SUM(CASE WHEN TRIM(COALESCE(clean_upc, '')) = '' THEN 1 ELSE 0 END) AS missing_upcs
             FROM `{CSV_FILES['ai_master']['table']}`
