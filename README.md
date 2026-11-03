@@ -1,5 +1,36 @@
 # BevIQ (Offline RAG & Beverage Comparison Engine)
 
+## Current runtime behavior
+
+- MySQL is the primary backend after a successful connection/configuration.
+- SQLite is the automatic local fallback when MySQL is unavailable or has not
+  been configured. The active backend is shown in the UI and `/api/db-status`.
+- Search runs against indexed database tables; the application does not reload
+  full CSV files for every question.
+- Original CSV files are never overwritten. Use
+  `python tools/optimize_csv.py SOURCE.csv OUTPUT.csv --columns ... --dedupe ...`
+  to create a separate smaller derivative for offline exchange or Power BI.
+
+## Dashboard and Power BI
+
+The Dashboard tab reads live values from the active backend. Power BI can use
+these read-only endpoints or import a CSV export:
+
+- `GET /api/dashboard/overview`
+- `GET /api/dashboard/categories`
+- `GET /api/dashboard/missing-upc?limit=500`
+- `GET /api/dashboard/export/<dataset>?limit=50000`
+
+Export dataset names are `all_brands`, `suppliers`, `ai_master`, `cat_beer`,
+`cat_rtd`, `cat_spirits`, and `cat_wine`.
+
+## Complete ID lookup
+
+Questions such as `Find details for ID 10245` or `Find UPC 0852955008021`
+search exact identifiers, UPCs, alternate UPCs, and related dataset records.
+Results include available database fields, source filenames, and source row
+references. Unknown identifiers return a clear not-found response.
+
 An enterprise-grade, locally running, 100% offline AI Assistant and Data Comparison Engine built with **Flask**, **Pandas**, **PyMySQL**, **SQLite WAL**, and **Local Vector Search**, specifically designed for large-scale beverage company data management (over **702,000+ product records** across 7 CSV files).
 
 Supports integration with **DBeaver** on **MySQL localhost:3307** and local **Ollama** LLMs (e.g., `llama3.2`, `mistral`, `phi3`).
