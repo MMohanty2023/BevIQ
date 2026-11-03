@@ -171,6 +171,8 @@ class RAGOrchestrator:
         upc_match = re.search(r'\b(\d{10,14})\b', q)
         is_upc_query = bool(upc_match) or 'upc' in q_lower or 'barcode' in q_lower
         identifier_match = re.search(r'\b(?:id|identifier)\s*[:#-]?\s*([a-z0-9_-]+)\b', q_lower)
+        is_master_brand_request = 'master brand' in q_lower or ('master' in q_lower and 'brand' in q_lower)
+        master_brand_phrase = re.search(r'(?:find|search|show)\s+(.+?)\s+with\s+(?:a\s+)?(?:upc|barcode)\b', q, re.I)
 
         # 2. Check for Comparison Intent
         is_compare = any(w in q_lower for w in ['compare', 'mismatch', 'diff', 'versus', 'vs', 'difference', 'farq'])
@@ -192,6 +194,34 @@ class RAGOrchestrator:
         ]) and not is_product_upc_gap
         is_supplier_search = any(w in q_lower for w in ['supplier', 'vendor']) and not is_compare
         is_brand_search = any(w in q_lower for w in ['brand', 'products belonging to', 'show products for', 'products of', 'search', 'find']) and not is_supplier_search
+
+        if is_master_brand_request and (identifier_match or upc_match):
+            brand_query = master_brand_phrase.group(1).strip() if master_brand_phrase else None
+            master_id = identifier_match.group(1) if identifier_match else None
+            res = sql_engine.search_master_brands(
+                master_id=master_id,
+                brand=brand_query,
+                upc=upc_match.group(1) if upc_match else None,
+                limit=200,
+            )
+            report_records = res.get('records', [])
+            source_files = ['AIMasterBrandData.csv'] if report_records else []
+            if report_records:
+                details = []
+                for key, value in report_records[0].items():
+                    if value not in (None, ''):
+                        details.append(f"- **{key}**: {value}")
+                answer_title = 'Master Brand Record' if len(report_records) == 1 else 'Master Brand Records'
+                ans = (
+                    f"### ✅ {answer_title}\n\n"
+                    f"Found **{len(report_records)} matching record(s)** in the Master Brand sheet.\n\n"
+                    + "\n".join(details[:40])
+                    + "\n\nAll details below are returned directly from the connected database."
+                )
+            else:
+                lookup_label = master_id or brand_query or (upc_match.group(1) if upc_match else q)
+                ans = f"### ❌ Master Brand Record Not Found\n\nNo Master Brand record matched `{lookup_label}`. Try the exact ID, brand name, or UPC."
+            return self._format_response(ans, report_records, source_files, token)
 
         if identifier_match:
             identifier = identifier_match.group(1)
@@ -523,6 +553,14 @@ No matching beverage records were retrieved for query: *"{q}"*.
     def _local_general_response(self, query):
         """Keep basic normal chat useful even when Ollama is not running."""
         text = query.lower().strip()
+        if re.search(r'\bwhat is (a )?database\b', text) or 'database kya hai' in text:
+            if self._detect_response_language(text) == 'Hinglish':
+                return "### 🗄️ Database\n\nDatabase ek organized collection hota hai jahan records ko securely store, search aur update kiya ja sakta hai. BevIQ mein beverage products, UPCs, brands aur suppliers database se read hote hain."
+            return "### 🗄️ Database\n\nA database is an organized collection of information that can be stored, searched, and updated reliably. In BevIQ, beverage products, UPCs, brands, and suppliers are read from the connected database."
+        if re.search(r'\bwhat is (an )?upc\b', text) or 'upc kya hai' in text:
+            if self._detect_response_language(text) == 'Hinglish':
+                return "### 🏷️ UPC\n\nUPC (Universal Product Code) product ka barcode identifier hota hai. BevIQ mein UPC se exact product, brand, category aur Master Brand record lookup kiya ja sakta hai."
+            return "### 🏷️ UPC\n\nUPC (Universal Product Code) is a barcode identifier for a product. BevIQ uses it to find exact product, brand, category, and Master Brand records."
         if not self._is_hinglish(text):
             if re.search(r'^(hi|hello|hey|hii)\b', text):
                 return "### 👋 Hello!\n\nI’m the BevIQ Assistant. You can chat normally or ask about beverage data, UPCs, comparisons, and uploaded documents."
