@@ -63,3 +63,28 @@ def test_configure_db_keeps_sqlite_after_failed_mysql_connection(monkeypatch):
     assert response.status_code == 400
     assert manager.active_backend == "sqlite"
 
+
+def test_query_falls_back_to_sqlite_when_mysql_query_fails(monkeypatch):
+    manager = DBManager(use_mysql=True)
+
+    class Cursor:
+        def execute(self, sql, params):
+            return None
+
+        def fetchall(self):
+            return []
+
+    class Connection:
+        def cursor(self):
+            return Cursor()
+
+        def close(self):
+            return None
+
+    monkeypatch.setattr(manager, "test_mysql_connection", lambda password=None: (True, "ok"))
+    monkeypatch.setattr(manager, "get_mysql_connection", lambda: (_ for _ in ()).throw(RuntimeError("mysql dropped")))
+    monkeypatch.setattr(manager, "get_sqlite_connection", lambda: Connection())
+
+    assert manager.query("SELECT 1") == []
+    assert manager.backend_name() == "sqlite"
+

@@ -88,40 +88,50 @@ class DBManager:
 
     def query(self, sql, params=None):
         """Execute query and return list of dicts."""
-        is_mysql = self.use_mysql and self.test_mysql_connection()[0]
-        if is_mysql:
-            conn = self.get_mysql_connection()
+        if self.use_mysql:
             try:
-                with conn.cursor() as cur:
-                    cur.execute(sql, params or ())
-                    return cur.fetchall()
-            finally:
-                conn.close()
-        else:
-            conn = self.get_sqlite_connection()
-            try:
-                cur = conn.cursor()
-                cur.execute(sql, params or ())
-                rows = cur.fetchall()
-                return [dict(r) for r in rows]
-            finally:
-                conn.close()
+                if self.test_mysql_connection()[0]:
+                    conn = self.get_mysql_connection()
+                    try:
+                        with conn.cursor() as cur:
+                            cur.execute(sql, params or ())
+                            return cur.fetchall()
+                    finally:
+                        conn.close()
+                self.set_mysql_backend(False)
+            except Exception as exc:
+                logger.warning("MySQL query failed; using SQLite fallback: %s", exc)
+                self.set_mysql_backend(False)
+
+        conn = self.get_sqlite_connection()
+        try:
+            cur = conn.cursor()
+            cur.execute(sql, params or ())
+            rows = cur.fetchall()
+            return [dict(r) for r in rows]
+        finally:
+            conn.close()
 
     def query_df(self, sql, params=None):
         """Execute query and return Pandas DataFrame."""
-        is_mysql = self.use_mysql and self.test_mysql_connection()[0]
-        if is_mysql:
-            conn = self.get_mysql_connection()
+        if self.use_mysql:
             try:
-                return pd.read_sql(sql, conn, params=params)
-            finally:
-                conn.close()
-        else:
-            conn = self.get_sqlite_connection()
-            try:
-                return pd.read_sql(sql, conn, params=params)
-            finally:
-                conn.close()
+                if self.test_mysql_connection()[0]:
+                    conn = self.get_mysql_connection()
+                    try:
+                        return pd.read_sql(sql, conn, params=params)
+                    finally:
+                        conn.close()
+                self.set_mysql_backend(False)
+            except Exception as exc:
+                logger.warning("MySQL dataframe query failed; using SQLite fallback: %s", exc)
+                self.set_mysql_backend(False)
+
+        conn = self.get_sqlite_connection()
+        try:
+            return pd.read_sql(sql, conn, params=params)
+        finally:
+            conn.close()
 
 # Global default instance
 db_manager = DBManager()
