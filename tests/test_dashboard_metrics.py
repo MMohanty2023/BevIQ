@@ -32,3 +32,26 @@ def test_dashboard_metrics_returns_live_category_and_master_brand_quality():
     assert metrics["overall_upc"]["available_upcs"] == 40
     assert metrics["overall_upc"]["missing_upcs"] == 10
     assert metrics["master_brand"]["unique_master_ids"] == 48
+
+
+def test_dashboard_metrics_handles_master_schema_without_normalized_brand_or_id():
+    class LegacyMetricsDB(MetricsDB):
+        def table_columns(self, table):
+            return ["record_id", "BrandName", "clean_upc"]
+
+        def query(self, sql, params=None):
+            if "from `ai_master`" in " ".join(sql.lower().split()):
+                assert "norm_brand" not in sql
+                assert "record_id" in sql
+                return [{
+                    "master_record_count": 4,
+                    "unique_brands": 2,
+                    "unique_master_ids": 4,
+                    "available_upcs": 3,
+                    "missing_upcs": 1,
+                }]
+            return super().query(sql, params)
+
+    metrics = SQLEngine(LegacyMetricsDB()).get_dashboard_metrics()
+
+    assert metrics["master_brand"]["unique_brands"] == 2

@@ -422,15 +422,24 @@ class SQLEngine:
         }
         master_columns = self.db.table_columns(CSV_FILES['ai_master']['table']) if hasattr(self.db, 'table_columns') else []
         master_column_lookup = {column.lower(): column for column in master_columns if column}
-        master_id_column = master_column_lookup.get('id') or master_column_lookup.get('masterbrandid') or master_column_lookup.get('master_brand_id')
+        master_id_column = (
+            master_column_lookup.get('id')
+            or master_column_lookup.get('record_id')
+            or master_column_lookup.get('masterbrandid')
+            or master_column_lookup.get('master_brand_id')
+        )
+        master_brand_column = master_column_lookup.get('norm_brand') or master_column_lookup.get('brandname') or master_column_lookup.get('extendedbrandname')
+        master_upc_column = master_column_lookup.get('clean_upc')
         id_expression = f"`{master_id_column}`" if master_id_column else "NULL"
+        brand_expression = f"`{master_brand_column}`" if master_brand_column else "NULL"
+        upc_expression = f"`{master_upc_column}`" if master_upc_column else "NULL"
         master = self.db.query(f"""
             SELECT
                 COUNT(*) AS master_record_count,
-                COUNT(DISTINCT NULLIF(TRIM(COALESCE(norm_brand, '')), '')) AS unique_brands,
+                COUNT(DISTINCT NULLIF(TRIM(COALESCE({brand_expression}, '')), '')) AS unique_brands,
                 COUNT(DISTINCT NULLIF(TRIM(COALESCE({id_expression}, '')), '')) AS unique_master_ids,
-                SUM(CASE WHEN TRIM(COALESCE(clean_upc, '')) != '' THEN 1 ELSE 0 END) AS available_upcs,
-                SUM(CASE WHEN TRIM(COALESCE(clean_upc, '')) = '' THEN 1 ELSE 0 END) AS missing_upcs
+                SUM(CASE WHEN TRIM(COALESCE({upc_expression}, '')) != '' THEN 1 ELSE 0 END) AS available_upcs,
+                SUM(CASE WHEN TRIM(COALESCE({upc_expression}, '')) = '' THEN 1 ELSE 0 END) AS missing_upcs
             FROM `{CSV_FILES['ai_master']['table']}`
         """)[0]
 
