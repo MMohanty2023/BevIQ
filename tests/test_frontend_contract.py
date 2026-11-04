@@ -65,4 +65,54 @@ def test_frontend_explains_powerbi_metric_definitions_and_refresh_context():
 def test_frontend_uses_beverage_dashboard_title_and_explains_backend():
     assert "Beverage Dashboard" in HTML
     assert "dashboard-backend-detail" in HTML
+    assert "primary_backend" in HTML
+    assert "SQLite fallback is serving data" in HTML
+
+
+def test_dashboard_loads_heavy_sections_progressively_and_reuses_requests():
+    assert "const dashboardRequestCache = new Map()" in HTML
+    assert "getDashboardData('/api/dashboard/metrics').catch" in HTML
+    assert "loadDashboardMetrics();" in HTML
+    assert "loadDashboardMissing();" in HTML
+    assert "async function loadDashboardMissing()" in HTML
+
+
+def test_dataset_upc_kpi_has_no_explanatory_subtitle():
+    kpi = HTML.split('<h3>Dataset UPC entries</h3>', 1)[1].split('</div>', 2)[0]
+    assert 'dashboard-total-upcs' in kpi
+    assert 'dashboard-subtle' not in kpi
+
+
+def test_frontend_exposes_persistent_light_dark_theme_toggle():
+    assert 'id="theme-toggle"' in HTML
+    assert "localStorage.getItem('beviq_theme')" in HTML
+    assert "data-theme=\"light\"" in HTML
+    assert 'class="theme-choice theme-choice--light"' in HTML
+    assert 'class="theme-choice theme-choice--dark"' in HTML
+    assert 'title="Light mode"' in HTML
+    assert 'title="Dark mode"' in HTML
+    assert 'theme-toggle__label' not in HTML
+    assert "data-active-theme" in HTML
     assert "MySQL schema" in HTML
+
+
+def test_chat_welcome_message_is_friendly_and_general_purpose():
+    assert "👋 <strong>Welcome to BevIQ!</strong>" in HTML
+    assert "beverage data and everyday questions" in HTML
+    assert "chat with me in English or Hinglish, ask anything" in HTML
+    assert "Just type your question and let's get started! 😊" in HTML
+    assert "UPC audits are review-only" not in HTML
+
+
+def test_theme_toggle_uses_mode_specific_accessible_color_tokens():
+    assert "--theme-toggle-bg: #111827" in HTML
+    assert "--theme-toggle-bg: #f1f5f9" in HTML
+    assert ".theme-choice[aria-pressed=\"true\"]" in HTML
+    assert "var(--theme-choice-selected)" in HTML
+    assert 'html[data-theme="light"] .studio-title' in HTML
+    assert 'html[data-theme="light"] .dashboard-card' in HTML
+    assert '@media (max-width: 900px)' in HTML
+    assert 'html[data-theme="light"] #tab-dashboard > .dashboard-grid > div:first-child .studio-title' in HTML
+    assert 'html[data-theme="light"] .brand-title' in HTML
+    assert 'html[data-theme="light"] .nav-tab-btn.active' in HTML
+    assert '.nav-tabs-wrapper' in HTML and 'overflow-x: auto' in HTML

@@ -1,7 +1,7 @@
 import os
 import sys
 from pathlib import Path
-from config import SQLITE_PATH, INDEX_DIR
+from config import INDEX_DIR, MYSQL_HOST, MYSQL_PORT, MYSQL_DB, SQLITE_PATH
 from data_ingestion.loader import ingest_all_to_sqlite
 from engines.vector_engine import vector_engine
 
@@ -32,7 +32,7 @@ def setup_environment():
 
     print("=" * 65)
     print("  Application ready! Starting Flask Web Server on http://127.0.0.1:5000")
-    print("  DBeaver Target: MySQL on localhost:3307 (Database: beverage_db)")
+    print(f"  Primary database: MySQL on {MYSQL_HOST}:{MYSQL_PORT} (Database: {MYSQL_DB})")
     print("=" * 65)
 
 if __name__ == '__main__':
@@ -40,4 +40,3 @@ if __name__ == '__main__':
     from app import app
     port = int(os.getenv("PORT", 5000))
     app.run(host='0.0.0.0', port=port, debug=False)
-

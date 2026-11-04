@@ -1,3 +1,4 @@
+from config import CSV_FILES
 from engines.sql_engine import SQLEngine
 
 
@@ -58,3 +59,44 @@ def test_dashboard_metrics_handles_master_schema_without_normalized_brand_or_id(
     metrics = SQLEngine(LegacyMetricsDB()).get_dashboard_metrics()
 
     assert metrics["master_brand"]["unique_brands"] == 2
+
+
+def test_dataset_overview_combines_row_and_distinct_upc_counts():
+    class OverviewDB:
+        def __init__(self):
+            self.queries = []
+
+        def query(self, sql, params=None):
+            self.queries.append(sql)
+            return [
+                {"dataset_key": key, "row_count": 25, "upc_count": 20}
+                for key in CSV_FILES
+            ]
+
+    database = OverviewDB()
+    overview = SQLEngine(database).get_dataset_overview()
+
+    assert len(overview) == 7
+    assert len(database.queries) == 1
+    assert "UNION ALL" in database.queries[0]
+    assert "COUNT(DISTINCT NULLIF(clean_upc, ''))" in database.queries[0]
+    assert all(item["total_rows"] == 25 and item["unique_upcs"] == 20 for item in overview)
+
+
+def test_dataset_overview_retries_tables_individually_when_combined_query_fails():
+    class OverviewDB:
+        def __init__(self):
+            self.queries = []
+
+        def query(self, sql, params=None):
+            self.queries.append(sql)
+            if "UNION ALL" in sql:
+                raise RuntimeError("combined query unsupported")
+            return [{"row_count": 25, "upc_count": 20}]
+
+    database = OverviewDB()
+    overview = SQLEngine(database).get_dataset_overview()
+
+    assert len(overview) == 7
+    assert len(database.queries) == 8
+    assert all(item["total_rows"] == 25 and item["unique_upcs"] == 20 for item in overview)

@@ -18,6 +18,7 @@ class RAGOrchestrator:
         self.ollama_model = OLLAMA_MODEL
         self._ollama_status = None
         self._ollama_status_checked_at = 0.0
+        self._ollama_error = None
         self.conversation_store = ConversationStore(DB_DIR / "conversation.sqlite3")
 
     def is_ollama_available(self):
@@ -28,13 +29,14 @@ class RAGOrchestrator:
         try:
             r = requests.get(f"{self.ollama_host}/api/tags", timeout=1.0)
             self._ollama_status = r.status_code == 200
-        except Exception:
+        except requests.RequestException:
             self._ollama_status = False
         self._ollama_status_checked_at = now
         return self._ollama_status
 
     def query_ollama(self, prompt, system_prompt=None):
         """Send prompt to local Ollama instance."""
+        self._ollama_error = None
         try:
             payload = {
                 "model": self.ollama_model,
@@ -42,24 +44,53 @@ class RAGOrchestrator:
                 "stream": False,
                 "system": system_prompt or "You are an expert beverage data assistant. Answer truthfully based solely on retrieved context."
             }
-            r = requests.post(f"{self.ollama_host}/api/generate", json=payload, timeout=30)
-            if r.status_code == 200:
-                return r.json().get('response', '')
-        except Exception as e:
-            pass
-        return None
+            response = requests.post(f"{self.ollama_host}/api/generate", json=payload, timeout=120)
+        except requests.RequestException:
+            self._ollama_error = "Ollama stopped responding while generating the reply. Check that Ollama is running and try again."
+            return None
+
+        if response.status_code == 404:
+            self._ollama_error = f"The configured Ollama model '{self.ollama_model}' was not found. Run `ollama run {self.ollama_model}` and try again."
+            return None
+        if response.status_code != 200:
+            self._ollama_error = f"Ollama returned HTTP {response.status_code} while generating the reply."
+            return None
+
+        try:
+            result = response.json()
+        except ValueError:
+            self._ollama_error = "Ollama returned an unreadable response. Check the local Ollama service and try again."
+            return None
+        answer = result.get("response") if isinstance(result, dict) else None
+        if not isinstance(answer, str) or not answer.strip():
+            self._ollama_error = "Ollama returned an empty reply. Try again or check the selected local model."
+            return None
+        return answer.strip()
 
     def route_and_execute(self, user_query, session_id='default-session'):
         history = self.conversation_store.recent(session_id, limit=8)
         original_query = user_query.strip()
         query = self._with_conversation_context(original_query, history)
-        result = self._route_and_execute(query, session_id=session_id)
+        result = self._route_and_execute(
+            query,
+            session_id=session_id,
+            conversation_history=history,
+            current_user_query=original_query,
+        )
+        if result.get("record_count") and self.is_ollama_available():
+            result = self._synthesize_data_response(original_query, result, history)
         self.conversation_store.append(session_id, "user", original_query)
         self.conversation_store.append(session_id, "assistant", result.get("answer", ""))
         result["conversation_context_used"] = query != original_query
         return result
 
-    def _route_and_execute(self, user_query, session_id='default-session'):
+    def _route_and_execute(
+        self,
+        user_query,
+        session_id='default-session',
+        conversation_history=None,
+        current_user_query=None,
+    ):
         """
         Understands natural language questions in English and Hinglish,
         executes relevant RAG / DB retrieval, and synthesizes accurate response.
@@ -72,70 +103,106 @@ class RAGOrchestrator:
         report_records = []
         source_files = []
 
-        # Always prioritize explicit normal-chat messages over catalog retrieval.
+        # Keep concise offline definitions available when the local model is off.
         local_general = self._local_general_response(q)
-        if local_general:
-            return self._format_response(local_general, [], [], token)
 
         # Keep ordinary conversation away from the product vector index. The
         # index is useful for catalog questions, but it can produce false hits
         # for words such as "day", "joke", or "India" in product names.
-        catalog_terms = [
-            'upc', 'barcode', 'product', 'brand', 'supplier', 'vendor',
-            'beer', 'wine', 'rtd', 'spirits', 'master', 'categorization',
-            'dataset', 'category', 'missing', 'compare', 'duplicate', 'audit', 'search', 'find'
-        ]
-        document_terms = ['document', 'pdf', 'file', 'upload', 'uploaded', 'image', 'sheet']
         has_identifier_intent = bool(re.search(r'\b(?:id|identifier)\s*[:#-]?\s*[a-z0-9_-]+\b', q_lower))
-        has_catalog_intent = bool(re.search(r'\b\d{10,14}\b', q)) or has_identifier_intent or any(term in q_lower for term in catalog_terms)
-        has_document_intent = any(term in q_lower for term in document_terms)
+        has_catalog_entity = bool(re.search(
+            r'\b(?:upc|barcode|product|products|brand|brands|supplier|vendor|beer|wine|rtd|spirits|master|categorization|dataset|category|flavour|flavor|size|origin|records?)\b',
+            q_lower,
+        ))
+        has_catalog_action = bool(re.search(
+            r'\b(?:find|search|look up|lookup|show|list|count|how many|compare|missing|not found|absent|duplicate|audit|verify|check|export|report|profile|details?|kitne|kitni|gino|dikhao|batao)\b',
+            q_lower,
+        ))
+        has_general_question_shape = bool(re.search(
+            r'\b(?:what is|what are|why|how does|how do|who is|tell me a|tell me about)\b',
+            q_lower,
+        ))
+        has_catalog_intent = (
+            bool(re.search(r'\b\d{10,14}\b', q))
+            or has_identifier_intent
+            or (has_catalog_action and has_catalog_entity)
+            or (bool(re.search(r'\b(?:search|find|look up|lookup)\b', q_lower)) and not has_general_question_shape)
+        )
+        has_document_reference = bool(re.search(
+            r'\b(?:uploaded|attached|this|my|is|iss|ye|yeh)\s+(?:document|pdf|file|image|sheet)\b|'
+            r'\b(?:document|pdf|file|image|sheet)\s+(?:i uploaded|i attached)\b|'
+            r'\b(?:document|pdf|file|image|sheet)\b|'
+            r'\b(?:summarize|summary|read|extract|what does|what is in)\b.{0,40}\b(?:document|pdf|file|image|sheet)\b',
+            q_lower,
+        ))
+        has_document_action = bool(re.search(
+            r'\b(?:summarize|summary|read|extract|in|from|about|according to|what does|what is in|tell me about|explain|describe|mein|kya|kab|batao|dikhao|samjhao)\b',
+            q_lower,
+        ))
+        has_document_intent = has_document_reference and has_document_action
         if not has_catalog_intent and not has_document_intent:
+            self._ollama_error = None
             if self.is_ollama_available():
-                language = self._detect_response_language(q)
                 general_system_prompt = (
                     "You are BevIQ, a friendly and capable general-purpose assistant. "
                     "The user may ask about any topic, not only beverage data. "
-                    "Reply in the same language and writing style as the user's latest message. "
-                    "If the user writes in English, reply in English. "
-                    "If the user writes in Hindi using Devanagari, reply in natural Hindi using Devanagari. "
-                    "If the user writes in Hinglish/Roman Hindi, reply in natural Hinglish using Roman script. "
-                    "If the user mixes English and Hindi, naturally match that mix. "
+                    "Use the conversation history to understand follow-up questions and avoid restarting the conversation. "
+                    f"{self._language_response_instruction(current_user_query or q)} "
                     "Follow an explicit language request if the user asks for a different language. "
                     "Keep technical terms such as Python, Flask, API, SQL, and database in English. "
                     "Do not force beverage-related content into unrelated conversations. "
-                    "Be helpful, conversational, accurate, and do not invent facts. "
-                    f"Detected response style for this message: {language}."
+                    "Be helpful, conversational, accurate, and do not invent facts."
                 )
-                general = self.query_ollama(q, general_system_prompt)
+                general_prompt = self._build_general_chat_prompt(
+                    current_user_query or q,
+                    conversation_history or [],
+                )
+                general = self.query_ollama(general_prompt, general_system_prompt)
                 if general:
                     return self._format_response(general, [], [], token)
+            else:
+                self._ollama_error = (
+                    f"Ollama is not reachable at {self.ollama_host}. "
+                    f"Run `ollama run {self.ollama_model}` to start the local chat model."
+                )
+
+            local_general = self._local_general_response(q)
+            if local_general:
+                return self._format_response(local_general, [], [], token)
 
             detected_language = self._detect_response_language(q)
             if detected_language == "Hindi":
                 fallback = (
-                    "### 💬 सामान्य बातचीत\\n\\n"
-                    "मैं सामान्य सवालों और बातचीत में मदद कर सकता हूँ। "
-                    "खुले सवालों के विस्तृत जवाब देने के लिए local Ollama चालू करें। "
-                    "BevIQ के database और uploaded-document वाले सवाल उपलब्ध हैं।"
+                    "### 💬 सामान्य बातचीत\n\n"
+                    "खुले सवालों के जवाब के लिए local Ollama शुरू करें और PowerShell में "
+                    f"`ollama run {self.ollama_model}` चलाएँ। आपकी chat इसी computer पर रहती है। "
+                    "BevIQ के database और uploaded-document वाले सवाल भी उपलब्ध हैं।"
                 )
             elif detected_language == "Hinglish":
                 fallback = (
-                    "### 💬 Normal Chat\\n\\n"
-                    "Main normal questions aur casual conversation mein help kar sakta hoon. "
-                    "Detailed open-ended answers ke liye local Ollama start karein. "
+                    "### 💬 Normal Chat\n\n"
+                    "Open-ended chat ke liye local Ollama start karke PowerShell mein "
+                    f"`ollama run {self.ollama_model}` chalayein. Aapki chat isi computer par rehti hai. "
                     "BevIQ ke database aur uploaded-document questions bhi available hain."
                 )
             else:
                 fallback = (
-                    "### 💬 Normal Chat\\n\\n"
-                    "I can help with general questions and casual conversation. "
-                    "Start local Ollama for detailed open-ended answers. "
-                    "BevIQ database and uploaded-document questions are also available."
+                    "### 💬 Normal Chat\n\n"
+                    "Open-ended conversation needs the local Ollama model. Start Ollama, then run "
+                    f"`ollama run {self.ollama_model}` in PowerShell and send your message again. "
+                    "Your chat stays on this computer; beverage-data and uploaded-document features remain available."
                 )
+            if self._ollama_error:
+                fallback += f"\n\n**Ollama status:** {self._ollama_error}"
             return self._format_response(fallback, [], [], token)
 
         # Direct aggregates should never fall through to the slower vector index.
-        is_master_brand_count = bool(re.search(r'\b(how many|number of|count|kitne|kitni|gino)\b', q_lower)) and 'brand' in q_lower
+        is_missing_intent = any(w in q_lower for w in ['missing', 'not found', 'absent', 'nahi hai', 'gap'])
+        is_master_brand_count = (
+            bool(re.search(r'\b(how many|number of|count|kitne|kitni|gino)\b', q_lower))
+            and 'brand' in q_lower
+            and not is_missing_intent
+        )
         if is_master_brand_count:
             category = next((f'cat_{name}' for name in ('beer', 'wine', 'rtd', 'spirits') if re.search(rf'\b{name}\b', q_lower)), None)
             brand_count = sql_engine.count_brands(category) if category else sql_engine.count_master_brands()
@@ -155,8 +222,17 @@ class RAGOrchestrator:
                 for hit in document_hits
             )
             if self.is_ollama_available():
-                prompt = f"Use only this uploaded-document context to answer the question. Cite filename and page/section.\n\nContext:\n{context}\n\nQuestion: {q}"
-                answer = self.query_ollama(prompt, "You answer questions about user-uploaded documents. If the answer is not in context, say so clearly.")
+                prompt = (
+                    "Use only this uploaded-document context to answer the question. "
+                    "Cite filename and page/section. Do not invent details.\n\n"
+                    f"Context:\n{context}\n\nQuestion: {current_user_query or q}"
+                )
+                system_prompt = (
+                    "You answer questions about user-uploaded documents. "
+                    "If the answer is not in context, say so clearly. "
+                    f"{self._language_response_instruction(current_user_query or q)}"
+                )
+                answer = self.query_ollama(prompt, system_prompt)
             else:
                 answer = None
             if not answer:
@@ -178,7 +254,7 @@ class RAGOrchestrator:
         is_compare = any(w in q_lower for w in ['compare', 'mismatch', 'diff', 'versus', 'vs', 'difference', 'farq'])
         is_beer_rtd = ('beer' in q_lower and 'rtd' in q_lower) or 'hard seltzer' in q_lower
         is_supplier_brand = ('supplier' in q_lower and ('brand' in q_lower or 'sheet' in q_lower or 'master' in q_lower))
-        is_missing = any(w in q_lower for w in ['missing', 'not found', 'absent', 'nahi hai', 'gap'])
+        is_missing = is_missing_intent
         is_duplicate = any(w in q_lower for w in ['duplicate', 'repeated', 'multiple', 'dohra'])
         is_category_count = bool(re.search(r'\b(count|category count|gino|total count)\b', q_lower)) or 'total products in each' in q_lower
         is_product_upc_gap = any(w in q_lower for w in [
@@ -207,7 +283,7 @@ class RAGOrchestrator:
             answer = "### 📊 Beverage Category Summary\n\n" + "\n".join(rows)
             return self._format_response(answer, [], [], token)
 
-        if is_master_brand_request and not is_compare and not is_product_upc_gap and (identifier_match or upc_match or master_brand_query):
+        if is_master_brand_request and not is_compare and not is_missing and not is_product_upc_gap and (identifier_match or upc_match or master_brand_query):
             brand_query = (master_brand_phrase.group(1).strip() if master_brand_phrase else master_brand_query) or None
             brand_query = re.sub(r'(?i)\s+in\s+master\s*$', '', brand_query or '').strip() or None
             master_id = identifier_match.group(1) if identifier_match else None
@@ -523,10 +599,15 @@ Found **{res['total_matches']} matching record(s)** associated with supplier '{r
 Retrieved Records:
 {context_text}
 
-User Question: {q}
+User Question: {current_user_query or q}
 
 Answer with source file references and exact details:"""
-                ollama_ans = self.query_ollama(prompt)
+                system_prompt = (
+                    "You answer beverage-data questions using only the supplied records. "
+                    "Be conversational, accurate, and cite the source file when available. "
+                    f"{self._language_response_instruction(current_user_query or q)}"
+                )
+                ollama_ans = self.query_ollama(prompt, system_prompt)
                 if ollama_ans:
                     return self._format_response(ollama_ans, report_records, source_files, token)
 
@@ -537,7 +618,12 @@ Retrieved **{len(docs)} highly relevant beverage records** from local vector sto
 """ + "\n".join([f"- **{d['brand']}** (`UPC: {d['upc']}`): {d['description']} *(Source: `{d['source_file']}`, Row: {d['original_row']})*" for d in docs[:5]])
         else:
             if self.is_ollama_available():
-                general = self.query_ollama(q, "You are a helpful general chat assistant with beverage-data expertise. Be concise, honest, and answer in the user's language. Do not invent database facts unless they are in context.")
+                general = self.query_ollama(
+                    current_user_query or q,
+                    "You are a helpful general chat assistant with beverage-data expertise. "
+                    "Be concise and honest. Do not invent database facts unless they are in context. "
+                    f"{self._language_response_instruction(current_user_query or q)}",
+                )
                 if general:
                     return self._format_response(general, [], [], token)
             local_general = self._local_general_response(q)
@@ -564,6 +650,67 @@ No matching beverage records were retrieved for query: *"{q}"*.
         if not previous_user:
             return query
         return query + "\nPrevious user request for context: " + previous_user
+
+    def _build_general_chat_prompt(self, current_query, history):
+        """Format recent turns so local Ollama can answer conversational follow-ups."""
+        lines = ["Conversation so far:"]
+        for turn in history[-8:]:
+            role = turn.get("role")
+            if role not in {"user", "assistant"}:
+                continue
+            content = str(turn.get("content", "")).strip()
+            if content:
+                speaker = "User" if role == "user" else "Assistant"
+                lines.append(f"{speaker}: {content[:2000]}")
+        lines.extend((f"Current user message: {current_query}", "Assistant:"))
+        return "\n".join(lines)
+
+    def _language_response_instruction(self, latest_message):
+        """Tell each model route to match the latest message's English/Hinglish style."""
+        language = self._detect_response_language(latest_message)
+        if language == "Hinglish":
+            return (
+                "The latest user message is Hinglish. Reply in natural conversational Hinglish "
+                "using Roman script, mixing Hindi and English naturally. Do not reply in "
+                "Devanagari or switch to English-only. Use the conversation history for meaning, "
+                "not for choosing the reply language."
+            )
+        if language == "Hindi":
+            return (
+                "The latest user message is Hindi in Devanagari. Reply in natural Hindi using "
+                "Devanagari. Use the conversation history for meaning, not for choosing the reply language."
+            )
+        return (
+            "The latest user message is English. Reply in natural English only. Do not switch "
+            "to Hindi or Hinglish unless the user explicitly asks for it. Use the conversation "
+            "history for meaning, not for choosing the reply language."
+        )
+
+    def _synthesize_data_response(self, user_query, result, history):
+        """Use only the retrieved result to make data answers conversational."""
+        records = result.get("records", [])[:12]
+        context = {
+            "verified_answer": result.get("answer", ""),
+            "records": records,
+            "source_files": result.get("source_files", []),
+        }
+        prompt = (
+            "Answer the user's beverage-data question in natural human language. "
+            "Use only the verified answer and retrieved records below; do not invent counts, "
+            "products, or sources. If no further explanation is needed, answer concisely. "
+            "Do not repeat the raw records as a table; the application displays those separately.\n\n"
+            f"Conversation:\n{self._build_general_chat_prompt(user_query, history)}\n\n"
+            f"Verified data context:\n{json.dumps(context, ensure_ascii=False, default=str)[:12000]}"
+        )
+        system_prompt = (
+            "You are a friendly beverage-data assistant. Explain retrieved results accurately, "
+            "conversationally, without changing any verified facts. "
+            f"{self._language_response_instruction(user_query)}"
+        )
+        answer = self.query_ollama(prompt, system_prompt)
+        if answer:
+            result["answer"] = answer
+        return result
 
     def _local_general_response(self, query):
         """Keep basic normal chat useful even when Ollama is not running."""
@@ -608,7 +755,7 @@ No matching beverage records were retrieved for query: *"{q}"*.
 
     def _detect_response_language(self, text):
         """Detect the reply style from the latest user message."""
-        if re.search(r'[\\u0900-\\u097f]', text):
+        if re.search(r'[\u0900-\u097f]', text):
             return "Hindi"
 
         hindi_markers = [
@@ -617,7 +764,7 @@ No matching beverage records were retrieved for query: *"{q}"*.
             'dikhao', 'chahiye', 'nahi', 'nahin', 'mein', 'mujhko',
             'kyunki', 'acha', 'achha', 'haan'
         ]
-        if any(re.search(rf'\\b{re.escape(marker)}\\b', text.lower()) for marker in hindi_markers):
+        if any(re.search(rf'\b{re.escape(marker)}\b', text.lower()) for marker in hindi_markers):
             return "Hinglish"
         return "English"
 
