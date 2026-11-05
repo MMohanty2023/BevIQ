@@ -1750,7 +1750,7 @@
             return (data.records || []).map(row => {
                 const imageUrl = getMasterBrandImageUrl(row, columns);
                 const media = imageUrl
-                    ? `<div class="master-brand-result-media"><img src="/api/master-brands/image-transparent?url=${encodeURIComponent(imageUrl)}" data-original-src="${escapeHtml(imageUrl)}" alt="${escapeHtml(row.BrandName || row.ProductName || 'Master Brand')}" loading="lazy" onclick="openMasterBrandImage(this.src, this.alt)" onerror="this.onerror=null;this.src=this.dataset.originalSrc"></div>`
+                    ? `<div class="master-brand-result-media"><img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(row.BrandName || row.ProductName || 'Master Brand')}" loading="lazy" onclick="openMasterBrandImage(this.src, this.alt)" onerror="this.remove()"></div>`
                     : '';
                 const table = `<div style="overflow:auto"><table class="dashboard-table"><thead><tr>${columns.map(column => `<th>${escapeHtml(column)}</th>`).join('')}</tr></thead><tbody><tr>${columns.map(column => `<td>${escapeHtml(row[column])}</td>`).join('')}</tr></tbody></table></div>`;
                 return `<div class="master-brand-result-card">${media}${table}</div>`;

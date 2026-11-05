@@ -1,8 +1,5 @@
 import os
 import io
-import math
-from urllib.parse import urlparse
-from urllib.request import Request, urlopen
 import pandas as pd
 from datetime import datetime, timezone
 from pathlib import Path
@@ -17,7 +14,6 @@ from engines.rag_orchestrator import rag_orchestrator
 from data_ingestion.loader import ingest_all_to_sqlite
 from document_rag import ingest as ingest_document, list_documents
 from engines.upc_match_engine import upc_match_engine
-from PIL import Image
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
 app.config['SECRET_KEY'] = 'beverage-data-assistant-secret-key-2026'
@@ -180,51 +176,6 @@ def api_master_brand_search():
         ))
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-
-
-def _transparent_product_png(content):
-    image = Image.open(io.BytesIO(content)).convert('RGBA')
-    replacement_background = (9, 13, 22, 255)
-    width, height = image.size
-    pixels = image.load()
-    corners = [pixels[0, 0], pixels[width - 1, 0], pixels[0, height - 1], pixels[width - 1, height - 1]]
-    background = tuple(sum(color[channel] for color in corners) / len(corners) for channel in range(3))
-    queue = [(x, 0) for x in range(width)] + [(x, height - 1) for x in range(width)]
-    queue += [(0, y) for y in range(1, height - 1)] + [(width - 1, y) for y in range(1, height - 1)]
-    visited = set()
-    while queue:
-        x, y = queue.pop()
-        if (x, y) in visited:
-            continue
-        visited.add((x, y))
-        color = pixels[x, y]
-        distance = math.sqrt(sum((color[channel] - background[channel]) ** 2 for channel in range(3)))
-        if distance > 58:
-            continue
-        pixels[x, y] = replacement_background
-        if x > 0: queue.append((x - 1, y))
-        if x < width - 1: queue.append((x + 1, y))
-        if y > 0: queue.append((x, y - 1))
-        if y < height - 1: queue.append((x, y + 1))
-    output = io.BytesIO()
-    image.save(output, format='PNG', optimize=True)
-    output.seek(0)
-    return output
-
-
-@app.route('/api/master-brands/image-transparent', methods=['GET'])
-def api_master_brand_transparent_image():
-    source = (request.args.get('url') or '').strip()
-    parsed = urlparse(source)
-    if parsed.scheme not in {'http', 'https'} or not (parsed.hostname or '').endswith('cloudfront.net'):
-        return jsonify({'error': 'Only CloudFront image URLs are supported'}), 400
-    try:
-        request_obj = Request(source, headers={'User-Agent': 'BevIQ/1.0'})
-        with urlopen(request_obj, timeout=10) as response:
-            content = response.read(12 * 1024 * 1024)
-        return send_file(_transparent_product_png(content), mimetype='image/png', max_age=3600)
-    except Exception as error:
-        return jsonify({'error': f'Image processing failed: {error}'}), 502
 
 @app.route('/api/master-brands/export', methods=['GET'])
 def api_master_brand_export():

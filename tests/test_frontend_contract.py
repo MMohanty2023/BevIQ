@@ -108,13 +108,7 @@ def test_master_brand_image_renderer_validates_urls_and_handles_broken_images():
     assert "http:" in HTML
     assert "https:" in HTML
     assert "onerror" in HTML
-    assert "this.dataset.originalSrc" in HTML
-
-
-def test_master_brand_images_use_transparent_proxy_with_original_fallback():
-    assert "/api/master-brands/image-transparent?url=" in HTML
-    assert "data-original-src" in HTML
-    assert "image-transparent" in HTML
+    assert "this.remove()" in HTML
 
 
 def test_master_brand_images_support_hover_zoom_and_same_page_lightbox():
