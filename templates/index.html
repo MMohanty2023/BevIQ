@@ -895,6 +895,12 @@
         .master-search-grid { display:grid; grid-template-columns:repeat(4, 1fr); gap:.6rem; margin:1rem 0; }
         .master-search-grid .btn-submit-send { min-height:40px; }
         .master-results { max-height:520px; overflow:auto; }
+        .master-brand-result-card { display:grid; grid-template-columns:96px minmax(0,1fr); gap:.85rem; align-items:start; margin-top:.8rem; padding:.8rem; border:1px solid var(--border-color); border-radius:10px; background:var(--bg-card); }
+        .master-brand-result-media { min-height:84px; display:grid; place-items:center; overflow:hidden; border-radius:8px; background:rgba(56,189,248,.06); border:1px solid var(--border-color); }
+        .master-brand-result-media img { width:84px; height:84px; object-fit:contain; display:block; }
+        .master-brand-result-media:has(img:only-child) { min-height:84px; }
+        .master-brand-result-media:empty { display:none; }
+        .master-brand-result-card:has(.master-brand-result-media:empty) { display:block; }
         .dashboard-number { font-size: 1.65rem; font-weight: 700; color: var(--text-main); }
         .dashboard-subtle { color: var(--text-muted); font-size: .8rem; }
         .dashboard-table { width: 100%; border-collapse: collapse; font-size: .84rem; }
@@ -1707,6 +1713,38 @@
             executeComparison(preset);
         }
 
+        function getMasterBrandImageUrl(row, columns) {
+            const imageColumnNames = new Set([
+                'imageurl', 'image_url', 'image', 'productimage', 'productimageurl',
+                'brandimage', 'brandimageurl'
+            ]);
+            for (const column of columns || []) {
+                const normalized = String(column).toLowerCase().replace(/[^a-z0-9]/g, '');
+                if (!imageColumnNames.has(normalized) && !normalized.includes('imageurl')) continue;
+                const value = String(row?.[column] ?? '').trim();
+                if (!value) continue;
+                try {
+                    const url = new URL(value);
+                    if (url.protocol === 'http:' || url.protocol === 'https:') return value;
+                } catch (error) {
+                    // Ignore malformed image values and keep rendering the data row.
+                }
+            }
+            return '';
+        }
+
+        function renderMasterBrandResults(data) {
+            const columns = data.columns || Object.keys(data.records?.[0] || {});
+            return (data.records || []).map(row => {
+                const imageUrl = getMasterBrandImageUrl(row, columns);
+                const media = imageUrl
+                    ? `<div class="master-brand-result-media"><img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(row.BrandName || row.ProductName || 'Master Brand')}" loading="lazy" onerror="this.remove()"></div>`
+                    : '';
+                const table = `<div style="overflow:auto"><table class="dashboard-table"><thead><tr>${columns.map(column => `<th>${escapeHtml(column)}</th>`).join('')}</tr></thead><tbody><tr>${columns.map(column => `<td>${escapeHtml(row[column])}</td>`).join('')}</tr></tbody></table></div>`;
+                return `<div class="master-brand-result-card">${media}${table}</div>`;
+            }).join('');
+        }
+
         async function searchMasterBrands(event) {
             if (event) event.preventDefault();
             const params = new URLSearchParams();
@@ -1726,8 +1764,7 @@
                 if (!response.ok) throw new Error(data.error || 'Master Brand search failed');
                 status.textContent = `${Number(data.total_matches || 0).toLocaleString()} matching record(s)`;
                 if (!data.records || !data.records.length) { results.innerHTML = '<div class="dashboard-subtle">No matching Master Brand records found.</div>'; return; }
-                const columns = data.columns || Object.keys(data.records[0]);
-                results.innerHTML = `<div style="overflow:auto"><table class="dashboard-table"><thead><tr>${columns.map(column => `<th>${escapeHtml(column)}</th>`).join('')}</tr></thead><tbody>${data.records.map(row => `<tr>${columns.map(column => `<td>${escapeHtml(row[column])}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+                results.innerHTML = renderMasterBrandResults(data);
             } catch (err) { status.textContent = err.message; }
         }
 

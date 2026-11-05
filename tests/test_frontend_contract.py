@@ -96,6 +96,21 @@ def test_frontend_exposes_persistent_light_dark_theme_toggle():
     assert "MySQL schema" in HTML
 
 
+def test_master_brand_results_render_image_urls_on_existing_search_page():
+    assert "function getMasterBrandImageUrl(row, columns)" in HTML
+    assert "function renderMasterBrandResults(data)" in HTML
+    assert "master-brand-result-media" in HTML
+    assert "master-brand-results" in HTML
+    assert "image_url" in HTML
+
+
+def test_master_brand_image_renderer_validates_urls_and_handles_broken_images():
+    assert "http:" in HTML
+    assert "https:" in HTML
+    assert "onerror" in HTML
+    assert "this.remove()" in HTML
+
+
 def test_chat_welcome_message_is_friendly_and_general_purpose():
     assert "👋 <strong>Welcome to BevIQ!</strong>" in HTML
     assert "beverage data and everyday questions" in HTML
