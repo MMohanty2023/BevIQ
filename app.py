@@ -184,6 +184,7 @@ def api_master_brand_search():
 
 def _transparent_product_png(content):
     image = Image.open(io.BytesIO(content)).convert('RGBA')
+    replacement_background = (9, 13, 22, 255)
     width, height = image.size
     pixels = image.load()
     queue = [(x, 0) for x in range(width)] + [(x, height - 1) for x in range(width)]
@@ -195,7 +196,7 @@ def _transparent_product_png(content):
             continue
         visited.add((x, y))
         color = pixels[x, y]
-        pixels[x, y] = (*color[:3], 0)
+        pixels[x, y] = replacement_background
         for neighbor_x, neighbor_y in ((x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)):
             if not (0 <= neighbor_x < width and 0 <= neighbor_y < height):
                 continue
