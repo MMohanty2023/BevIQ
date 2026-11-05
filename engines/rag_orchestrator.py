@@ -72,9 +72,11 @@ class RAGOrchestrator:
         report_records = []
         source_files = []
 
-        # Always prioritize explicit normal-chat messages over catalog retrieval.
+        # Keep deterministic definitions available even when they contain a
+        # catalog term; other normal-chat messages should reach the LLM first.
         local_general = self._local_general_response(q)
-        if local_general:
+        is_definition = bool(re.search(r'\bwhat is\b|database kya hai|upc kya hai', q_lower))
+        if local_general and is_definition:
             return self._format_response(local_general, [], [], token)
 
         # Keep ordinary conversation away from the product vector index. The
@@ -110,6 +112,10 @@ class RAGOrchestrator:
                 if general:
                     return self._format_response(general, [], [], token)
 
+            local_general = self._local_general_response(q)
+            if local_general:
+                return self._format_response(local_general, [], [], token)
+
             detected_language = self._detect_response_language(q)
             if detected_language == "Hindi":
                 fallback = (
@@ -135,7 +141,12 @@ class RAGOrchestrator:
             return self._format_response(fallback, [], [], token)
 
         # Direct aggregates should never fall through to the slower vector index.
-        is_master_brand_count = bool(re.search(r'\b(how many|number of|count|kitne|kitni|gino)\b', q_lower)) and 'brand' in q_lower
+        is_missing_intent = any(w in q_lower for w in ['missing', 'not found', 'absent', 'nahi hai', 'gap'])
+        is_master_brand_count = (
+            bool(re.search(r'\b(how many|number of|count|kitne|kitni|gino)\b', q_lower))
+            and 'brand' in q_lower
+            and not is_missing_intent
+        )
         if is_master_brand_count:
             category = next((f'cat_{name}' for name in ('beer', 'wine', 'rtd', 'spirits') if re.search(rf'\b{name}\b', q_lower)), None)
             brand_count = sql_engine.count_brands(category) if category else sql_engine.count_master_brands()
@@ -178,7 +189,7 @@ class RAGOrchestrator:
         is_compare = any(w in q_lower for w in ['compare', 'mismatch', 'diff', 'versus', 'vs', 'difference', 'farq'])
         is_beer_rtd = ('beer' in q_lower and 'rtd' in q_lower) or 'hard seltzer' in q_lower
         is_supplier_brand = ('supplier' in q_lower and ('brand' in q_lower or 'sheet' in q_lower or 'master' in q_lower))
-        is_missing = any(w in q_lower for w in ['missing', 'not found', 'absent', 'nahi hai', 'gap'])
+        is_missing = is_missing_intent
         is_duplicate = any(w in q_lower for w in ['duplicate', 'repeated', 'multiple', 'dohra'])
         is_category_count = bool(re.search(r'\b(count|category count|gino|total count)\b', q_lower)) or 'total products in each' in q_lower
         is_product_upc_gap = any(w in q_lower for w in [
@@ -207,7 +218,7 @@ class RAGOrchestrator:
             answer = "### 📊 Beverage Category Summary\n\n" + "\n".join(rows)
             return self._format_response(answer, [], [], token)
 
-        if is_master_brand_request and not is_compare and not is_product_upc_gap and (identifier_match or upc_match or master_brand_query):
+        if is_master_brand_request and not is_compare and not is_missing and not is_product_upc_gap and (identifier_match or upc_match or master_brand_query):
             brand_query = (master_brand_phrase.group(1).strip() if master_brand_phrase else master_brand_query) or None
             brand_query = re.sub(r'(?i)\s+in\s+master\s*$', '', brand_query or '').strip() or None
             master_id = identifier_match.group(1) if identifier_match else None

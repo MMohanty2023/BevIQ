@@ -65,4 +65,16 @@ def test_frontend_explains_powerbi_metric_definitions_and_refresh_context():
 def test_frontend_uses_beverage_dashboard_title_and_explains_backend():
     assert "Beverage Dashboard" in HTML
     assert "dashboard-backend-detail" in HTML
+
+
+def test_frontend_exposes_persistent_light_dark_theme_toggle():
+    assert 'id="theme-toggle"' in HTML
+    assert "localStorage.getItem('beviq_theme')" in HTML
+    assert "data-theme=\"light\"" in HTML
+    assert 'class="theme-choice theme-choice--light"' in HTML
+    assert 'class="theme-choice theme-choice--dark"' in HTML
+    assert 'title="Light mode"' in HTML
+    assert 'title="Dark mode"' in HTML
+    assert 'theme-toggle__label' not in HTML
+    assert "data-active-theme" in HTML
     assert "MySQL schema" in HTML

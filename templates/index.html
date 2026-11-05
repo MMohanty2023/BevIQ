@@ -24,6 +24,18 @@
             --accent-orange: #fb923c;
         }
 
+        html[data-theme="light"] {
+            --bg-page: #f1f5f9;
+            --bg-surface: #ffffff;
+            --bg-card: #ffffff;
+            --bg-hover: #e2e8f0;
+            --border-color: #cbd5e1;
+            --border-light: #94a3b8;
+            --text-main: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #64748b;
+        }
+
         * {
             box-sizing: border-box;
             margin: 0;
@@ -51,6 +63,65 @@
             position: sticky;
             top: 0;
             z-index: 50;
+        }
+
+        html[data-theme="light"] header,
+        html[data-theme="light"] .nav-tabs-wrapper {
+            background: #ffffff;
+        }
+
+        .theme-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.28rem;
+            border: 1px solid rgba(148, 163, 184, 0.25);
+            background: rgba(15, 23, 42, 0.72);
+            border-radius: 999px;
+            box-shadow: 0 5px 16px rgba(15, 23, 42, 0.16);
+        }
+
+        html[data-theme="light"] .theme-toggle {
+            background: #f8fafc;
+            border-color: #cbd5e1;
+            box-shadow: 0 5px 16px rgba(100, 116, 139, 0.18);
+        }
+
+        .theme-choice {
+            display: inline-grid;
+            place-items: center;
+            width: 32px;
+            height: 32px;
+            border: 0;
+            border-radius: 50%;
+            background: transparent;
+            color: var(--text-muted);
+            font-size: 1.05rem;
+            line-height: 1;
+            cursor: pointer;
+            transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .theme-choice:hover {
+            transform: translateY(-1px);
+            color: var(--text-main);
+        }
+
+        .theme-choice:focus-visible {
+            outline: 3px solid rgba(96, 165, 250, 0.45);
+            outline-offset: 2px;
+        }
+
+        .theme-choice--light[aria-pressed="true"] {
+            background: #f6c453;
+            color: #4a2c00;
+            box-shadow: 0 0 0 2px rgba(246, 196, 83, 0.22), 0 4px 10px rgba(245, 158, 11, 0.25);
+        }
+
+        .theme-choice--dark[aria-pressed="true"] {
+            background: #60a5fa;
+            color: #172554;
+            box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.22), 0 4px 10px rgba(59, 130, 246, 0.25);
         }
 
         .brand-container {
@@ -852,6 +923,10 @@
                 <div class="brand-subtitle">Beverage Intelligence, Simplified</div>
             </div>
         </div>
+        <div id="theme-toggle" class="theme-toggle" role="group" aria-label="Choose color theme" data-active-theme="dark">
+            <button class="theme-choice theme-choice--light" type="button" title="Light mode" aria-label="Light mode" aria-pressed="false">&#9728;</button>
+            <button class="theme-choice theme-choice--dark" type="button" title="Dark mode" aria-label="Dark mode" aria-pressed="true">&#9790;</button>
+        </div>
 
     </header>
 
@@ -1268,6 +1343,26 @@ JDBC URL: jdbc:mysql://127.0.0.1:3307/beverage_db
 
     <!-- Client Script (100% Offline & Pure JS) -->
     <script>
+        const savedTheme = localStorage.getItem('beviq_theme') || 'dark';
+        document.documentElement.dataset.theme = savedTheme;
+
+        function applyTheme(theme) {
+            const normalized = theme === 'light' ? 'light' : 'dark';
+            document.documentElement.dataset.theme = normalized;
+            localStorage.setItem('beviq_theme', normalized);
+            const toggle = document.getElementById('theme-toggle');
+            if (toggle) {
+                const light = normalized === 'light';
+                toggle.dataset.activeTheme = normalized;
+                toggle.querySelector('.theme-choice--light')?.setAttribute('aria-pressed', String(light));
+                toggle.querySelector('.theme-choice--dark')?.setAttribute('aria-pressed', String(!light));
+            }
+        }
+
+        document.querySelector('.theme-choice--light')?.addEventListener('click', () => applyTheme('light'));
+        document.querySelector('.theme-choice--dark')?.addEventListener('click', () => applyTheme('dark'));
+        applyTheme(savedTheme);
+
         let currentStudioRecords = [];
         let currentStudioPreset = 'all_missing';
         let lastServerSearch = '';
@@ -1419,7 +1514,6 @@ JDBC URL: jdbc:mysql://127.0.0.1:3307/beverage_db
                 document.getElementById('dashboard-category-quality').innerHTML = Object.entries(categories).map(([name, value]) => `
                     <div class="dashboard-card category-kpi" onclick="openCategoryMissing('${name}')">
                         <h3>${name.toUpperCase()}</h3><div class="dashboard-number">${Number(value.total_records || 0).toLocaleString()}</div>
-                        <div class="dashboard-subtle">${Number(value.missing_upcs || 0).toLocaleString()} missing · ${Number(value.completion_percentage || 0).toFixed(1)}% complete</div>
                     </div>`).join('');
                 document.getElementById('dashboard-master-total-summary').textContent = Number(master.total_records || 0).toLocaleString();
                 document.getElementById('dashboard-master-brands').textContent = Number(master.unique_brands || 0).toLocaleString();

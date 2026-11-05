@@ -50,6 +50,19 @@ def test_how_are_you_gets_a_response(monkeypatch):
     assert "ready" in result["answer"].lower()
 
 
+def test_general_chat_prefers_ollama_over_predefined_fallback(monkeypatch):
+    monkeypatch.setattr(RAGOrchestrator, "is_ollama_available", lambda self: True)
+    monkeypatch.setattr(
+        RAGOrchestrator,
+        "query_ollama",
+        lambda self, prompt, system_prompt=None: "I am doing well and ready to help.",
+    )
+
+    result = RAGOrchestrator().route_and_execute("How are you?")
+
+    assert "I am doing well" in result["answer"]
+
+
 def test_master_brand_brand_only_question_uses_master_search(monkeypatch):
     class FakeSQL:
         def search_master_brands(self, **kwargs):
@@ -59,3 +72,32 @@ def test_master_brand_brand_only_question_uses_master_search(monkeypatch):
     monkeypatch.setattr("engines.rag_orchestrator.sql_engine", FakeSQL())
     result = RAGOrchestrator().route_and_execute("Show Master Brand Kingfisher")
     assert result["record_count"] == 1
+
+
+def test_missing_master_audit_is_not_captured_by_brand_count_handler(monkeypatch):
+    class FakeComparison:
+        def compare_all_missing_in_master(self, limit_per_category=150):
+            return {
+                "summary": {
+                    "categories": [],
+                    "total_categorization_upcs": 4,
+                    "total_matched_in_master": 1,
+                    "total_missing_from_master": 3,
+                    "overall_missing_pct": 75.0,
+                },
+                "records": [{"category": "Beer", "upc": "123"}],
+            }
+
+    class ExplodingSQL:
+        def count_brands(self, category):
+            raise AssertionError("missing-master audit must run before brand count")
+
+    monkeypatch.setattr("engines.rag_orchestrator.comparison_engine", FakeComparison())
+    monkeypatch.setattr("engines.rag_orchestrator.sql_engine", ExplodingSQL())
+
+    result = RAGOrchestrator().route_and_execute(
+        "beer, wine, rtd or spirits missing upc kon kon se hai check karo master brands me se jo hai nahi vo batao or count bhi"
+    )
+
+    assert result["record_count"] == 1
+    assert "Missing UPCs" in result["answer"]
