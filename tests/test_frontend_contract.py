@@ -119,6 +119,12 @@ def test_master_brand_images_support_hover_zoom_and_same_page_lightbox():
     assert "Escape" in HTML
 
 
+def test_master_brand_thumbnail_frame_does_not_add_image_background():
+    assert ".master-brand-result-media {" in HTML
+    assert "background:transparent" in HTML
+    assert "border:0" in HTML
+
+
 def test_chat_welcome_message_is_friendly_and_general_purpose():
     assert "👋 <strong>Welcome to BevIQ!</strong>" in HTML
     assert "beverage data and everyday questions" in HTML
