@@ -187,6 +187,8 @@ def _transparent_product_png(content):
     replacement_background = (9, 13, 22, 255)
     width, height = image.size
     pixels = image.load()
+    corners = [pixels[0, 0], pixels[width - 1, 0], pixels[0, height - 1], pixels[width - 1, height - 1]]
+    background = tuple(sum(color[channel] for color in corners) / len(corners) for channel in range(3))
     queue = [(x, 0) for x in range(width)] + [(x, height - 1) for x in range(width)]
     queue += [(0, y) for y in range(1, height - 1)] + [(width - 1, y) for y in range(1, height - 1)]
     visited = set()
@@ -196,14 +198,14 @@ def _transparent_product_png(content):
             continue
         visited.add((x, y))
         color = pixels[x, y]
+        distance = math.sqrt(sum((color[channel] - background[channel]) ** 2 for channel in range(3)))
+        if distance > 58:
+            continue
         pixels[x, y] = replacement_background
-        for neighbor_x, neighbor_y in ((x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)):
-            if not (0 <= neighbor_x < width and 0 <= neighbor_y < height):
-                continue
-            neighbor = pixels[neighbor_x, neighbor_y]
-            distance = math.sqrt(sum((neighbor[channel] - color[channel]) ** 2 for channel in range(3)))
-            if distance <= 30:
-                queue.append((neighbor_x, neighbor_y))
+        if x > 0: queue.append((x - 1, y))
+        if x < width - 1: queue.append((x + 1, y))
+        if y > 0: queue.append((x, y - 1))
+        if y < height - 1: queue.append((x, y + 1))
     output = io.BytesIO()
     image.save(output, format='PNG', optimize=True)
     output.seek(0)
