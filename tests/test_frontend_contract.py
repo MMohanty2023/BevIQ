@@ -111,6 +111,14 @@ def test_master_brand_image_renderer_validates_urls_and_handles_broken_images():
     assert "this.remove()" in HTML
 
 
+def test_master_brand_images_support_hover_zoom_and_same_page_lightbox():
+    assert ".master-brand-result-media img:hover" in HTML
+    assert "openMasterBrandImage" in HTML
+    assert 'id="master-brand-image-lightbox"' in HTML
+    assert "closeMasterBrandImage" in HTML
+    assert "Escape" in HTML
+
+
 def test_chat_welcome_message_is_friendly_and_general_purpose():
     assert "👋 <strong>Welcome to BevIQ!</strong>" in HTML
     assert "beverage data and everyday questions" in HTML

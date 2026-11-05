@@ -897,10 +897,17 @@
         .master-results { max-height:520px; overflow:auto; }
         .master-brand-result-card { display:grid; grid-template-columns:96px minmax(0,1fr); gap:.85rem; align-items:start; margin-top:.8rem; padding:.8rem; border:1px solid var(--border-color); border-radius:10px; background:var(--bg-card); }
         .master-brand-result-media { min-height:84px; display:grid; place-items:center; overflow:hidden; border-radius:8px; background:rgba(56,189,248,.06); border:1px solid var(--border-color); }
-        .master-brand-result-media img { width:84px; height:84px; object-fit:contain; display:block; }
+        .master-brand-result-media img { width:84px; height:84px; object-fit:contain; display:block; cursor:zoom-in; transition:transform .2s ease, filter .2s ease; }
+        .master-brand-result-media img:hover { transform:scale(1.12); filter:brightness(1.08); }
         .master-brand-result-media:has(img:only-child) { min-height:84px; }
         .master-brand-result-media:empty { display:none; }
         .master-brand-result-card:has(.master-brand-result-media:empty) { display:block; }
+        .master-brand-image-lightbox { position:fixed; inset:0; z-index:1000; display:grid; place-items:center; padding:2rem; background:rgba(2,6,23,.86); cursor:zoom-out; }
+        .master-brand-image-lightbox[hidden] { display:none; }
+        .master-brand-image-lightbox img { max-width:min(90vw,720px); max-height:86vh; object-fit:contain; border:1px solid var(--border-color); border-radius:12px; background:var(--bg-card); box-shadow:0 20px 70px rgba(0,0,0,.45); cursor:default; }
+        .master-brand-image-lightbox-close { position:absolute; top:1rem; right:1.25rem; width:2.5rem; height:2.5rem; border:1px solid var(--border-color); border-radius:50%; color:var(--text-main); background:var(--bg-card); font-size:1.8rem; line-height:1; cursor:pointer; }
+        .master-brand-image-lightbox-close:hover { border-color:var(--accent-blue); color:var(--accent-blue); }
+        body.master-brand-lightbox-open { overflow:hidden; }
         .dashboard-number { font-size: 1.65rem; font-weight: 700; color: var(--text-main); }
         .dashboard-subtle { color: var(--text-muted); font-size: .8rem; }
         .dashboard-table { width: 100%; border-collapse: collapse; font-size: .84rem; }
@@ -1276,6 +1283,11 @@
                 <div id="master-brand-search-status" class="dashboard-subtle">Enter at least one search field.</div>
                 <div id="master-brand-results" class="master-results"></div>
             </div>
+        </div>
+
+        <div id="master-brand-image-lightbox" class="master-brand-image-lightbox" hidden role="dialog" aria-modal="true" aria-label="Enlarged Master Brand image" onclick="closeMasterBrandImage(event)">
+            <button class="master-brand-image-lightbox-close" type="button" aria-label="Close enlarged image" onclick="closeMasterBrandImage(event)">&times;</button>
+            <img id="master-brand-image-lightbox-preview" alt="" onclick="event.stopPropagation()">
         </div>
 
         <!-- TAB 3: COMPARISON STUDIO -->
@@ -1738,12 +1750,36 @@
             return (data.records || []).map(row => {
                 const imageUrl = getMasterBrandImageUrl(row, columns);
                 const media = imageUrl
-                    ? `<div class="master-brand-result-media"><img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(row.BrandName || row.ProductName || 'Master Brand')}" loading="lazy" onerror="this.remove()"></div>`
+                    ? `<div class="master-brand-result-media"><img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(row.BrandName || row.ProductName || 'Master Brand')}" loading="lazy" onclick="openMasterBrandImage(this.src, this.alt)" onerror="this.remove()"></div>`
                     : '';
                 const table = `<div style="overflow:auto"><table class="dashboard-table"><thead><tr>${columns.map(column => `<th>${escapeHtml(column)}</th>`).join('')}</tr></thead><tbody><tr>${columns.map(column => `<td>${escapeHtml(row[column])}</td>`).join('')}</tr></tbody></table></div>`;
                 return `<div class="master-brand-result-card">${media}${table}</div>`;
             }).join('');
         }
+
+        function openMasterBrandImage(src, alt) {
+            const lightbox = document.getElementById('master-brand-image-lightbox');
+            const preview = document.getElementById('master-brand-image-lightbox-preview');
+            if (!lightbox || !preview || !src) return;
+            preview.src = src;
+            preview.alt = alt || 'Master Brand image';
+            lightbox.hidden = false;
+            document.body.classList.add('master-brand-lightbox-open');
+        }
+
+        function closeMasterBrandImage(event) {
+            if (event) event.stopPropagation();
+            const lightbox = document.getElementById('master-brand-image-lightbox');
+            const preview = document.getElementById('master-brand-image-lightbox-preview');
+            if (!lightbox || !preview) return;
+            lightbox.hidden = true;
+            preview.removeAttribute('src');
+            document.body.classList.remove('master-brand-lightbox-open');
+        }
+
+        document.addEventListener('keydown', event => {
+            if (event.key === 'Escape') closeMasterBrandImage();
+        });
 
         async function searchMasterBrands(event) {
             if (event) event.preventDefault();
