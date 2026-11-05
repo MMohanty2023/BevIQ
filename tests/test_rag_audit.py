@@ -19,6 +19,17 @@ def test_ollama_availability_check_is_cached(monkeypatch):
     assert calls['count'] == 1
 
 
+def test_missing_ollama_model_returns_actionable_setup_error(monkeypatch):
+    class FakeResponse:
+        status_code = 404
+
+    monkeypatch.setattr('engines.rag_orchestrator.requests.post', lambda *args, **kwargs: FakeResponse())
+    orchestrator = RAGOrchestrator()
+
+    assert orchestrator.query_ollama("Hello") is None
+    assert "ollama run llama3.2" in orchestrator._ollama_error
+
+
 def test_master_brand_count_uses_direct_sql_count(monkeypatch):
     orchestrator = RAGOrchestrator()
     called = {'count': 0, 'vector': 0}
@@ -80,8 +91,12 @@ def test_category_brand_count_uses_requested_sheet(monkeypatch):
     assert 'master sheet contains' not in result['answer'].lower()
 
 
-def test_flexible_joke_request_returns_a_joke():
-    result = RAGOrchestrator().route_and_execute('tell me about joke')
+def test_flexible_joke_request_returns_a_joke(monkeypatch):
+    monkeypatch.setattr(RAGOrchestrator, 'is_ollama_available', lambda self: False)
+    result = RAGOrchestrator().route_and_execute(
+        'tell me about joke',
+        session_id='test-joke-request',
+    )
 
     assert 'Joke' in result['answer']
     assert 'coffee' in result['answer'].lower()
@@ -107,8 +122,10 @@ def test_brand_profile_query_returns_sheet_details_in_hinglish(monkeypatch):
             }
 
     monkeypatch.setattr('engines.rag_orchestrator.sql_engine', FakeSQL())
+    monkeypatch.setattr(RAGOrchestrator, 'is_ollama_available', lambda self: False)
     result = RAGOrchestrator().route_and_execute(
-        'Barefoot ke kitne flavour, size, supplier aur origin hain?'
+        'Barefoot ke kitne flavour, size, supplier aur origin hain?',
+        session_id='test-brand-profile-hinglish',
     )
 
     assert 'Barefoot' in result['answer']
@@ -137,7 +154,11 @@ def test_brand_or_product_description_search_uses_all_sheet_catalog(monkeypatch)
             }
 
     monkeypatch.setattr('engines.rag_orchestrator.sql_engine', FakeSQL())
-    result = RAGOrchestrator().route_and_execute('search 100 Percent Honest')
+    monkeypatch.setattr(RAGOrchestrator, 'is_ollama_available', lambda self: False)
+    result = RAGOrchestrator().route_and_execute(
+        'search 100 Percent Honest',
+        session_id='test-catalog-search',
+    )
 
     assert '100 Percent Honest Chardonnay' in result['answer']
     assert result['record_count'] == 1
@@ -204,7 +225,11 @@ def test_supplier_question_uses_supplier_search_without_brand_profile(monkeypatc
             raise AssertionError('supplier-only query must not use brand_profile')
 
     monkeypatch.setattr('engines.rag_orchestrator.sql_engine', FakeSQL())
-    result = RAGOrchestrator().route_and_execute('Find products with supplier Gallo')
+    monkeypatch.setattr(RAGOrchestrator, 'is_ollama_available', lambda self: False)
+    result = RAGOrchestrator().route_and_execute(
+        'Find products with supplier Gallo',
+        session_id='test-supplier-search',
+    )
 
     assert 'Supplier Search' in result['answer']
     assert result['record_count'] == 1

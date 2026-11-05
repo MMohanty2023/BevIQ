@@ -48,7 +48,7 @@ Main packages ka use:
 
 - `Flask`: web app/API
 - `pandas`: CSV aur table data
-- `pymysql`: MySQL connection
+- `mysql-connector-python`: MySQL connection
 - `openpyxl`: Excel files
 - `pypdf`: PDF reading
 - `python-docx`: DOCX reading
@@ -76,8 +76,8 @@ http://127.0.0.1:5000
 
 ## 6. Optional settings
 
-- MySQL/DBeaver optional hai; default target `127.0.0.1:3307` hai.
-- Ollama optional hai; bina Ollama ke local deterministic features chal sakte hain.
+- MySQL primary database hai; default target `127.0.0.1:3306` hai. Apna MySQL password `.env` mein `MYSQL_PASSWORD` ke roop mein set karo; port alag ho to `MYSQL_PORT` set karo. MySQL unavailable hone par SQLite fallback chalta hai.
+- Database/document features bina Ollama ke chal sakte hain. Normal open-ended chat ke liye Ollama install karke `ollama run llama3.2` chalao; chat local hi rehti hai.
 - `.env` mein passwords/settings rakho, lekin `.env` ko GitHub par upload mat karo.
 
 ## 7. Common commands

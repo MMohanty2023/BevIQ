@@ -398,21 +398,41 @@ class SQLEngine:
 
     def get_dataset_overview(self):
         """Returns row counts and metrics for each active table."""
+        datasets = list(CSV_FILES.items())
+        overview_query = " UNION ALL ".join(
+            f"SELECT '{key}' AS dataset_key, COUNT(*) AS row_count, "
+            f"COUNT(DISTINCT NULLIF(clean_upc, '')) AS upc_count "
+            f"FROM `{conf['table']}`"
+            for key, conf in datasets
+        )
+        try:
+            counts_by_dataset = {
+                row["dataset_key"]: row
+                for row in self.db.query(overview_query)
+            }
+        except Exception:
+            logger.exception("Combined dataset overview query failed; retrying tables individually")
+            counts_by_dataset = {}
+
         stats = []
-        for key, conf in CSV_FILES.items():
-            tbl = conf['table']
-            try:
-                row_count = self.db.query(f"SELECT COUNT(*) as c FROM `{tbl}`")[0]['c']
-                upc_count = self.db.query(f"SELECT COUNT(DISTINCT clean_upc) as c FROM `{tbl}` WHERE clean_upc != ''")[0]['c']
-            except Exception:
-                row_count = 0
-                upc_count = 0
+        for key, conf in datasets:
+            counts = counts_by_dataset.get(key)
+            if counts is None:
+                try:
+                    counts = self.db.query(
+                        f"SELECT COUNT(*) AS row_count, "
+                        f"COUNT(DISTINCT NULLIF(clean_upc, '')) AS upc_count "
+                        f"FROM `{conf['table']}`"
+                    )[0]
+                except Exception:
+                    logger.exception("Dataset overview query failed for %s", conf["table"])
+                    counts = {"row_count": 0, "upc_count": 0}
             stats.append({
                 "dataset_key": key,
                 "file_name": conf['file'],
-                "table_name": tbl,
-                "total_rows": row_count,
-                "unique_upcs": upc_count
+                "table_name": conf['table'],
+                "total_rows": counts["row_count"],
+                "unique_upcs": counts["upc_count"],
             })
         return stats
 

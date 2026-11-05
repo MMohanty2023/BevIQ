@@ -31,9 +31,9 @@ search exact identifiers, UPCs, alternate UPCs, and related dataset records.
 Results include available database fields, source filenames, and source row
 references. Unknown identifiers return a clear not-found response.
 
-An enterprise-grade, locally running, 100% offline AI Assistant and Data Comparison Engine built with **Flask**, **Pandas**, **PyMySQL**, **SQLite WAL**, and **Local Vector Search**, specifically designed for large-scale beverage company data management (over **702,000+ product records** across 7 CSV files).
+An enterprise-grade, locally running, 100% offline AI Assistant and Data Comparison Engine built with **Flask**, **Pandas**, **MySQL Connector/Python**, **SQLite WAL**, and **Local Vector Search**, specifically designed for large-scale beverage company data management (over **702,000+ product records** across 7 CSV files).
 
-Supports integration with **DBeaver** on **MySQL localhost:3307** and local **Ollama** LLMs (e.g., `llama3.2`, `mistral`, `phi3`).
+Uses **MySQL as the primary database** (default `127.0.0.1:3306`) with SQLite as a fallback, and supports local **Ollama** LLMs (e.g., `llama3.2`, `mistral`, `phi3`).
 
 ---
 
@@ -64,8 +64,8 @@ Supports integration with **DBeaver** on **MySQL localhost:3307** and local **Ol
      - 🟠 **Requires Verification**
    - Shows source filename and original CSV row number for every match and mismatch.
 
-5. **DBeaver & MySQL 3307 Integration**:
-   - Pre-configured to sync all 7 datasets into MySQL Server on **port 3307** into the `beverage_db` database.
+5. **DBeaver & MySQL Integration**:
+   - Configured to use the local MySQL Server (default **port 3306**) and the `beverage_db` database. Set `MYSQL_PORT` in `.env` to override the port.
    - Built-in fallback to high-performance local SQLite (`beverage_data.sqlite3`), ensuring instant operation even before configuring MySQL credentials.
 
 6. **Interactive Web Dashboard & CSV Reports**:
@@ -105,6 +105,12 @@ Ensure Python 3.10+ is installed. Install dependencies:
 pip install -r requirements.txt
 ```
 
+### MySQL connection
+MySQL is the primary backend. The default local target is `127.0.0.1:3306`.
+Set `MYSQL_PASSWORD` in the project `.env` file to the password for the configured
+MySQL user. Set `MYSQL_HOST`, `MYSQL_PORT`, `MYSQL_USER`, or `MYSQL_DB` there if
+your server uses different connection settings. Do not commit `.env`.
+
 ### 2. Launch the Application
 Simply run the startup script:
 ```bash
@@ -123,29 +129,27 @@ http://127.0.0.1:5000
 
 ---
 
-## 🐬 Connecting DBeaver to MySQL Port 3307
+## 🐬 Connecting DBeaver to MySQL
 
-The tool connects directly to MySQL running on `127.0.0.1:3307`.
-
-### Method A: Through the Web Interface
-1. Open the web app and click the **DBeaver & MySQL 3307** tab.
-2. Enter your MySQL `root` password in the password field.
-3. Click **"Test Connection"** or **"Migrate All 700k+ Records to MySQL 3307"**.
-
-### Method B: Via Command Line Script
-Run the migrator directly:
-```bash
-python database/mysql_migrator.py <YOUR_MYSQL_PASSWORD>
-```
+The application connects to MySQL directly; DBeaver is a separate desktop
+client and does not connect through BevIQ. Both can connect to the configured
+MySQL server; the default is `127.0.0.1:3306`. Set the MySQL credentials in
+`.env` before starting the app.
+If the beverage tables are not yet in MySQL, the migration utility can create
+them from the source CSVs. From the project directory, run
+`python database\mysql_migrator.py`. The utility checks that all seven CSV
+files are available before connecting and will not replace existing tables by
+default. To intentionally replace matching tables, back them up and run
+`python database\mysql_migrator.py --replace-existing`.
 
 ### DBeaver Connection Settings:
 - **Database Driver**: `MySQL`
 - **Host**: `localhost` (or `127.0.0.1`)
-- **Port**: `3307`
+- **Port**: `3306` (default; override with `MYSQL_PORT`)
 - **Database**: `beverage_db`
 - **Username**: `root`
-- **Password**: `<your_root_password>`
-- **JDBC URL**: `jdbc:mysql://127.0.0.1:3307/beverage_db`
+- **Password**: The password configured in `.env` (never shown in the UI)
+- **JDBC URL**: `jdbc:mysql://127.0.0.1:3306/beverage_db` (default)
 
 **Tables Created for DBeaver Inspection**:
 - `all_brands`
@@ -160,17 +164,23 @@ Each table includes indexed columns: `clean_upc`, `norm_brand`, `norm_supplier`,
 
 ---
 
-## 🤖 Local LLM (Ollama) Integration (Optional)
+## 🤖 Local Chat (Ollama)
 
-The application features a built-in **Deterministic Semantic Synthesis Engine** that operates with 100% precision without needing Ollama.
+Database lookups and reports work without Ollama. Natural, open-ended chat uses
+Ollama locally, and the assistant includes recent turns so follow-up questions
+can refer to the conversation. Chat data is not sent to a cloud AI service.
 
-If you also wish to enable generative conversational answers:
-1. Download Ollama from [ollama.com](https://ollama.com/).
-2. Pull your model of choice:
-   ```bash
+1. Install Ollama from [ollama.com](https://ollama.com/).
+2. In PowerShell, run the configured model (the default is `llama3.2`):
+   ```powershell
    ollama run llama3.2
    ```
-3. The application will automatically detect Ollama running on `http://localhost:11434` and update the status indicator to **Online**.
+   Keep Ollama running while chatting. The first run downloads the model.
+3. If you use another model or Ollama host, set `OLLAMA_MODEL` or `OLLAMA_HOST`
+   in the project's `.env` file and run that model with Ollama.
+
+If Ollama is unavailable or the configured model is missing, the chat response
+shows a setup hint; catalog and document features remain available.
 
 ---
 
@@ -207,8 +217,8 @@ beverage_db/
 │   └── loader.py               # Streaming chunked CSV ingestion & SQLite WAL builder
 │
 ├── database/
-│   ├── db_manager.py           # Dual-backend manager (MySQL 3307 + SQLite)
-│   └── mysql_migrator.py       # DBeaver MySQL 3307 table builder & data loader
+│   ├── db_manager.py           # MySQL-primary manager with SQLite fallback
+│   └── mysql_migrator.py       # MySQL table builder & data loader
 │
 ├── engines/
 │   ├── comparison_engine.py    # Multi-dataset comparison & mismatch classifier
@@ -226,4 +236,3 @@ beverage_db/
 │   └── index.html              # Responsive HTML5 / Bootstrap 5 / Marked.js UI
 └── static/                     # Custom styles and scripts
 ```
-

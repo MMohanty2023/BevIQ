@@ -22,18 +22,33 @@
             --accent-rose: #f43f5e;
             --accent-purple: #a855f7;
             --accent-orange: #fb923c;
+            --theme-toggle-bg: #111827;
+            --theme-toggle-border: #334155;
+            --theme-choice-idle: #94a3b8;
+            --theme-choice-hover: #263449;
+            --theme-choice-selected: #3b82f6;
+            --theme-choice-selected-text: #ffffff;
+            --theme-choice-focus: rgba(96, 165, 250, 0.55);
         }
 
         html[data-theme="light"] {
-            --bg-page: #f1f5f9;
+            --bg-page: #f5f7fb;
             --bg-surface: #ffffff;
             --bg-card: #ffffff;
-            --bg-hover: #e2e8f0;
-            --border-color: #cbd5e1;
-            --border-light: #94a3b8;
-            --text-main: #0f172a;
-            --text-secondary: #475569;
-            --text-muted: #64748b;
+            --bg-hover: #eef3fb;
+            --border-color: #d9e2ef;
+            --border-light: #b8c5d6;
+            --text-main: #17243a;
+            --text-secondary: #4a5b73;
+            --text-muted: #63748b;
+            --accent-blue: #2563eb;
+            --theme-toggle-bg: #f1f5f9;
+            --theme-toggle-border: #d7e0ec;
+            --theme-choice-idle: #52647d;
+            --theme-choice-hover: #e2eaf5;
+            --theme-choice-selected: #2563eb;
+            --theme-choice-selected-text: #ffffff;
+            --theme-choice-focus: rgba(37, 99, 235, 0.4);
         }
 
         * {
@@ -75,16 +90,10 @@
             align-items: center;
             gap: 0.35rem;
             padding: 0.28rem;
-            border: 1px solid rgba(148, 163, 184, 0.25);
-            background: rgba(15, 23, 42, 0.72);
+            border: 1px solid var(--theme-toggle-border);
+            background: var(--theme-toggle-bg);
             border-radius: 999px;
-            box-shadow: 0 5px 16px rgba(15, 23, 42, 0.16);
-        }
-
-        html[data-theme="light"] .theme-toggle {
-            background: #f8fafc;
-            border-color: #cbd5e1;
-            box-shadow: 0 5px 16px rgba(100, 116, 139, 0.18);
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.12);
         }
 
         .theme-choice {
@@ -95,7 +104,7 @@
             border: 0;
             border-radius: 50%;
             background: transparent;
-            color: var(--text-muted);
+            color: var(--theme-choice-idle);
             font-size: 1.05rem;
             line-height: 1;
             cursor: pointer;
@@ -105,23 +114,18 @@
         .theme-choice:hover {
             transform: translateY(-1px);
             color: var(--text-main);
+            background: var(--theme-choice-hover);
         }
 
         .theme-choice:focus-visible {
-            outline: 3px solid rgba(96, 165, 250, 0.45);
+            outline: 3px solid var(--theme-choice-focus);
             outline-offset: 2px;
         }
 
-        .theme-choice--light[aria-pressed="true"] {
-            background: #f6c453;
-            color: #4a2c00;
-            box-shadow: 0 0 0 2px rgba(246, 196, 83, 0.22), 0 4px 10px rgba(245, 158, 11, 0.25);
-        }
-
-        .theme-choice--dark[aria-pressed="true"] {
-            background: #60a5fa;
-            color: #172554;
-            box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.22), 0 4px 10px rgba(59, 130, 246, 0.25);
+        .theme-choice[aria-pressed="true"] {
+            background: var(--theme-choice-selected);
+            color: var(--theme-choice-selected-text);
+            box-shadow: 0 1px 4px rgba(37, 99, 235, 0.3);
         }
 
         .brand-container {
@@ -191,9 +195,15 @@
             padding: 0 1.75rem;
             display: flex;
             gap: 0.5rem;
+            min-width: 0;
+            max-width: 100%;
+            overflow-x: auto;
+            scrollbar-width: thin;
         }
 
         .nav-tab-btn {
+            flex: 0 0 auto;
+            white-space: nowrap;
             background: transparent;
             border: none;
             color: var(--text-secondary);
@@ -717,7 +727,7 @@
             outline: none;
         }
 
-        /* DBeaver & Datasets Panes */
+        /* Dataset catalog pane */
         .pane-card {
             background: var(--bg-card);
             border: 1px solid var(--border-color);
@@ -893,6 +903,13 @@
         .upload-preview { display: none; align-items: center; gap: .6rem; margin-top: .45rem; color: var(--text-secondary); font-size: .8rem; }
         .upload-preview img { width: 52px; height: 52px; object-fit: cover; border-radius: 7px; border: 1px solid var(--border-color); }
 
+        @media (max-width: 900px) {
+            .dashboard-kpis,
+            .category-kpi-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
         @media (max-width: 760px) {
             header { align-items: flex-start; gap: .65rem; flex-direction: column; }
             .status-strip { width: 100%; }
@@ -907,6 +924,147 @@
             .dashboard-kpis, .category-kpi-grid, .master-summary-grid { grid-template-columns: repeat(2, 1fr); }
             .analytics-grid { grid-template-columns: 1fr; }
             .master-search-grid { grid-template-columns: 1fr 1fr; }
+        }
+
+        html[data-theme="light"] body {
+            background:
+                radial-gradient(ellipse at 10% 0%, rgba(37, 99, 235, .045), transparent 35%),
+                var(--bg-page);
+        }
+
+        html[data-theme="light"] header {
+            background: rgba(255, 255, 255, .96);
+            box-shadow: 0 2px 12px rgba(23, 36, 58, .06);
+        }
+
+        html[data-theme="light"] .nav-tabs-wrapper {
+            background: rgba(255, 255, 255, .92);
+            box-shadow: 0 1px 4px rgba(23, 36, 58, .04);
+        }
+
+        html[data-theme="light"] .brand-title,
+        html[data-theme="light"] .studio-title,
+        html[data-theme="light"] .card-heading,
+        html[data-theme="light"] .metric-box-value,
+        html[data-theme="light"] .bot-markdown h3 {
+            color: var(--text-main);
+        }
+
+        html[data-theme="light"] .brand-title {
+            background: none;
+            -webkit-text-fill-color: var(--text-main);
+        }
+
+        html[data-theme="light"] .brand-subtitle {
+            color: var(--text-secondary);
+        }
+
+        html[data-theme="light"] #tab-dashboard > .dashboard-grid > div:first-child .studio-title {
+            color: var(--text-main);
+        }
+
+        html[data-theme="light"] .nav-tab-btn {
+            color: var(--text-secondary);
+        }
+
+        html[data-theme="light"] .nav-tab-btn:hover {
+            color: #1d4ed8;
+            background: #f1f5fb;
+        }
+
+        html[data-theme="light"] .nav-tab-btn.active {
+            color: #1d4ed8;
+        }
+
+        html[data-theme="light"] .brand-subtitle,
+        html[data-theme="light"] .bot-markdown h4 {
+            color: var(--text-secondary);
+        }
+
+        html[data-theme="light"] .quick-prompts-bar,
+        html[data-theme="light"] .dashboard-card,
+        html[data-theme="light"] .studio-sidebar,
+        html[data-theme="light"] .studio-main,
+        html[data-theme="light"] .pane-card,
+        html[data-theme="light"] .chat-layout {
+            background: var(--bg-surface);
+            border-color: var(--border-color);
+            box-shadow: 0 2px 8px rgba(15, 23, 42, .04);
+        }
+
+        html[data-theme="light"] .dashboard-card {
+            transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+        }
+
+        html[data-theme="light"] .dashboard-card:hover {
+            transform: translateY(-2px);
+            border-color: #b9c9df;
+            box-shadow: 0 8px 20px rgba(23, 36, 58, .08);
+        }
+
+        html[data-theme="light"] .prompt-chip,
+        html[data-theme="light"] .preset-btn:hover {
+            background: #f1f5f9;
+            border-color: var(--border-color);
+            color: var(--text-main);
+        }
+
+        html[data-theme="light"] .prompt-chip:hover,
+        html[data-theme="light"] .preset-btn.active {
+            background: #dbeafe;
+            border-color: #93c5fd;
+            color: #1d4ed8;
+        }
+
+        html[data-theme="light"] .bot-message,
+        html[data-theme="light"] .chat-input-bar,
+        html[data-theme="light"] .metric-box {
+            background: #f8fafc;
+            border-color: var(--border-color);
+            color: var(--text-main);
+        }
+
+        html[data-theme="light"] .bot-message-header,
+        html[data-theme="light"] .source-pill-bar {
+            border-color: var(--border-color);
+        }
+
+        html[data-theme="light"] .text-input-field,
+        html[data-theme="light"] .search-filter-input {
+            background: #ffffff;
+            border-color: var(--border-light);
+            color: var(--text-main);
+        }
+
+        html[data-theme="light"] .markdown-table-wrapper {
+            background: #ffffff;
+        }
+
+        html[data-theme="light"] .styled-table th {
+            background: #eaf0f7;
+            color: var(--text-main);
+        }
+
+        html[data-theme="light"] .styled-table td {
+            border-bottom-color: var(--border-color);
+            color: var(--text-main);
+        }
+
+        html[data-theme="light"] .source-chip {
+            background: #f1f5f9;
+            border-color: var(--border-color);
+            color: var(--text-secondary);
+        }
+
+        html[data-theme="light"] .code-block {
+            background: #f1f5f9;
+            border-color: var(--border-color);
+            color: #1d4ed8;
+        }
+
+        html[data-theme="light"] .card-heading,
+        html[data-theme="light"] .pane-card h4 {
+            color: var(--text-main) !important;
         }
     </style>
 </head>
@@ -943,9 +1101,6 @@
         </button>
         <button class="nav-tab-btn" onclick="switchTab('comparison', this)">
             ⚖️ Comparison Studio
-        </button>
-        <button class="nav-tab-btn" onclick="switchTab('dbeaver', this)">
-            🐬 DBeaver & MySQL 3307
         </button>
         <button class="nav-tab-btn" onclick="switchTab('datasets', this)">
             📊 Datasets & Schema
@@ -997,12 +1152,13 @@
                             <div class="bot-identity">
                                 🤖 BevIQ Assistant
                             </div>
-                            <div>Local Engine • Ready</div>
+                            <div>Local Assistant • Ready</div>
                         </div>
                         <div class="bot-markdown">
-                            <p>Hello! I am your <strong>BevIQ Assistant</strong>. I work with live beverage data for product matching, UPC verification, and catalog analysis across your configured datasets and database.</p>
-                            <p>You can also chat with me naturally in <strong>English or Hinglish</strong>. Ask me to find UPCs, review missing records, compare categories, analyze uploaded documents, or create downloadable CSV reports.</p>
-                            <p style="color: #93c5fd; font-size: 0.82rem;">UPC audits are review-only: no master product or UPC is changed automatically.</p>
+                            <p>👋 <strong>Welcome to BevIQ!</strong></p>
+                            <p>I'm here to help you with beverage data and everyday questions.</p>
+                            <p>You can chat with me in English or Hinglish, ask anything, find UPCs, compare products, check missing records, or create reports.</p>
+                            <p>Just type your question and let's get started! 😊</p>
                         </div>
                     </div>
                 </div>
@@ -1034,9 +1190,9 @@
                 <div id="dashboard-error" class="dashboard-card" style="display:none; color:#fda4af;"></div>
                 <div class="dashboard-kpis">
                     <div class="dashboard-card"><h3>Total records</h3><div class="dashboard-number" id="dashboard-total-records">—</div></div>
-                    <div class="dashboard-card"><h3>Dataset UPC entries</h3><div class="dashboard-number" id="dashboard-total-upcs">—</div><div class="dashboard-subtle">Sum of distinct UPCs by dataset; overlaps may exist</div></div>
+                    <div class="dashboard-card"><h3>Dataset UPC entries</h3><div class="dashboard-number" id="dashboard-total-upcs">—</div></div>
                     <div class="dashboard-card"><h3>Datasets</h3><div class="dashboard-number" id="dashboard-dataset-count">—</div></div>
-                    <div class="dashboard-card"><h3>Active backend</h3><div class="dashboard-number" id="dashboard-backend">—</div><div class="dashboard-subtle" id="dashboard-backend-detail">Checking MySQL schema and SQLite fallback status...</div></div>
+                    <div class="dashboard-card"><h3>Primary database</h3><div class="dashboard-number" id="dashboard-backend">—</div><div class="dashboard-subtle" id="dashboard-backend-detail">Checking MySQL connection and active fallback status...</div></div>
                 </div>
                 <div class="dashboard-kpis" id="dashboard-category-kpis">
                     <div class="dashboard-card"><h3>Beer products</h3><div class="dashboard-number" id="dashboard-beer-total">—</div></div>
@@ -1220,45 +1376,7 @@
             </div>
         </div>
 
-        <!-- TAB 3: DBEAVER & MYSQL 3307 -->
-        <div id="tab-dbeaver" class="tab-panel">
-            <div class="pane-card">
-                <div class="card-heading">
-                    🐬 DBeaver MySQL 3307 Direct Integration
-                </div>
-                <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1rem;">
-                    DBeaver connection details are shown below. The live connection state is checked from the server without exposing credentials.
-                </p>
-
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;">
-                    <div>
-                        <h4 style="font-size: 0.9rem; color: #ffffff; margin-bottom: 0.5rem;">DBeaver Connection Parameters:</h4>
-                        <div class="code-block">
-Host: localhost (or 127.0.0.1)<br>
-Port: 3307<br>
-Database: beverage_db<br>
-Username: root<br>
-Password: never shown in the UI<br>
-JDBC URL: jdbc:mysql://127.0.0.1:3307/beverage_db
-                        </div>
-                    </div>
-                    <div>
-                        <h4 style="font-size: 0.9rem; color: #ffffff; margin-bottom: 0.5rem;">Available Tables in DBeaver:</h4>
-                        <ul style="color: var(--text-secondary); font-size: 0.85rem; padding-left: 1.2rem; line-height: 1.8;">
-                            <li><code>aimasterbranddata</code> — 189,752 Master Records</li>
-                            <li><code>allbrand_data</code> — 189,619 Records</li>
-                            <li><code>beer_data</code> — 50,441 Categorization Records</li>
-                            <li><code>rtd_data</code> — 153,026 Categorization Records</li>
-                            <li><code>spirits_data</code> — 41,554 Categorization Records</li>
-                            <li><code>wine_data</code> — 61,031 Categorization Records</li>
-                            <li><code>supplier_data</code> — 16,784 Supplier Records</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- TAB 4: DATASETS & SCHEMA -->
+        <!-- TAB 5: DATASETS & SCHEMA -->
         <div id="tab-datasets" class="tab-panel">
             <div class="pane-card">
                 <div class="card-heading">
@@ -1375,7 +1493,23 @@ JDBC URL: jdbc:mysql://127.0.0.1:3307/beverage_db
                 : `session-${Date.now()}-${Math.random().toString(16).slice(2)}`);
         localStorage.setItem('beverage_chat_session', chatSessionId);
 
-        fetch('/api/db-status').then(response => response.json()).then(status => {
+        const dashboardRequestCache = new Map();
+        function getDashboardData(url) {
+            if (!dashboardRequestCache.has(url)) {
+                const request = fetch(url).then(async response => {
+                    const data = await response.json();
+                    if (!response.ok) throw new Error(data.error || `Request failed: ${url}`);
+                    return data;
+                }).catch(error => {
+                    dashboardRequestCache.delete(url);
+                    throw error;
+                });
+                dashboardRequestCache.set(url, request);
+            }
+            return dashboardRequestCache.get(url);
+        }
+
+        getDashboardData('/api/db-status').then(status => {
             const badge = document.getElementById('backend-badge');
             if (badge) badge.textContent = `● ${(status.active_backend || 'sqlite').toUpperCase()} active`;
         }).catch(() => {});
@@ -1385,13 +1519,10 @@ JDBC URL: jdbc:mysql://127.0.0.1:3307/beverage_db
             const recordBadge = document.getElementById('header-record-status');
             const securityBadge = document.getElementById('header-security-status');
             try {
-                const [statusResponse, overviewResponse] = await Promise.all([
-                    fetch('/api/db-status'),
-                    fetch('/api/dashboard/overview')
+                const [status, overview] = await Promise.all([
+                    getDashboardData('/api/db-status'),
+                    getDashboardData('/api/dashboard/overview')
                 ]);
-                const status = await statusResponse.json();
-                const overview = await overviewResponse.json();
-                if (!statusResponse.ok || !overviewResponse.ok) throw new Error('status unavailable');
                 const active = (status.active_backend || overview.backend || 'sqlite').toUpperCase();
                 const connected = active === 'MYSQL' ? status.mysql_connected : status.sqlite_connected;
                 if (backendBadge) backendBadge.textContent = `${active}: ${connected ? 'Connected' : 'Unavailable'} (${status.database_name || 'unknown'})`;
@@ -1404,6 +1535,9 @@ JDBC URL: jdbc:mysql://127.0.0.1:3307/beverage_db
         }
 
         updateHeaderStatus();
+        getDashboardData('/api/dashboard/metrics').catch(error => {
+            console.warn('Dashboard metrics prefetch failed:', error);
+        });
 
         function switchTab(tabId, btn) {
             document.querySelectorAll('.nav-tab-btn').forEach(b => b.classList.remove('active'));
@@ -1454,30 +1588,54 @@ JDBC URL: jdbc:mysql://127.0.0.1:3307/beverage_db
         async function loadDashboard() {
             const error = document.getElementById('dashboard-error');
             try {
-                const [overviewResponse, metricsResponse, missingResponse, statusResponse] = await Promise.all([
-                    fetch('/api/dashboard/overview'),
-                    fetch('/api/dashboard/metrics'),
-                    fetch('/api/dashboard/missing-upc?limit=100'),
-                    fetch('/api/db-status')
+                const [overview, status] = await Promise.all([
+                    getDashboardData('/api/dashboard/overview'),
+                    getDashboardData('/api/db-status')
                 ]);
-                const overview = await overviewResponse.json();
-                const metrics = await metricsResponse.json();
-                const missing = await missingResponse.json();
-                const status = await statusResponse.json();
-                if (!overviewResponse.ok) throw new Error(overview.error || 'Dashboard could not be loaded');
-                if (!metricsResponse.ok) throw new Error(metrics.error || 'Live dashboard metrics could not be loaded');
-                if (!missingResponse.ok) throw new Error(missing.error || 'UPC review data could not be loaded');
-                if (!statusResponse.ok) throw new Error(status.error || 'Database status could not be loaded');
                 document.getElementById('dashboard-total-records').textContent = Number(overview.kpis.total_records || 0).toLocaleString();
                 document.getElementById('dashboard-total-upcs').textContent = Number(overview.kpis.total_unique_upcs || 0).toLocaleString();
                 document.getElementById('dashboard-dataset-count').textContent = overview.kpis.dataset_count || 0;
-                document.getElementById('dashboard-backend').textContent = (overview.backend || 'sqlite').toUpperCase();
+                const primaryBackend = (status.primary_backend || status.active_backend || 'sqlite').toUpperCase();
+                const activeBackend = (status.active_backend || 'sqlite').toUpperCase();
+                document.getElementById('dashboard-backend').textContent = primaryBackend;
                 const backendDetail = document.getElementById('dashboard-backend-detail');
                 if (backendDetail) {
-                    backendDetail.textContent = status.active_backend === 'sqlite' && status.mysql_connected && !status.mysql_schema_ready
-                        ? 'MySQL connected; normalized MySQL schema missing, so SQLite fallback is active.'
-                        : `${(status.active_backend || 'sqlite').toUpperCase()} is serving live dashboard queries.`;
+                    if (primaryBackend === 'MYSQL' && activeBackend === 'SQLITE') {
+                        const reason = !status.mysql_connected
+                            ? (status.mysql_message || 'MySQL connection unavailable.')
+                            : (status.mysql_schema_message || 'MySQL schema is not ready.');
+                        backendDetail.textContent = `SQLite fallback is serving data. MySQL primary is unavailable: ${reason}`;
+                    } else {
+                        backendDetail.textContent = `${activeBackend} is serving live dashboard queries.`;
+                    }
                 }
+                document.getElementById('dashboard-datasets').innerHTML = (overview.datasets || []).map(dataset => `
+                    <tr><td>${escapeHtml(dataset.dataset_key)}</td><td>${Number(dataset.total_rows || 0).toLocaleString()}</td>
+                    <td>${Number(dataset.unique_upcs || 0).toLocaleString()}</td><td>${escapeHtml(dataset.file_name || '')}</td></tr>`).join('');
+                document.getElementById('dashboard-refresh-time').textContent = `Last refreshed: ${overview.generated_at ? new Date(overview.generated_at).toLocaleString() : 'Unavailable'}`;
+                document.getElementById('dashboard-database-status').innerHTML = `
+                    <span class="status-chip">Active: <strong>${escapeHtml((status.active_backend || 'sqlite').toUpperCase())}</strong></span>
+                    <span class="status-chip">SQLite: ${status.sqlite_connected ? 'Connected' : 'Unavailable'}</span>
+                    <span class="status-chip">MySQL: ${status.mysql_connected ? (status.mysql_schema_ready ? 'Connected' : `Connected · ${escapeHtml(status.mysql_schema_message || 'schema not ready')}`) : `Not connected · ${escapeHtml(status.mysql_message || 'connection unavailable')}`}</span>
+                    <span class="status-chip">Database: ${escapeHtml(status.database_name || 'unknown')}</span>
+                    <span class="status-chip">${escapeHtml(status.mysql_schema_message || '')}</span>`;
+                error.style.display = 'none';
+                loadDashboardMetrics();
+                loadDashboardMissing();
+            } catch (err) {
+                error.textContent = err.message;
+                error.style.display = 'block';
+                dashboardLoaded = false;
+                ['dashboard-total-records', 'dashboard-total-upcs', 'dashboard-dataset-count', 'dashboard-backend', 'dashboard-master-total', 'dashboard-upc-completion', 'dashboard-upc-available', 'dashboard-upc-missing', 'dashboard-upc-total'].forEach(id => {
+                    const node = document.getElementById(id);
+                    if (node) node.textContent = '—';
+                });
+            }
+        }
+
+        async function loadDashboardMetrics() {
+            try {
+                const metrics = await getDashboardData('/api/dashboard/metrics');
                 const categories = metrics.categories || {};
                 ['beer', 'wine', 'rtd', 'spirits'].forEach(category => {
                     const node = document.getElementById(`dashboard-${category}-total`);
@@ -1520,28 +1678,26 @@ JDBC URL: jdbc:mysql://127.0.0.1:3307/beverage_db
                 document.getElementById('dashboard-master-ids').textContent = Number(master.unique_master_ids || 0).toLocaleString();
                 document.getElementById('dashboard-master-with-upc').textContent = Number(master.records_with_upc || 0).toLocaleString();
                 document.getElementById('dashboard-master-without-upc').textContent = Number(master.records_without_upc || 0).toLocaleString();
-                document.getElementById('dashboard-datasets').innerHTML = (overview.datasets || []).map(dataset => `
-                    <tr><td>${escapeHtml(dataset.dataset_key)}</td><td>${Number(dataset.total_rows || 0).toLocaleString()}</td>
-                    <td>${Number(dataset.unique_upcs || 0).toLocaleString()}</td><td>${escapeHtml(dataset.file_name || '')}</td></tr>`).join('');
-                const summary = missing.summary || {};
-                document.getElementById('dashboard-missing-summary').textContent = `${Number(summary.total_missing_from_master || 0).toLocaleString()} UPCs are missing from the master catalog in the current comparison.`;
-                document.getElementById('dashboard-missing-by-category').innerHTML = (summary.categories || []).map(item => `
-                    <div class="legend-item"><span>${escapeHtml(item.category)} missing from AI Master</span><strong>${Number(item.missing_from_master || 0).toLocaleString()}</strong></div>`).join('');
-                document.getElementById('dashboard-refresh-time').textContent = `Last refreshed: ${overview.generated_at ? new Date(overview.generated_at).toLocaleString() : 'Unavailable'}`;
-                document.getElementById('dashboard-database-status').innerHTML = `
-                    <span class="status-chip">Active: <strong>${escapeHtml((status.active_backend || 'sqlite').toUpperCase())}</strong></span>
-                    <span class="status-chip">SQLite: ${status.sqlite_connected ? 'Connected' : 'Unavailable'}</span>
-                    <span class="status-chip">MySQL: ${status.mysql_connected ? 'Connected' : 'Not connected'}${status.mysql_connected && !status.mysql_schema_ready ? ' · schema not ready' : ''}</span>
-                    <span class="status-chip">Database: ${escapeHtml(status.database_name || 'unknown')}</span>
-                    <span class="status-chip">${escapeHtml(status.mysql_schema_message || '')}</span>`;
-                error.style.display = 'none';
             } catch (err) {
+                const error = document.getElementById('dashboard-error');
                 error.textContent = err.message;
                 error.style.display = 'block';
-                ['dashboard-total-records', 'dashboard-total-upcs', 'dashboard-dataset-count', 'dashboard-backend', 'dashboard-master-total', 'dashboard-upc-completion', 'dashboard-upc-available', 'dashboard-upc-missing', 'dashboard-upc-total'].forEach(id => {
-                    const node = document.getElementById(id);
-                    if (node) node.textContent = '—';
-                });
+            }
+        }
+
+        async function loadDashboardMissing() {
+            const summaryNode = document.getElementById('dashboard-missing-summary');
+            const categoriesNode = document.getElementById('dashboard-missing-by-category');
+            summaryNode.textContent = 'Loading missing UPC summary...';
+            try {
+                const data = await getDashboardData('/api/dashboard/missing-upc?limit=100');
+                const summary = data.summary || {};
+                summaryNode.textContent = `${Number(summary.total_missing_from_master || 0).toLocaleString()} UPCs are missing from the master catalog in the current comparison.`;
+                categoriesNode.innerHTML = (summary.categories || []).map(item => `
+                    <div class="legend-item"><span>${escapeHtml(item.category)} missing from AI Master</span><strong>${Number(item.missing_from_master || 0).toLocaleString()}</strong></div>`).join('');
+            } catch (err) {
+                summaryNode.textContent = err.message;
+                categoriesNode.innerHTML = '';
             }
         }
 

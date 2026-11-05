@@ -1,5 +1,6 @@
 import sqlite3
-import pymysql
+import mysql.connector
+from mysql.connector import errorcode
 import pandas as pd
 import logging
 from datetime import datetime, timezone
@@ -8,7 +9,7 @@ from config import SQLITE_PATH, MYSQL_HOST, MYSQL_PORT, MYSQL_USER, MYSQL_PASSWO
 logger = logging.getLogger("DBManager")
 
 class DBManager:
-    def __init__(self, use_mysql=False, mysql_password=None):
+    def __init__(self, use_mysql=True, mysql_password=None):
         self.use_mysql = use_mysql
         self._active_backend = "mysql" if use_mysql else "sqlite"
         self.mysql_password = mysql_password if mysql_password is not None else MYSQL_PASSWORD
@@ -17,7 +18,7 @@ class DBManager:
         self.last_sqlite_check = None
 
     def set_mysql_backend(self, enabled):
-        """Select MySQL as primary or return to the local SQLite fallback."""
+        """Enable or disable MySQL preference; SQLite remains the fallback."""
         self.use_mysql = bool(enabled)
         self._active_backend = "mysql" if self.use_mysql else "sqlite"
 
@@ -26,15 +27,15 @@ class DBManager:
         return self._active_backend
 
     def test_mysql_connection(self, password=None):
-        """Test if MySQL server on port 3307 is reachable and authenticates."""
+        """Test if the configured MySQL server is reachable and authenticates."""
         pwd = password if password is not None else self.mysql_password
         try:
-            conn = pymysql.connect(
+            conn = mysql.connector.connect(
                 host=MYSQL_HOST,
                 port=MYSQL_PORT,
                 user=MYSQL_USER,
                 password=pwd,
-                connect_timeout=3
+                connection_timeout=3,
             )
             version = None
             with conn.cursor() as cur:
@@ -48,29 +49,33 @@ class DBManager:
             return False, str(e)
 
     def get_mysql_connection(self, create_db=True):
-        """Obtain PyMySQL connection to MySQL 3307."""
-        if create_db:
-            # First connect without DB to ensure DB exists
-            root_conn = pymysql.connect(
-                host=MYSQL_HOST,
-                port=MYSQL_PORT,
-                user=MYSQL_USER,
-                password=self.mysql_password,
-                connect_timeout=5
-            )
-            with root_conn.cursor() as cur:
-                cur.execute(f"CREATE DATABASE IF NOT EXISTS `{MYSQL_DB}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci")
-            root_conn.close()
+        """Obtain a Connector/Python connection to the configured MySQL server."""
+        connection_options = {
+            "host": MYSQL_HOST,
+            "port": MYSQL_PORT,
+            "user": MYSQL_USER,
+            "password": self.mysql_password,
+            "database": MYSQL_DB,
+            "charset": "utf8mb4",
+            "connection_timeout": 5,
+        }
+        try:
+            return mysql.connector.connect(**connection_options)
+        except mysql.connector.Error as exc:
+            if not create_db or exc.errno != errorcode.ER_BAD_DB_ERROR:
+                raise
 
-        return pymysql.connect(
-            host=MYSQL_HOST,
-            port=MYSQL_PORT,
-            user=MYSQL_USER,
-            password=self.mysql_password,
-            database=MYSQL_DB,
-            charset='utf8mb4',
-            cursorclass=pymysql.cursors.DictCursor
-        )
+        server_options = {key: value for key, value in connection_options.items() if key != "database"}
+        server_conn = mysql.connector.connect(**server_options)
+        try:
+            with server_conn.cursor() as cur:
+                cur.execute(
+                    f"CREATE DATABASE IF NOT EXISTS `{MYSQL_DB}` "
+                    "CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
+                )
+        finally:
+            server_conn.close()
+        return mysql.connector.connect(**connection_options)
 
     def get_sqlite_connection(self):
         """Obtain high-performance local SQLite connection."""
@@ -85,10 +90,26 @@ class DBManager:
     def table_columns(self, table):
         """Return column names for a configured table on the active backend."""
         if self.use_mysql:
-            rows = self.query(f"SHOW COLUMNS FROM `{table}`")
-            return [row.get("Field") or row.get("field") for row in rows]
-        rows = self.query(f"PRAGMA table_info(`{table}`)")
-        return [row.get("name") for row in rows]
+            try:
+                conn = self.get_mysql_connection()
+            except Exception as exc:
+                logger.warning("MySQL connection unavailable; using SQLite fallback: %s", exc)
+                self._active_backend = "sqlite"
+            else:
+                try:
+                    with conn.cursor(dictionary=True) as cur:
+                        cur.execute(f"SHOW COLUMNS FROM `{table}`")
+                        rows = cur.fetchall()
+                finally:
+                    conn.close()
+                self._active_backend = "mysql"
+                return [row.get("Field") or row.get("field") for row in rows]
+        conn = self.get_sqlite_connection()
+        try:
+            rows = conn.execute(f"PRAGMA table_info(`{table}`)").fetchall()
+            return [row["name"] for row in rows]
+        finally:
+            conn.close()
 
     def mysql_schema_status(self):
         """Check that MySQL has the normalized tables this application queries."""
@@ -96,7 +117,7 @@ class DBManager:
         try:
             conn = self.get_mysql_connection(create_db=False)
             try:
-                with conn.cursor() as cur:
+                with conn.cursor(dictionary=True) as cur:
                     cur.execute("SHOW TABLES")
                     rows = cur.fetchall()
             finally:
@@ -124,6 +145,8 @@ class DBManager:
 
         mysql_ok, mysql_message = self.test_mysql_connection()
         mysql_schema_ready, mysql_schema_message = self.mysql_schema_status() if mysql_ok else (False, "MySQL schema was not checked because the server is unavailable")
+        if self.use_mysql:
+            self._active_backend = "mysql" if mysql_ok else "sqlite"
         return {
             "sqlite_connected": sqlite_ok,
             "sqlite_message": sqlite_message,
@@ -132,7 +155,8 @@ class DBManager:
             "mysql_schema_ready": mysql_schema_ready,
             "mysql_schema_message": mysql_schema_message,
             "active_backend": self.backend_name(),
-            "database_name": MYSQL_DB if self.use_mysql else "beverage_data.sqlite3",
+            "primary_backend": "mysql" if self.use_mysql else "sqlite",
+            "database_name": MYSQL_DB if self._active_backend == "mysql" else "beverage_data.sqlite3",
             "last_sqlite_check": self.last_sqlite_check,
             "last_mysql_check": self.last_mysql_check,
         }
@@ -140,28 +164,32 @@ class DBManager:
     def get_connection(self):
         """Returns MySQL connection if configured and available, otherwise SQLite."""
         if self.use_mysql:
-            ok, _ = self.test_mysql_connection()
-            if ok:
-                return self.get_mysql_connection()
-            self.set_mysql_backend(False)
+            try:
+                conn = self.get_mysql_connection()
+            except Exception as exc:
+                logger.warning("MySQL connection unavailable; using SQLite fallback: %s", exc)
+                self._active_backend = "sqlite"
+            else:
+                self._active_backend = "mysql"
+                return conn
         return self.get_sqlite_connection()
 
     def query(self, sql, params=None):
         """Execute query and return list of dicts."""
         if self.use_mysql:
             try:
-                if self.test_mysql_connection()[0]:
-                    conn = self.get_mysql_connection()
-                    try:
-                        with conn.cursor() as cur:
-                            cur.execute(sql.replace("?", "%s"), params or ())
-                            return cur.fetchall()
-                    finally:
-                        conn.close()
-                self.set_mysql_backend(False)
+                conn = self.get_mysql_connection()
             except Exception as exc:
                 logger.warning("MySQL query failed; using SQLite fallback: %s", exc)
-                self.set_mysql_backend(False)
+                self._active_backend = "sqlite"
+            else:
+                self._active_backend = "mysql"
+                try:
+                    with conn.cursor(dictionary=True) as cur:
+                        cur.execute(sql.replace("?", "%s"), params or ())
+                        return cur.fetchall()
+                finally:
+                    conn.close()
 
         conn = self.get_sqlite_connection()
         try:
@@ -176,16 +204,20 @@ class DBManager:
         """Execute query and return Pandas DataFrame."""
         if self.use_mysql:
             try:
-                if self.test_mysql_connection()[0]:
-                    conn = self.get_mysql_connection()
-                    try:
-                        return pd.read_sql(sql.replace("?", "%s"), conn, params=params)
-                    finally:
-                        conn.close()
-                self.set_mysql_backend(False)
+                conn = self.get_mysql_connection()
             except Exception as exc:
                 logger.warning("MySQL dataframe query failed; using SQLite fallback: %s", exc)
-                self.set_mysql_backend(False)
+                self._active_backend = "sqlite"
+            else:
+                try:
+                    with conn.cursor() as cur:
+                        cur.execute(sql.replace("?", "%s"), params or ())
+                        columns = [column[0] for column in cur.description]
+                        result = pd.DataFrame(cur.fetchall(), columns=columns)
+                    self._active_backend = "mysql"
+                    return result
+                finally:
+                    conn.close()
 
         conn = self.get_sqlite_connection()
         try:
@@ -197,4 +229,3 @@ class DBManager:
 # falls back to SQLite if MySQL becomes unavailable, so local development and
 # offline usage remain safe without silently making SQLite the intended source.
 db_manager = DBManager(use_mysql=True)
-

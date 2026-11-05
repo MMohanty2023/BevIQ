@@ -4,7 +4,7 @@ import pandas as pd
 from datetime import datetime, timezone
 from pathlib import Path
 from flask import Flask, render_template, request, jsonify, send_file, send_from_directory
-from config import BASE_DIR, REPORTS_DIR, MYSQL_HOST, MYSQL_PORT, MYSQL_USER, MYSQL_DB, OLLAMA_HOST, OLLAMA_MODEL, CSV_FILES
+from config import REPORTS_DIR, MYSQL_PORT, MYSQL_DB, OLLAMA_MODEL, CSV_FILES
 from database.db_manager import db_manager
 from database.mysql_migrator import migrate_data_to_mysql
 from engines.sql_engine import sql_engine
@@ -20,12 +20,7 @@ app.config['SECRET_KEY'] = 'beverage-data-assistant-secret-key-2026'
 
 @app.route('/')
 def index():
-    return render_template('index.html', 
-                           mysql_host=MYSQL_HOST, 
-                           mysql_port=MYSQL_PORT, 
-                           mysql_user=MYSQL_USER, 
-                           mysql_db=MYSQL_DB,
-                           ollama_model=OLLAMA_MODEL)
+    return render_template('index.html', ollama_model=OLLAMA_MODEL)
 
 @app.route('/api/chat', methods=['POST'])
 def api_chat():
@@ -239,7 +234,6 @@ def api_db_status():
         **database,
         'mysql_port': MYSQL_PORT,
         'mysql_db': MYSQL_DB,
-        'dbeaver_url': f"jdbc:mysql://{MYSQL_HOST}:{MYSQL_PORT}/{MYSQL_DB}",
         'ollama_connected': ollama_ok,
         'ollama_model': OLLAMA_MODEL
     })
@@ -254,13 +248,16 @@ def api_configure_db():
     ok, msg = db_manager.test_mysql_connection(password=password)
 
     if not ok:
-        db_manager.set_mysql_backend(False)
+        db_manager.set_mysql_backend(True)
         return jsonify({'success': False, 'message': msg}), 400
 
     db_manager.set_mysql_backend(True)
 
     if migrate:
-        mig_ok, mig_msg = migrate_data_to_mysql(password=password)
+        mig_ok, mig_msg = migrate_data_to_mysql(
+            password=password,
+            replace_existing=bool(data.get('replace_existing', False)),
+        )
         return jsonify({'success': mig_ok, 'message': mig_msg, 'backend': db_manager.backend_name()})
 
     return jsonify({'success': True, 'message': f"Connected to MySQL on port {MYSQL_PORT} successfully!",
@@ -285,4 +282,3 @@ if __name__ == '__main__':
     port = int(os.getenv("PORT", 5000))
     print(f"Starting BevIQ on http://127.0.0.1:{port}")
     app.run(host='0.0.0.0', port=port, debug=False, threaded=True)
-
