@@ -1,7 +1,8 @@
+import csv
 import pandas as pd
 import logging
 from collections import Counter
-from config import CSV_FILES
+from config import CSV_FILES, TRAINED_BRANDS_FILE
 from database.db_manager import db_manager
 from data_ingestion.normalizer import normalize_upc
 
@@ -10,6 +11,384 @@ logger = logging.getLogger("SQLEngine")
 class SQLEngine:
     def __init__(self, db=None):
         self.db = db or db_manager
+        self._trained_brand_cache = None
+        self._trained_brand_cache_mtime = None
+
+    @staticmethod
+    def _normalized_supplier_value(value):
+        return str(value or "").strip().casefold()
+
+    @staticmethod
+    def _category_label(value):
+        category = str(value or "").strip()
+        normalized = category.casefold().replace("-", " ").replace("_", " ")
+        if normalized in {"", "na", "n a", "n/a", "null", "none"}:
+            return "Uncategorized"
+        if normalized in {"beer", "wine", "spirits"}:
+            return normalized.title()
+        if "non" in normalized and "alcohol" in normalized:
+            return "Non Alcoholic"
+        return "Uncategorized" if category.isdigit() else category
+
+    @staticmethod
+    def _trained_image_urls(value):
+        image_urls = []
+        seen = set()
+        for item in str(value or "").replace("\r", "\n").splitlines():
+            for url in item.split(";"):
+                cleaned = url.strip().strip("[]\"'")
+                if cleaned and cleaned.casefold() not in seen:
+                    seen.add(cleaned.casefold())
+                    image_urls.append(cleaned)
+        return image_urls
+
+    def _trained_brand_rows(self):
+        file_mtime = TRAINED_BRANDS_FILE.stat().st_mtime_ns
+        if self._trained_brand_cache is None or file_mtime != self._trained_brand_cache_mtime:
+            with TRAINED_BRANDS_FILE.open("r", encoding="utf-8-sig", newline="") as source:
+                self._trained_brand_cache = list(csv.DictReader(source, delimiter="|"))
+            self._trained_brand_cache_mtime = file_mtime
+        return self._trained_brand_cache
+
+    def _trained_brand_indexes(self):
+        indexes = {
+            "supplier_code_brand_code": {},
+            "supplier_code_brand_name": {},
+            "supplier_name_brand_code": {},
+            "supplier_name_brand_name": {},
+        }
+        for row in self._trained_brand_rows():
+            supplier_code = self._normalized_supplier_value(row.get("SupplierCode"))
+            supplier_name = self._normalized_supplier_value(row.get("SupplierName"))
+            brand_code = self._normalized_supplier_value(row.get("BrandCode"))
+            brand_name = self._normalized_supplier_value(row.get("BrandName"))
+            for key, index_name in (
+                ((supplier_code, brand_code), "supplier_code_brand_code"),
+                ((supplier_code, brand_name), "supplier_code_brand_name"),
+                ((supplier_name, brand_code), "supplier_name_brand_code"),
+                ((supplier_name, brand_name), "supplier_name_brand_name"),
+            ):
+                if key[0] and key[1]:
+                    indexes[index_name].setdefault(key, []).append(row)
+        return indexes
+
+    @staticmethod
+    def _matched_trained_rows(indexes, supplier_code, supplier_name, brand_code, brand_name):
+        lookups = (
+            ("supplier_code_brand_code", supplier_code, brand_code),
+            ("supplier_code_brand_name", supplier_code, brand_name),
+            ("supplier_name_brand_code", supplier_name, brand_code),
+            ("supplier_name_brand_name", supplier_name, brand_name),
+        )
+        for index_name, first, second in lookups:
+            key = (SQLEngine._normalized_supplier_value(first), SQLEngine._normalized_supplier_value(second))
+            if key[0] and key[1] and indexes[index_name].get(key):
+                return indexes[index_name][key]
+        return []
+
+    @staticmethod
+    def _supplier_brand_summary(master_brand, trained_rows):
+        distinct_rows = {}
+        for row in trained_rows:
+            key = tuple(str(row.get(field) or "").strip() for field in (
+                "Id", "Class Id", "Category (Wine/Spirits/Beer/Non Alcoholic)",
+                "Status", "RecordStatus", "SKU", "Model", "Model Id", "ImageCounts",
+                "ImageUrls",
+            ))
+            distinct_rows.setdefault(key, row)
+        trained_rows = list(distinct_rows.values())
+        categories = sorted({
+            SQLEngine._category_label(row.get("Category (Wine/Spirits/Beer/Non Alcoholic)"))
+            for row in trained_rows
+        }, key=lambda value: value.casefold())
+        statuses = set()
+        for row in trained_rows:
+            status = str(row.get("RecordStatus") or row.get("Status") or "").strip()
+            if status == "1":
+                status = "Active"
+            elif status in {"0", "2"}:
+                status = "Inactive"
+            if status:
+                statuses.add(status)
+        statuses = sorted(statuses, key=lambda value: value.casefold())
+
+        def values(field):
+            return sorted({
+                str(row.get(field) or "").strip()
+                for row in trained_rows
+                if str(row.get(field) or "").strip()
+            }, key=str.casefold)
+
+        image_counts = []
+        for row in trained_rows:
+            try:
+                image_counts.append(int(row.get("ImageCounts") or 0))
+            except ValueError:
+                continue
+        return {
+            "brand_name": str(master_brand.get("brand_name") or "").strip(),
+            "brand_code": str(master_brand.get("brand_code") or "").strip(),
+            "brand_ids": values("Id"),
+            "brand_id": ", ".join(values("Id")),
+            "class_ids": values("Class Id"),
+            "class_id": ", ".join(values("Class Id")),
+            "categories": categories or [SQLEngine._category_label(master_brand.get("product_category"))],
+            "category": " / ".join(categories) if categories else SQLEngine._category_label(master_brand.get("product_category")),
+            "statuses": statuses or ["Unknown"],
+            "status": " / ".join(statuses) if statuses else "Unknown",
+            "skus": values("SKU"),
+            "sku": ", ".join(values("SKU")),
+            "image_count": str(sum(image_counts)) if image_counts else "",
+            "model_names": values("Model"),
+            "model_name": ", ".join(values("Model")),
+            "model_ids": values("Model Id"),
+            "model_id": ", ".join(values("Model Id")),
+            "_trained_rows": trained_rows,
+        }
+
+    def _supplier_brand_groups(self):
+        trained_indexes = self._trained_brand_indexes()
+        suppliers = {}
+        table = CSV_FILES["ai_master"]["table"]
+        rows = self.db.query(f"""
+            SELECT DISTINCT SupplierCode AS supplier_code,
+                   SupplierName AS supplier_name,
+                   BrandCode AS brand_code,
+                   BrandName AS brand_name,
+                   ProductCategory AS product_category
+            FROM `{table}`
+            ORDER BY SupplierName, BrandName
+        """)
+        for row in rows:
+            supplier_code = str(row.get("supplier_code") or "").strip()
+            supplier_name = str(row.get("supplier_name") or "").strip() or "NA"
+            supplier_name_key = self._normalized_supplier_value(supplier_name)
+            supplier_key = f"name:{supplier_name_key}"
+            supplier = suppliers.setdefault(supplier_key, {
+                "supplier_key": supplier_key,
+                "supplier_code": supplier_code,
+                "_supplier_codes": [],
+                "supplier": supplier_name,
+                "brands_by_key": {},
+            })
+            if supplier_code and supplier_code not in supplier["_supplier_codes"]:
+                supplier["_supplier_codes"].append(supplier_code)
+            if not supplier.get("supplier_code") and supplier_code:
+                supplier["supplier_code"] = supplier_code
+
+            brand_code = str(row.get("brand_code") or "").strip()
+            brand_name = str(row.get("brand_name") or "").strip()
+            brand_code_key = self._normalized_supplier_value(brand_code)
+            brand_name_key = self._normalized_supplier_value(brand_name)
+            if not brand_code_key and not brand_name_key:
+                continue
+            brand_key = f"code:{brand_code_key}" if brand_code_key else f"name:{brand_name_key}"
+            brand = supplier["brands_by_key"].setdefault(brand_key, {
+                "brand_name": brand_name or brand_code,
+                "brand_code": brand_code,
+                "product_category": row.get("product_category"),
+            })
+            if not brand.get("product_category") and row.get("product_category"):
+                brand["product_category"] = row.get("product_category")
+
+        for supplier in suppliers.values():
+            for brand in supplier["brands_by_key"].values():
+                trained_rows = []
+                for supplier_code in supplier["_supplier_codes"] or [""]:
+                    trained_rows.extend(self._matched_trained_rows(
+                        trained_indexes,
+                        supplier_code,
+                        supplier["supplier"],
+                        brand["brand_code"],
+                        brand["brand_name"],
+                    ))
+                brand.update(self._supplier_brand_summary(brand, trained_rows))
+            supplier["brands"] = sorted(
+                supplier.pop("brands_by_key").values(),
+                key=lambda brand: (brand["brand_name"].casefold(), brand["brand_code"].casefold()),
+            )
+            supplier["brand_count"] = len(supplier["brands"])
+        return suppliers
+
+    def get_supplier_overview(self, search="", category="", supplier="", status="", sort="name"):
+        """Return deduplicated suppliers with filtered brand counts and search options."""
+        suppliers = list(self._supplier_brand_groups().values())
+        query = self._normalized_supplier_value(search)
+        selected_category = self._normalized_supplier_value(category)
+        selected_status = self._normalized_supplier_value(status)
+        selected_supplier = self._normalized_supplier_value(supplier)
+        filtered = []
+        for item in suppliers:
+            supplier_codes = {
+                self._normalized_supplier_value(code)
+                for code in item.get("_supplier_codes", [])
+            }
+            supplier_text = " ".join((
+                item["supplier"],
+                *item.get("_supplier_codes", []),
+            )).casefold()
+            selected_code = selected_supplier[5:] if selected_supplier.startswith("code:") else selected_supplier
+            if (
+                selected_supplier
+                and selected_supplier != item["supplier_key"].casefold()
+                and selected_supplier not in supplier_text
+                and selected_code not in supplier_codes
+            ):
+                continue
+            matching_brands = [
+                brand for brand in item["brands"]
+                if (not selected_category or selected_category in {value.casefold() for value in brand["categories"]})
+                and (not selected_status or selected_status in {value.casefold() for value in brand["statuses"]})
+            ]
+            if query:
+                supplier_match = query in supplier_text
+                matching_brands = [
+                    brand for brand in matching_brands
+                    if supplier_match or query in " ".join((
+                        brand["brand_name"], brand["brand_code"],
+                        brand["brand_id"], brand["class_id"],
+                    )).casefold()
+                ]
+                if not supplier_match and not matching_brands:
+                    continue
+            if (selected_category or selected_status or query) and not matching_brands:
+                continue
+            filtered.append({
+                "supplier_key": item["supplier_key"],
+                "supplier_code": item["supplier_code"],
+                "supplier": item["supplier"],
+                "brand_count": len(matching_brands),
+                "total_brand_count": item["brand_count"],
+            })
+
+        if sort == "highest":
+            filtered.sort(key=lambda item: (-item["brand_count"], item["supplier"].casefold()))
+        elif sort == "lowest":
+            filtered.sort(key=lambda item: (item["brand_count"], item["supplier"].casefold()))
+        else:
+            filtered.sort(key=lambda item: item["supplier"].casefold())
+        return {
+            "total_suppliers": len(suppliers),
+            "total_brands": sum(item["brand_count"] for item in suppliers),
+            "filtered_suppliers": len(filtered),
+            "suppliers": filtered,
+        }
+
+    def get_supplier_brands(self, supplier_key, search="", category="", status=""):
+        """Return a selected supplier's complete or filtered, deduplicated brand list."""
+        suppliers = self._supplier_brand_groups()
+        supplier = suppliers.get(str(supplier_key or ""))
+        if not supplier:
+            return None
+        query = self._normalized_supplier_value(search)
+        selected_category = self._normalized_supplier_value(category)
+        selected_status = self._normalized_supplier_value(status)
+        supplier_matches = query and query in " ".join(
+            (supplier["supplier"], supplier["supplier_code"])
+        ).casefold()
+        brands = [
+            brand for brand in supplier["brands"]
+            if (not selected_category or selected_category in {value.casefold() for value in brand["categories"]})
+            and (not selected_status or selected_status in {value.casefold() for value in brand["statuses"]})
+            and (
+                not query or supplier_matches
+                or query in " ".join((
+                    brand["brand_name"], brand["brand_code"],
+                    brand["brand_id"], brand["class_id"],
+                )).casefold()
+            )
+        ]
+        public_brands = [
+            {key: value for key, value in brand.items() if key != "_trained_rows"}
+            for brand in brands
+        ]
+        return {
+            "supplier": supplier["supplier"],
+            "supplier_code": supplier["supplier_code"],
+            "total_brand_count": supplier["brand_count"],
+            "brand_count": len(public_brands),
+            "brands": public_brands,
+        }
+
+    def get_supplier_brand_details(self, supplier_code="", supplier_name="", brand_code="", brand_name=""):
+        """Return AIMasterBrandData products/images and trained brand metadata."""
+        conditions = []
+        params = []
+        if supplier_name:
+            conditions.append("LOWER(TRIM(COALESCE(SupplierName, ''))) = LOWER(TRIM(?))")
+            params.append(supplier_name)
+        elif supplier_code:
+            conditions.append("LOWER(TRIM(COALESCE(SupplierCode, ''))) = LOWER(TRIM(?))")
+            params.append(supplier_code)
+        if brand_code:
+            conditions.append("LOWER(TRIM(COALESCE(BrandCode, ''))) = LOWER(TRIM(?))")
+            params.append(brand_code)
+        elif brand_name:
+            conditions.append("LOWER(TRIM(COALESCE(BrandName, ''))) = LOWER(TRIM(?))")
+            params.append(brand_name)
+        if not conditions:
+            raise ValueError("A supplier and brand identifier are required")
+        master_table = CSV_FILES["ai_master"]["table"]
+        master_records = self.db.query(f"""
+            SELECT id AS master_id, SupplierCode AS supplier_code, SupplierName AS supplier,
+                   BrandCode AS brand_code, BrandName AS brand_name, ProductCategory AS product_category,
+                   ProductName AS product_name, UPCCode AS upc, clean_upc, ImageURL AS image_url,
+                   '' AS high_res_image_url, '' AS mid_res_image_url, '' AS low_res_image_url
+            FROM `{master_table}`
+            WHERE {" AND ".join(conditions)}
+            ORDER BY ProductName
+        """, tuple(params))
+        records = master_records
+        if not records:
+            return None
+
+        first = master_records[0] if master_records else records[0]
+        trained_indexes = self._trained_brand_indexes()
+        trained_rows = self._matched_trained_rows(
+            trained_indexes,
+            supplier_code or first.get("supplier_code"),
+            supplier_name or first.get("supplier"),
+            brand_code or first.get("brand_code"),
+            brand_name or first.get("brand_name"),
+        )
+        brand = self._supplier_brand_summary({
+            "brand_name": first.get("brand_name"),
+            "brand_code": first.get("brand_code"),
+            "product_category": first.get("product_category"),
+            "record_count": len(records),
+        }, trained_rows)
+        image_urls = []
+        seen_images = set()
+        for record in records:
+            for image_field in ("image_url", "high_res_image_url", "mid_res_image_url", "low_res_image_url"):
+                image_url = str(record.get(image_field) or "").strip()
+                if image_url and image_url.casefold() not in seen_images:
+                    seen_images.add(image_url.casefold())
+                    image_urls.append(image_url)
+        for trained in brand["_trained_rows"]:
+            for image_url in self._trained_image_urls(trained.get("ImageUrls")):
+                if image_url.casefold() not in seen_images:
+                    seen_images.add(image_url.casefold())
+                    image_urls.append(image_url)
+        public_brand = {key: value for key, value in brand.items() if key != "_trained_rows"}
+        products_by_key = {}
+        for record in records:
+            product_name = str(record.get("product_name") or "").strip()
+            upc = str(record.get("upc") or record.get("clean_upc") or "").strip()
+            product_key = self._normalized_supplier_value(upc or product_name)
+            if product_key:
+                products_by_key.setdefault(product_key, {
+                    "product_name": product_name,
+                    "upc": upc,
+                })
+        return {
+            **public_brand,
+            "supplier": first.get("supplier") or supplier_name or "NA",
+            "supplier_code": first.get("supplier_code") or supplier_code or "",
+            "master_id": first.get("master_id") or "",
+            "images": image_urls,
+            "products": list(products_by_key.values()),
+        }
 
     def lookup_upc(self, upc_query):
         """
@@ -536,6 +915,50 @@ class SQLEngine:
                 "records": records,
             })
 
+        return {"total_suppliers": len(suppliers), "suppliers": suppliers}
+
+    def get_supplier_dashboard(self):
+        """Return complete supplier and brand record counts from Master Brand data."""
+        table = CSV_FILES["ai_master"]["table"]
+        supplier_key = "CASE WHEN LOWER(TRIM(COALESCE(SupplierName, ''))) IN ('', 'null', 'none', 'nan', 'n/a', 'na') THEN 'NA' ELSE LOWER(TRIM(SupplierName)) END"
+        supplier_label = "CASE WHEN LOWER(TRIM(COALESCE(SupplierName, ''))) IN ('', 'null', 'none', 'nan', 'n/a', 'na') THEN 'NA' ELSE TRIM(SupplierName) END"
+        brand_key = "CASE WHEN LOWER(TRIM(COALESCE(BrandName, ''))) IN ('', 'null', 'none', 'nan', 'n/a', 'na') THEN NULL ELSE LOWER(TRIM(BrandName)) END"
+        brand_label = "CASE WHEN {brand_key} IS NULL THEN NULL ELSE TRIM(BrandName) END".format(brand_key=brand_key)
+        rows = self.db.query(f"""
+            SELECT {supplier_key} AS supplier_key,
+                   MIN({supplier_label}) AS supplier,
+                   {brand_key} AS brand_key,
+                   MIN({brand_label}) AS brand_name,
+                   COUNT(*) AS record_count
+            FROM `{table}`
+            WHERE LOWER(TRIM(COALESCE(SupplierName, ''))) NOT IN ('', 'null', 'none', 'nan', 'n/a', 'na')
+            GROUP BY {supplier_key}, {brand_key}
+            ORDER BY supplier, brand_name
+        """)
+
+        suppliers_by_key = {}
+        for row in rows:
+            supplier_key_value = str(row.get("supplier_key") or "NA").strip().lower() or "na"
+            supplier = suppliers_by_key.setdefault(supplier_key_value, {
+                "supplier": str(row.get("supplier") or "NA").strip() or "NA",
+                "record_count": 0,
+                "brand_count": 0,
+                "brands": [],
+            })
+            record_count = int(row.get("record_count") or 0)
+            supplier["record_count"] += record_count
+            brand_name = str(row.get("brand_name") or "").strip()
+            if row.get("brand_key") is not None and brand_name:
+                supplier["brands"].append({
+                    "brand_name": brand_name,
+                    "record_count": record_count,
+                })
+                supplier["brand_count"] += 1
+
+        suppliers = sorted(
+            suppliers_by_key.values(),
+            key=lambda item: (item["supplier"].upper() == "NA", item["supplier"].casefold()),
+        )
         return {"total_suppliers": len(suppliers), "suppliers": suppliers}
 
     @staticmethod

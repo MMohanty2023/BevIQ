@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 BASE_DIR = Path(__file__).resolve().parent
 
 DATA_DIR = BASE_DIR
+TRAINED_BRANDS_FILE = DATA_DIR / "TrainedBrandsData.csv"
 DB_DIR = BASE_DIR / "db_storage"
 INDEX_DIR = BASE_DIR / "vector_indices"
 REPORTS_DIR = BASE_DIR / "generated_reports"

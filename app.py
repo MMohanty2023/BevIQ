@@ -169,6 +169,74 @@ def api_dashboard_suppliers():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/suppliers/dashboard', methods=['GET'])
+def api_supplier_dashboard():
+    try:
+        return jsonify({
+            'backend': db_manager.backend_name(),
+            **sql_engine.get_supplier_dashboard(),
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/suppliers/overview', methods=['GET'])
+def api_supplier_overview():
+    sort = (request.args.get('sort') or 'name').strip().lower()
+    if sort not in {'name', 'highest', 'lowest'}:
+        return jsonify({'error': 'sort must be name, highest, or lowest'}), 400
+    try:
+        return jsonify({
+            'backend': db_manager.backend_name(),
+            **sql_engine.get_supplier_overview(
+                search=(request.args.get('q') or '').strip(),
+                category=(request.args.get('category') or '').strip(),
+                supplier=(request.args.get('supplier') or '').strip(),
+                status=(request.args.get('status') or '').strip(),
+                sort=sort,
+            ),
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/suppliers/brands', methods=['GET'])
+def api_supplier_brands():
+    supplier_key = (request.args.get('supplier_key') or '').strip()
+    if not supplier_key:
+        return jsonify({'error': 'supplier_key is required'}), 400
+    try:
+        result = sql_engine.get_supplier_brands(
+            supplier_key=supplier_key,
+            search=(request.args.get('q') or '').strip(),
+            category=(request.args.get('category') or '').strip(),
+            status=(request.args.get('status') or '').strip(),
+        )
+        if result is None:
+            return jsonify({'error': 'Supplier was not found'}), 404
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/suppliers/brand-details', methods=['GET'])
+def api_supplier_brand_details():
+    supplier_code = (request.args.get('supplier_code') or '').strip()
+    supplier_name = (request.args.get('supplier_name') or '').strip()
+    brand_code = (request.args.get('brand_code') or '').strip()
+    brand_name = (request.args.get('brand_name') or '').strip()
+    if not (supplier_code or supplier_name) or not (brand_code or brand_name):
+        return jsonify({'error': 'A supplier and brand identifier are required'}), 400
+    try:
+        result = sql_engine.get_supplier_brand_details(
+            supplier_code=supplier_code,
+            supplier_name=supplier_name,
+            brand_code=brand_code,
+            brand_name=brand_name,
+        )
+        if result is None:
+            return jsonify({'error': 'Brand was not found for this supplier'}), 404
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/master-brands/search', methods=['GET'])
 def api_master_brand_search():
     master_id = (request.args.get('id') or '').strip()

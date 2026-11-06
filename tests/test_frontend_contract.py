@@ -23,6 +23,15 @@ def test_dashboard_navigation_places_dashboard_before_ai_assistant():
     assert nav.index("switchTab('dashboard'") < nav.index("switchTab('chat'")
 
 
+def test_dashboard_is_the_default_view_and_assistant_opens_only_on_request():
+    nav = HTML.split('<div class="nav-tabs-wrapper"', 1)[1].split('</div>', 1)[0]
+    assert 'class="nav-tab-btn active" onclick="switchTab(\'dashboard\', this)"' in nav
+    assert '<div id="tab-dashboard" class="tab-panel active">' in HTML
+    assert 'onclick="openDashboardAssistant()"' in HTML
+    assert "if (document.getElementById('tab-dashboard')?.classList.contains('active'))" in HTML
+    assert "openDashboardAssistant();" not in HTML.split("if (document.getElementById('tab-dashboard')", 1)[1]
+
+
 def test_dashboard_exposes_chart_and_display_mode_controls():
     assert 'id="dashboard-chart-controls"' in HTML
     assert 'data-dashboard-chart="pie"' in HTML
@@ -40,6 +49,8 @@ def test_dashboard_has_native_visualization_and_floating_assistant_hooks():
     assert "renderDashboardHeatmap" in HTML
     assert 'id="dashboard-floating-assistant"' in HTML
     assert "dashboard-floating-assistant" in HTML
+    assert "@keyframes dashboard-assistant-enter" in HTML
+    assert "prefers-reduced-motion: reduce" in HTML
 
 
 def test_frontend_contains_upload_preview_and_clear_loading_states():
@@ -117,6 +128,32 @@ def test_dashboard_contains_supplier_directory_card_hooks():
     assert "brand_names" in HTML
     assert "toggleSupplierCard" in HTML
     assert "NA" in HTML
+
+
+def test_supplier_dashboard_is_separate_and_supports_supplier_brand_counts_and_search():
+    assert 'onclick="switchTab(\'suppliers\', this); loadSupplierDashboard()"' in HTML
+    assert "Supplier Overview" in HTML
+    assert '<div id="tab-suppliers" class="tab-panel">' in HTML
+    assert 'id="supplier-dashboard-total"' in HTML
+    assert 'id="supplier-dashboard-search"' in HTML
+    assert 'id="supplier-dashboard-category"' in HTML
+    assert 'id="supplier-dashboard-supplier"' in HTML
+    assert 'id="supplier-dashboard-status"' in HTML
+    assert 'id="supplier-dashboard-sort"' in HTML
+    assert 'id="supplier-dashboard-results"' in HTML
+    assert "/api/suppliers/overview" in HTML
+    assert "/api/suppliers/brands" in HTML
+    assert "/api/suppliers/brand-details" in HTML
+    assert "AIMasterBrandData products" in HTML
+    assert "AllBrand Record IDs" not in HTML
+    assert "supplier.brand_count" in HTML
+    assert "brand.brand_name" in HTML
+    assert "data.class_id" in HTML
+    assert "data.image_count" in HTML
+    assert "data.model_name" in HTML
+    assert "openMasterBrandImage" in HTML
+    assert "Supplier name/code, brand name or brand ID" in HTML
+    assert 'id="tab-master-brands"' in HTML
 
 
 def test_dataset_upc_kpi_has_no_explanatory_subtitle():
