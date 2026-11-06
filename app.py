@@ -156,6 +156,19 @@ def api_dashboard_metrics():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/dashboard/suppliers', methods=['GET'])
+def api_dashboard_suppliers():
+    try:
+        limit = max(1, min(int(request.args.get('limit', 500)), 500))
+        return jsonify({
+            'backend': db_manager.backend_name(),
+            **sql_engine.get_supplier_directory(limit=limit),
+        })
+    except (TypeError, ValueError):
+        return jsonify({'error': 'limit must be a valid number'}), 400
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/master-brands/search', methods=['GET'])
 def api_master_brand_search():
     master_id = (request.args.get('id') or '').strip()

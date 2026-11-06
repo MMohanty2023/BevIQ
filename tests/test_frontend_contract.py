@@ -11,6 +11,37 @@ def test_frontend_contains_dashboard_and_backend_status_hooks():
     assert "active_backend" in HTML
 
 
+def test_frontend_opens_directly_on_dashboard_without_landing_screen():
+    assert 'id="beviq-landing"' not in HTML
+    assert 'id="beviq-app"' in HTML
+    assert "function enterBevIQ()" not in HTML
+    assert "#beviq-app {\n            display: none;" not in HTML
+
+
+def test_dashboard_navigation_places_dashboard_before_ai_assistant():
+    nav = HTML.split('<div class="nav-tabs-wrapper"', 1)[1].split('</div>', 1)[0]
+    assert nav.index("switchTab('dashboard'") < nav.index("switchTab('chat'")
+
+
+def test_dashboard_exposes_chart_and_display_mode_controls():
+    assert 'id="dashboard-chart-controls"' in HTML
+    assert 'data-dashboard-chart="pie"' in HTML
+    assert 'data-dashboard-chart="bar"' in HTML
+    assert 'data-dashboard-chart="heatmap"' in HTML
+    assert 'data-dashboard-display="percentage"' in HTML
+    assert 'id="dashboard-visualization"' in HTML
+
+
+def test_dashboard_has_native_visualization_and_floating_assistant_hooks():
+    assert "dashboardVisualizationState" in HTML
+    assert "renderDashboardVisualization" in HTML
+    assert "renderDashboardPie" in HTML
+    assert "renderDashboardBar" in HTML
+    assert "renderDashboardHeatmap" in HTML
+    assert 'id="dashboard-floating-assistant"' in HTML
+    assert "dashboard-floating-assistant" in HTML
+
+
 def test_frontend_contains_upload_preview_and_clear_loading_states():
     assert "previewSelectedDocument" in HTML
     assert "URL.createObjectURL" in HTML
@@ -75,6 +106,17 @@ def test_dashboard_loads_heavy_sections_progressively_and_reuses_requests():
     assert "loadDashboardMetrics();" in HTML
     assert "loadDashboardMissing();" in HTML
     assert "async function loadDashboardMissing()" in HTML
+
+
+def test_dashboard_contains_supplier_directory_card_hooks():
+    assert 'id="dashboard-supplier-total"' in HTML
+    assert 'id="dashboard-supplier-search"' in HTML
+    assert 'id="dashboard-supplier-directory"' in HTML
+    assert "/api/dashboard/suppliers" in HTML
+    assert "brand_count" in HTML
+    assert "brand_names" in HTML
+    assert "toggleSupplierCard" in HTML
+    assert "NA" in HTML
 
 
 def test_dataset_upc_kpi_has_no_explanatory_subtitle():

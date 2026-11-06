@@ -67,6 +67,10 @@
             flex-direction: column;
         }
 
+        #beviq-app {
+            display: block;
+        }
+
         /* Top Header */
         header {
             background: linear-gradient(180deg, #0f172a 0%, #0c1222 100%);
@@ -873,9 +877,41 @@
 
         .dashboard-grid { display: grid; gap: 1rem; }
         .dashboard-kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: .75rem; }
+        .dashboard-chart-toolbar { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:.75rem; }
+        .dashboard-chart-controls, .dashboard-display-controls { display:flex; flex-wrap:wrap; gap:.4rem; }
+        .dashboard-chart-btn, .dashboard-display-btn { border:1px solid var(--border-color); border-radius:999px; padding:.45rem .75rem; color:var(--text-secondary); background:var(--bg-surface); cursor:pointer; transition:all .16s ease; }
+        .dashboard-chart-btn:hover, .dashboard-display-btn:hover, .dashboard-chart-btn.active, .dashboard-display-btn.active { color:var(--text-main); border-color:var(--accent-blue); background:rgba(37,99,235,.16); }
+        .dashboard-visualization { min-height:260px; display:grid; place-items:center; margin-top:1rem; overflow:auto; }
+        .dashboard-visualization svg { width:100%; min-width:560px; height:270px; }
+        .dashboard-visualization-empty { color:var(--text-muted); padding:2rem; text-align:center; }
+        .dashboard-heatmap { width:100%; display:grid; grid-template-columns:repeat(5, minmax(90px,1fr)); gap:.5rem; }
+        .dashboard-heatmap-cell { min-height:88px; display:flex; flex-direction:column; justify-content:space-between; padding:.65rem; border:1px solid var(--border-color); border-radius:10px; color:#fff; }
+        .dashboard-heatmap-cell strong { font-size:1.15rem; }
+        .dashboard-floating-assistant { position:fixed; right:1.25rem; bottom:1.25rem; z-index:80; border:1px solid rgba(147,197,253,.45); border-radius:999px; padding:.8rem 1rem; color:#fff; background:linear-gradient(135deg,#2563eb,#0ea5e9); box-shadow:0 12px 30px rgba(14,165,233,.3); cursor:pointer; animation:dashboard-assistant-float 2.4s ease-in-out infinite; }
+        @keyframes dashboard-assistant-float { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-7px); } }
+        @media (prefers-reduced-motion: reduce) { .dashboard-floating-assistant { animation:none; } }
         .dashboard-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 10px; padding: 1rem; }
         .dashboard-card h3 { font-size: .82rem; color: var(--text-secondary); margin-bottom: .35rem; font-weight: 600; }
         .dashboard-card h2 { margin: 0; font-size: 1rem; }
+        .supplier-directory-toolbar { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:.75rem; margin-bottom:.9rem; }
+        .supplier-directory-search { min-width:240px; flex:1; max-width:360px; }
+        .supplier-directory-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:.75rem; }
+        .supplier-card { border:1px solid var(--border-color); border-radius:12px; background:var(--bg-surface); overflow:hidden; }
+        .supplier-card__toggle { width:100%; display:flex; justify-content:space-between; align-items:flex-start; gap:.75rem; padding:.9rem; border:0; color:var(--text-main); background:transparent; text-align:left; cursor:pointer; }
+        .supplier-card__toggle:hover { background:var(--bg-hover); }
+        .supplier-card__name { font-weight:700; }
+        .supplier-card__meta { color:var(--text-muted); font-size:.76rem; margin-top:.2rem; }
+        .supplier-card__chevron { color:var(--accent-blue); font-size:1.1rem; }
+        .supplier-card__body { display:none; padding:0 .9rem .9rem; border-top:1px solid var(--border-color); }
+        .supplier-card.is-open .supplier-card__body { display:block; }
+        .supplier-card__stats { display:grid; grid-template-columns:repeat(3,1fr); gap:.45rem; padding:.75rem 0; }
+        .supplier-card__stat { padding:.5rem; border-radius:8px; background:var(--bg-card); }
+        .supplier-card__stat strong { display:block; font-size:1.05rem; }
+        .supplier-card__stat span, .supplier-card__body small { color:var(--text-muted); font-size:.72rem; }
+        .supplier-brand-list { display:flex; flex-wrap:wrap; gap:.35rem; margin:.35rem 0 .8rem; }
+        .supplier-brand-pill { border:1px solid var(--border-light); border-radius:999px; padding:.25rem .5rem; color:var(--text-secondary); font-size:.74rem; }
+        .supplier-record-list { display:grid; gap:.35rem; max-height:220px; overflow:auto; }
+        .supplier-record { padding:.45rem .55rem; border-left:2px solid var(--accent-blue); background:var(--bg-card); font-size:.76rem; }
         .analytics-grid { display:grid; grid-template-columns: minmax(240px, .85fr) minmax(0, 1.5fr); gap: .85rem; }
         .upc-quality { display:flex; align-items:center; gap:1.25rem; min-height:190px; }
         .upc-pie { width:150px; height:150px; border-radius:50%; flex:0 0 auto; background: conic-gradient(var(--accent-emerald) 0deg, var(--accent-emerald) 0deg, var(--accent-rose) 0deg, var(--accent-rose) 360deg); box-shadow:0 0 0 1px var(--border-color); }
@@ -1082,6 +1118,7 @@
     </style>
 </head>
 <body>
+    <div id="beviq-app">
 
     <!-- Header -->
     <header>
@@ -1103,11 +1140,11 @@
 
     <!-- Nav Tabs -->
     <div class="nav-tabs-wrapper">
-        <button class="nav-tab-btn active" onclick="switchTab('chat', this)">
-            💬 AI Assistant
-        </button>
         <button class="nav-tab-btn" onclick="switchTab('dashboard', this)">
             Dashboard
+        </button>
+        <button class="nav-tab-btn active" onclick="switchTab('chat', this)">
+            💬 AI Assistant
         </button>
         <button class="nav-tab-btn" onclick="switchTab('master-brands', this)">
             Master Brands
@@ -1200,6 +1237,26 @@
                 <div>
                     <div class="studio-title">Beverage Dashboard</div>
                 </div>
+                <div class="dashboard-card">
+                    <div class="dashboard-chart-toolbar">
+                        <div>
+                            <h3 style="margin:0;">Dashboard visual view</h3>
+                            <div class="dashboard-subtle">Use the same live data as a chart or heatmap</div>
+                        </div>
+                        <div id="dashboard-chart-controls" class="dashboard-chart-controls" role="group" aria-label="Dashboard chart type">
+                            <button class="dashboard-chart-btn active" type="button" data-dashboard-chart="overview" onclick="setDashboardChart('overview', this)">Overview</button>
+                            <button class="dashboard-chart-btn" type="button" data-dashboard-chart="pie" onclick="setDashboardChart('pie', this)">Pie Chart</button>
+                            <button class="dashboard-chart-btn" type="button" data-dashboard-chart="bar" onclick="setDashboardChart('bar', this)">Bar Graph</button>
+                            <button class="dashboard-chart-btn" type="button" data-dashboard-chart="heatmap" onclick="setDashboardChart('heatmap', this)">Heatmap</button>
+                        </div>
+                        <div class="dashboard-display-controls" role="group" aria-label="Dashboard value format">
+                            <button class="dashboard-display-btn active" type="button" data-dashboard-display="count" onclick="setDashboardDisplayMode('count', this)">Count</button>
+                            <button class="dashboard-display-btn" type="button" data-dashboard-display="percentage" onclick="setDashboardDisplayMode('percentage', this)">Percentage</button>
+                        </div>
+                    </div>
+                    <div id="dashboard-visualization" class="dashboard-visualization" aria-live="polite"><div class="dashboard-visualization-empty">Open Dashboard to load chart data.</div></div>
+                </div>
+                <button id="dashboard-floating-assistant" class="dashboard-floating-assistant" type="button" onclick="openDashboardAssistant()">💬 AI Assistant</button>
                 <div id="dashboard-error" class="dashboard-card" style="display:none; color:#fda4af;"></div>
                 <div class="dashboard-kpis">
                     <div class="dashboard-card"><h3>Total records</h3><div class="dashboard-number" id="dashboard-total-records">—</div></div>
@@ -1247,6 +1304,14 @@
                         <div class="master-summary-item"><strong id="dashboard-master-with-upc">—</strong><span>Records with UPC</span></div>
                         <div class="master-summary-item"><strong id="dashboard-master-without-upc">—</strong><span>Records without UPC</span></div>
                     </div>
+                </div>
+                <div class="dashboard-card" id="supplier-directory-card">
+                    <div class="supplier-directory-toolbar">
+                        <div><h3 style="margin:0;">Supplier Directory</h3><div class="dashboard-subtle">Master Brand suppliers and their related brands/products</div></div>
+                        <div class="dashboard-number" id="dashboard-supplier-total">—</div>
+                    </div>
+                    <input class="text-input-field supplier-directory-search" id="dashboard-supplier-search" type="search" placeholder="Search supplier name..." aria-label="Search suppliers" oninput="filterSupplierCards(this.value)">
+                    <div id="dashboard-supplier-directory" class="supplier-directory-grid" aria-live="polite"><div class="dashboard-subtle">Open Dashboard to load suppliers.</div></div>
                 </div>
                 <div class="dashboard-card">
                     <div style="display:flex; justify-content:space-between; align-items:center; gap:.75rem; margin-bottom:.6rem;">
@@ -1505,6 +1570,12 @@
         let studioSearchTimer = null;
         let studioLoaded = false;
         let dashboardLoaded = false;
+        let supplierDirectoryData = [];
+        const dashboardVisualizationState = {
+            chartType: 'overview',
+            displayMode: 'count',
+            metrics: null,
+        };
         const chatSessionId = localStorage.getItem('beverage_chat_session') ||
             (window.crypto && typeof window.crypto.randomUUID === 'function'
                 ? window.crypto.randomUUID()
@@ -1574,9 +1645,103 @@
         }
 
         function triggerQuickPrompt(query) {
-            switchTab('chat', document.querySelectorAll('.nav-tab-btn')[0]);
+            openDashboardAssistant();
             document.getElementById('chat-input-box').value = query;
             submitUserChat(new Event('submit'));
+        }
+
+        function getDashboardVisualizationSeries(metrics) {
+            const categories = metrics?.categories || {};
+            const master = metrics?.master_brand || {};
+            return [
+                { label: 'Master Brand', value: Number(master.distinct_upcs || 0), color: '#38bdf8' },
+                { label: 'Beer', value: Number((categories.beer || {}).distinct_upcs || 0), color: '#f59e0b' },
+                { label: 'RTD', value: Number((categories.rtd || {}).distinct_upcs || 0), color: '#a78bfa' },
+                { label: 'Wine', value: Number((categories.wine || {}).distinct_upcs || 0), color: '#f472b6' },
+                { label: 'Spirits', value: Number((categories.spirits || {}).distinct_upcs || 0), color: '#14b8a6' },
+            ];
+        }
+
+        function formatDashboardVisualizationValue(value, series) {
+            if (dashboardVisualizationState.displayMode === 'count') return Number(value || 0).toLocaleString();
+            const total = series.reduce((sum, item) => sum + item.value, 0);
+            return total ? `${((Number(value || 0) / total) * 100).toFixed(1)}%` : '0.0%';
+        }
+
+        function setDashboardChart(chartType, button) {
+            dashboardVisualizationState.chartType = chartType;
+            document.querySelectorAll('#dashboard-chart-controls .dashboard-chart-btn').forEach(item => item.classList.remove('active'));
+            button?.classList.add('active');
+            renderDashboardVisualization();
+        }
+
+        function setDashboardDisplayMode(displayMode, button) {
+            dashboardVisualizationState.displayMode = displayMode;
+            document.querySelectorAll('.dashboard-display-btn').forEach(item => item.classList.remove('active'));
+            button?.classList.add('active');
+            renderDashboardVisualization();
+        }
+
+        function renderDashboardOverview(series) {
+            const total = series.reduce((sum, item) => sum + item.value, 0);
+            return `<div class="dashboard-heatmap">${series.map(item => {
+                const intensity = total ? 0.3 + (item.value / total) * 0.7 : 0.3;
+                return `<div class="dashboard-heatmap-cell" style="background:rgba(37,99,235,${intensity.toFixed(2)})"><span>${item.label}</span><strong>${formatDashboardVisualizationValue(item.value, series)}</strong></div>`;
+            }).join('')}</div>`;
+        }
+
+        function renderDashboardPie(series) {
+            const total = series.reduce((sum, item) => sum + item.value, 0);
+            const radius = 72;
+            const circumference = 2 * Math.PI * radius;
+            let offset = 0;
+            const rings = total ? series.map(item => {
+                const length = (item.value / total) * circumference;
+                const ring = `<circle cx="120" cy="120" r="${radius}" fill="none" stroke="${item.color}" stroke-width="42" stroke-dasharray="${length} ${circumference - length}" stroke-dashoffset="${-offset}" transform="rotate(-90 120 120)"></circle>`;
+                offset += length;
+                return ring;
+            }).join('') : `<circle cx="120" cy="120" r="${radius}" fill="none" stroke="var(--border-color)" stroke-width="42"></circle>`;
+            return `<svg viewBox="0 0 440 250" role="img" aria-label="Dashboard pie chart"><g>${rings}</g>${series.map((item, index) => `<g transform="translate(245 ${34 + index * 39})"><rect width="14" height="14" rx="3" fill="${item.color}"></rect><text x="23" y="12" fill="var(--text-main)" font-size="13">${item.label}</text><text x="23" y="29" fill="var(--text-muted)" font-size="12">${formatDashboardVisualizationValue(item.value, series)}</text></g>`).join('')}</svg>`;
+        }
+
+        function renderDashboardBar(series) {
+            const max = Math.max(...series.map(item => item.value), 1);
+            return `<svg viewBox="0 0 620 290" role="img" aria-label="Dashboard bar graph"><line x1="34" y1="224" x2="600" y2="224" stroke="var(--border-color)"></line>${series.map((item, index) => {
+                const height = (item.value / max) * 170;
+                const x = 54 + index * 108;
+                return `<g><rect x="${x}" y="${224 - height}" width="58" height="${height}" rx="8" fill="${item.color}"></rect><text x="${x + 29}" y="${244}" text-anchor="middle" fill="var(--text-main)" font-size="12">${item.label}</text><text x="${x + 29}" y="${Math.max(16, 214 - height)}" text-anchor="middle" fill="var(--text-main)" font-size="12">${formatDashboardVisualizationValue(item.value, series)}</text></g>`;
+            }).join('')}</svg>`;
+        }
+
+        function renderDashboardHeatmap(series) {
+            const max = Math.max(...series.map(item => item.value), 1);
+            return `<div class="dashboard-heatmap">${series.map(item => {
+                const intensity = 0.25 + (item.value / max) * 0.75;
+                return `<div class="dashboard-heatmap-cell" style="background:rgba(14,165,233,${intensity.toFixed(2)})"><span>${item.label}</span><strong>${formatDashboardVisualizationValue(item.value, series)}</strong><small>${dashboardVisualizationState.displayMode === 'count' ? 'distinct UPCs' : 'share of UPCs'}</small></div>`;
+            }).join('')}</div>`;
+        }
+
+        function renderDashboardVisualization(metrics = dashboardVisualizationState.metrics) {
+            const target = document.getElementById('dashboard-visualization');
+            if (!target) return;
+            if (metrics) dashboardVisualizationState.metrics = metrics;
+            if (!dashboardVisualizationState.metrics) {
+                target.innerHTML = '<div class="dashboard-visualization-empty">Open Dashboard to load chart data.</div>';
+                return;
+            }
+            const series = getDashboardVisualizationSeries(dashboardVisualizationState.metrics);
+            const renderer = {
+                overview: renderDashboardOverview,
+                pie: renderDashboardPie,
+                bar: renderDashboardBar,
+                heatmap: renderDashboardHeatmap,
+            }[dashboardVisualizationState.chartType] || renderDashboardOverview;
+            target.innerHTML = renderer(series);
+        }
+
+        function openDashboardAssistant() {
+            const chatButton = Array.from(document.querySelectorAll('.nav-tab-btn')).find(button => button.getAttribute('onclick')?.includes("switchTab('chat'"));
+            if (chatButton) switchTab('chat', chatButton);
         }
 
         function showSelectedDocument(input) {
@@ -1601,6 +1766,55 @@
             }
             preview.appendChild(wrapper);
             preview.style.display = 'flex';
+        }
+
+        function renderSupplierCards(suppliers = supplierDirectoryData) {
+            const target = document.getElementById('dashboard-supplier-directory');
+            if (!target) return;
+            if (!suppliers.length) {
+                target.innerHTML = '<div class="dashboard-subtle">No suppliers match this search.</div>';
+                return;
+            }
+            target.innerHTML = suppliers.map((supplier, index) => {
+                const brands = (supplier.brand_names || []).map(name => `<span class="supplier-brand-pill">${escapeHtml(name)}</span>`).join('') || '<small>No brand names available</small>';
+                const records = (supplier.records || []).slice(0, 25).map(record => `
+                    <div class="supplier-record"><strong>${escapeHtml(record.BrandName || 'NA')}</strong> · ${escapeHtml(record.ProductName || 'Product unavailable')}<br><small>UPC: ${escapeHtml(record.clean_upc || 'NA')}</small></div>`).join('') || '<small>No related product details available</small>';
+                return `<article class="supplier-card" data-supplier-name="${escapeHtml(supplier.supplier || 'NA').toLowerCase()}" id="supplier-card-${index}">
+                    <button class="supplier-card__toggle" type="button" aria-expanded="false" aria-controls="supplier-body-${index}" onclick="toggleSupplierCard(${index})">
+                        <span><span class="supplier-card__name">${escapeHtml(supplier.supplier || 'NA')}</span><span class="supplier-card__meta">${Number(supplier.record_count || 0).toLocaleString()} Master Brand record(s)</span></span><span class="supplier-card__chevron">⌄</span>
+                    </button>
+                    <div class="supplier-card__body" id="supplier-body-${index}">
+                        <div class="supplier-card__stats"><div class="supplier-card__stat"><strong>${Number(supplier.record_count || 0).toLocaleString()}</strong><span>Records</span></div><div class="supplier-card__stat"><strong>${Number(supplier.brand_count || 0).toLocaleString()}</strong><span>Brands</span></div><div class="supplier-card__stat"><strong>${Number(supplier.upc_count || 0).toLocaleString()}</strong><span>UPCs</span></div></div>
+                        <small>Brand names</small><div class="supplier-brand-list">${brands}</div>
+                        <small>Related products</small><div class="supplier-record-list">${records}</div>
+                    </div>
+                </article>`;
+            }).join('');
+        }
+
+        function toggleSupplierCard(index) {
+            const card = document.getElementById(`supplier-card-${index}`);
+            const button = card?.querySelector('.supplier-card__toggle');
+            if (!card || !button) return;
+            const open = card.classList.toggle('is-open');
+            button.setAttribute('aria-expanded', String(open));
+        }
+
+        function filterSupplierCards(query) {
+            const term = String(query || '').trim().toLowerCase();
+            renderSupplierCards(supplierDirectoryData.filter(item => String(item.supplier || 'NA').toLowerCase().includes(term)));
+        }
+
+        async function loadSupplierDirectory() {
+            const target = document.getElementById('dashboard-supplier-directory');
+            try {
+                const data = await getDashboardData('/api/dashboard/suppliers');
+                supplierDirectoryData = data.suppliers || [];
+                document.getElementById('dashboard-supplier-total').textContent = Number(data.total_suppliers || 0).toLocaleString();
+                renderSupplierCards(supplierDirectoryData);
+            } catch (err) {
+                if (target) target.innerHTML = `<div class="dashboard-subtle">${escapeHtml(err.message)}</div>`;
+            }
         }
 
         async function loadDashboard() {
@@ -1640,6 +1854,7 @@
                 error.style.display = 'none';
                 loadDashboardMetrics();
                 loadDashboardMissing();
+                loadSupplierDirectory();
             } catch (err) {
                 error.textContent = err.message;
                 error.style.display = 'block';
@@ -1654,6 +1869,8 @@
         async function loadDashboardMetrics() {
             try {
                 const metrics = await getDashboardData('/api/dashboard/metrics');
+                dashboardVisualizationState.metrics = metrics;
+                renderDashboardVisualization(metrics);
                 const categories = metrics.categories || {};
                 ['beer', 'wine', 'rtd', 'spirits'].forEach(category => {
                     const node = document.getElementById(`dashboard-${category}-total`);
@@ -2154,5 +2371,6 @@
             renderStudioTable(filtered);
         }
     </script>
+    </div>
 </body>
 </html>

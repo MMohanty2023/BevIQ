@@ -29,6 +29,38 @@ def test_dashboard_overview_returns_live_kpis(monkeypatch):
     assert payload["kpis"]["total_unique_upcs"] == 8
 
 
+def test_dashboard_suppliers_returns_supplier_directory(monkeypatch):
+    class FakeSQL:
+        def get_supplier_directory(self, limit=500):
+            assert limit == 500
+            return {
+                "total_suppliers": 1,
+                "suppliers": [{
+                    "supplier": "Acme Imports",
+                    "record_count": 2,
+                    "brand_count": 1,
+                    "brand_names": ["Fizz"],
+                    "upc_count": 2,
+                    "records": [],
+                }],
+            }
+
+    class FakeDB:
+        def backend_name(self):
+            return "sqlite"
+
+    monkeypatch.setattr(app_module, "sql_engine", FakeSQL())
+    monkeypatch.setattr(app_module, "db_manager", FakeDB())
+
+    response = app.test_client().get("/api/dashboard/suppliers")
+    payload = response.get_json()
+
+    assert response.status_code == 200
+    assert payload["backend"] == "sqlite"
+    assert payload["total_suppliers"] == 1
+    assert payload["suppliers"][0]["brand_names"] == ["Fizz"]
+
+
 def test_dashboard_missing_upc_is_bounded(monkeypatch):
     class FakeComparison:
         def compare_all_missing_in_master(self, limit_per_category, search=None):

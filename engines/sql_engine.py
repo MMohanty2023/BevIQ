@@ -483,6 +483,61 @@ class SQLEngine:
             },
         }
 
+    def get_supplier_directory(self, limit=500):
+        """Return supplier-wise Master Brand summaries and bounded detail rows."""
+        table = CSV_FILES["ai_master"]["table"]
+        safe_limit = max(1, min(int(limit), 500))
+        supplier_key = "CASE WHEN LOWER(TRIM(COALESCE(SupplierName, ''))) IN ('', 'null', 'none', 'nan', 'n/a', 'na') THEN 'NA' ELSE LOWER(TRIM(SupplierName)) END"
+        supplier_label = "CASE WHEN LOWER(TRIM(COALESCE(SupplierName, ''))) IN ('', 'null', 'none', 'nan', 'n/a', 'na') THEN 'NA' ELSE TRIM(SupplierName) END"
+        brand_key = "CASE WHEN LOWER(TRIM(COALESCE(BrandName, ''))) IN ('', 'null', 'none', 'nan', 'n/a', 'na') THEN NULL ELSE LOWER(TRIM(BrandName)) END"
+        upc_key = "CASE WHEN LOWER(TRIM(COALESCE(clean_upc, ''))) IN ('', 'null', 'none', 'nan', 'n/a', 'na', '0') THEN NULL ELSE LOWER(TRIM(clean_upc)) END"
+
+        summaries = self.db.query(f"""
+            SELECT {supplier_key} AS supplier_key,
+                   MIN({supplier_label}) AS supplier,
+                   COUNT(*) AS record_count,
+                   COUNT(DISTINCT {brand_key}) AS brand_count,
+                   COUNT(DISTINCT {upc_key}) AS upc_count
+            FROM `{table}`
+            GROUP BY {supplier_key}
+            ORDER BY CASE WHEN {supplier_key} = 'NA' THEN 1 ELSE 0 END, supplier
+            LIMIT {safe_limit}
+        """)
+
+        suppliers = []
+        for summary in summaries:
+            key = str(summary.get("supplier_key") or summary.get("supplier") or "NA").strip().lower()
+            label = str(summary.get("supplier") or "NA").strip() or "NA"
+            if key in {"", "null", "none", "nan", "n/a", "na"}:
+                key, label = "NA", "NA"
+            where = f"{supplier_key} = ?"
+            brand_rows = self.db.query(
+                f"SELECT DISTINCT BrandName AS brand_name FROM `{table}` WHERE {where} AND {brand_key} IS NOT NULL ORDER BY brand_name",
+                (key,),
+            )
+            brand_names = []
+            seen_brands = set()
+            for row in brand_rows:
+                name = str(row.get("brand_name") or "").strip()
+                if name and name.lower() not in seen_brands:
+                    seen_brands.add(name.lower())
+                    brand_names.append(name)
+
+            records = self.db.query(
+                f"SELECT BrandName, ProductName, clean_upc, source_file, original_row FROM `{table}` WHERE {where} ORDER BY BrandName, ProductName LIMIT 25",
+                (key,),
+            )
+            suppliers.append({
+                "supplier": label,
+                "record_count": int(summary.get("record_count") or 0),
+                "brand_count": int(summary.get("brand_count") or 0),
+                "brand_names": brand_names,
+                "upc_count": int(summary.get("upc_count") or 0),
+                "records": records,
+            })
+
+        return {"total_suppliers": len(suppliers), "suppliers": suppliers}
+
     @staticmethod
     def _quality_summary(total_records, available_upcs, missing_upcs, invalid_upcs=0, distinct_upcs=None):
         total_records = int(total_records or 0)

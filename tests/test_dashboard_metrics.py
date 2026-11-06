@@ -100,3 +100,34 @@ def test_dataset_overview_retries_tables_individually_when_combined_query_fails(
     assert len(overview) == 7
     assert len(database.queries) == 8
     assert all(item["total_rows"] == 25 and item["unique_upcs"] == 20 for item in overview)
+
+
+def test_supplier_directory_groups_na_and_returns_brand_summary_and_details():
+    class SupplierDB:
+        def query(self, sql, params=None):
+            normalized = " ".join(sql.lower().split())
+            if "group by" in normalized and "supplier" in normalized:
+                return [
+                    {"supplier": "Acme Imports", "record_count": 3, "brand_count": 2, "upc_count": 2},
+                    {"supplier": "NA", "record_count": 2, "brand_count": 1, "upc_count": 0},
+                ]
+            if "select distinct" in normalized:
+                if params == ("NA",):
+                    return [{"brand_name": "NA Brand"}]
+                return [{"brand_name": "Fizz"}, {"brand_name": "fizz"}, {"brand_name": None}]
+            if "limit" in normalized:
+                if params == ("NA",):
+                    return [{"BrandName": "NA Brand", "ProductName": "NA Product", "clean_upc": ""}]
+                return [{"BrandName": "Fizz", "ProductName": "Fizz Original", "clean_upc": "123"}]
+            raise AssertionError(f"Unexpected query: {sql}")
+
+    result = SQLEngine(SupplierDB()).get_supplier_directory()
+
+    assert result["total_suppliers"] == 2
+    assert result["suppliers"][0]["supplier"] == "Acme Imports"
+    assert result["suppliers"][0]["brand_count"] == 2
+    assert result["suppliers"][0]["brand_names"] == ["Fizz"]
+    assert result["suppliers"][0]["records"]
+    assert result["suppliers"][1]["supplier"] == "NA"
+    assert result["suppliers"][1]["brand_names"] == ["NA Brand"]
+    assert result["suppliers"][1]["records"]
