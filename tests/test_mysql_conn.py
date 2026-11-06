@@ -1,33 +1,31 @@
-import pymysql
+from pathlib import Path
+import sys
 
-passwords_to_try = ['', 'root', 'password', '123456', 'admin', 'root123', 'mysql']
-success = False
+PROJECT_DIR = Path(__file__).resolve().parent.parent
+if str(PROJECT_DIR) not in sys.path:
+    sys.path.insert(0, str(PROJECT_DIR))
 
-for pwd in passwords_to_try:
+import mysql.connector
+
+from config import MYSQL_DB, MYSQL_HOST, MYSQL_PASSWORD, MYSQL_PORT, MYSQL_USER
+
+
+def main():
+    connection = mysql.connector.connect(
+        host=MYSQL_HOST,
+        port=MYSQL_PORT,
+        user=MYSQL_USER,
+        password=MYSQL_PASSWORD,
+        database=MYSQL_DB,
+        connection_timeout=3,
+    )
     try:
-        conn = pymysql.connect(
-            host='127.0.0.1',
-            port=3307,
-            user='root',
-            password=pwd,
-            connect_timeout=3
-        )
-        print(f"SUCCESS: Connected to MySQL on port 3307 with user='root' and password='{pwd}'!")
-        with conn.cursor() as cur:
-            cur.execute("SELECT VERSION()")
-            ver = cur.fetchone()
-            print("MySQL Version:", ver)
-            cur.execute("SHOW DATABASES")
-            dbs = [row[0] for row in cur.fetchall()]
-            print("Databases:", dbs)
-        conn.close()
-        success = True
-        break
-    except pymysql.MySQLError as e:
-        print(f"Failed with password '{pwd}': {e}")
-    except Exception as e:
-        print(f"Connection failed: {e}")
-        break
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT VERSION()")
+            print("Connected to configured MySQL server:", cursor.fetchone()[0])
+    finally:
+        connection.close()
 
-if not success:
-    print("Could not connect with standard test passwords. User can specify password in .env or config.py!")
+
+if __name__ == "__main__":
+    main()

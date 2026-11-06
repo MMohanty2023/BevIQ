@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import csv
 import hashlib
+import os
 import re
 import sqlite3
 import uuid
@@ -16,6 +17,9 @@ from config import DB_DIR, REPORTS_DIR
 UPLOAD_DIR = REPORTS_DIR / "uploads"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 DOC_DB = DB_DIR / "document_rag.sqlite3"
+MAX_UPLOAD_BYTES = int(os.getenv("MAX_UPLOAD_BYTES", 25 * 1024 * 1024))
+SUPPORTED_EXTENSIONS = {".pdf", ".doc", ".docx", ".txt", ".md", ".log", ".json", ".xml",
+                        ".csv", ".xlsx", ".xls", ".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tiff"}
 
 
 def _connection():
@@ -31,6 +35,13 @@ def _connection():
         content TEXT NOT NULL
     )""")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_doc_chunks_session ON document_chunks(session_id)")
+    try:
+        conn.execute("""CREATE VIRTUAL TABLE IF NOT EXISTS document_chunks_fts USING fts5(
+            document_id UNINDEXED, session_id UNINDEXED, filename UNINDEXED,
+            page UNINDEXED, content
+        )""")
+    except sqlite3.OperationalError:
+        pass
     conn.commit()
     return conn
 
@@ -41,6 +52,8 @@ def _clean(text):
 
 def _extract(path: Path):
     suffix = path.suffix.lower()
+    if suffix == ".doc":
+        raise ValueError("DOC files require conversion to DOCX before upload; legacy binary DOC extraction is not installed.")
     if suffix == ".pdf":
         from pypdf import PdfReader
         pages = []
@@ -74,6 +87,23 @@ def _extract(path: Path):
     raise ValueError("Supported uploads: PDF, DOCX, TXT, MD, CSV, XLSX, and common image formats.")
 
 
+def validate_upload(file_storage, max_bytes=MAX_UPLOAD_BYTES):
+    """Validate upload name, extension, and size before writing it to disk."""
+    filename = secure_filename(file_storage.filename or "")
+    suffix = Path(filename).suffix.lower()
+    if not filename or suffix not in SUPPORTED_EXTENSIONS:
+        raise ValueError("Supported uploads: PDF, DOC/DOCX, TXT, MD, CSV, XLS/XLSX, and common image formats.")
+    if max_bytes < 1:
+        raise ValueError("Upload size limit must be positive.")
+    stream = file_storage.stream
+    position = stream.tell()
+    stream.seek(0, os.SEEK_END)
+    size = stream.tell()
+    stream.seek(position)
+    if size > max_bytes:
+        raise ValueError(f"Uploaded file is too large; maximum allowed size is {max_bytes // (1024 * 1024)} MB.")
+
+
 def _chunks(text, size=1200, overlap=180):
     words = text.split()
     if not words:
@@ -90,23 +120,37 @@ def ingest(file_storage, session_id):
     filename = secure_filename(file_storage.filename or "")
     if not filename:
         raise ValueError("Uploaded file has no valid filename.")
+    validate_upload(file_storage)
     document_id = uuid.uuid4().hex[:12]
     path = UPLOAD_DIR / f"{document_id}_{filename}"
-    file_storage.save(path)
-    pages = _extract(path)
-    chunks = [(page, chunk) for page, text in pages for chunk in _chunks(text)]
-    if not chunks:
+    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+    try:
+        file_storage.save(path)
+        if path.stat().st_size > MAX_UPLOAD_BYTES:
+            raise ValueError(f"Uploaded file is too large; maximum allowed size is {MAX_UPLOAD_BYTES // (1024 * 1024)} MB.")
+        pages = _extract(path)
+        chunks = [(page, chunk) for page, text in pages for chunk in _chunks(text)]
+        if not chunks:
+            raise ValueError("No readable text was found in the uploaded document.")
+        digest = hashlib.sha256(path.read_bytes()).hexdigest()
+        conn = _connection()
+        try:
+            conn.execute("INSERT INTO documents(document_id,session_id,filename,content_hash) VALUES(?,?,?,?)",
+                         (document_id, session_id, filename, digest))
+            conn.executemany("INSERT INTO document_chunks(document_id,session_id,chunk_index,page,content) VALUES(?,?,?,?,?)",
+                             [(document_id, session_id, index, page, content) for index, (page, content) in enumerate(chunks)])
+            try:
+                conn.executemany("INSERT INTO document_chunks_fts(document_id,session_id,filename,page,content) VALUES(?,?,?,?,?)",
+                                 [(document_id, session_id, filename, page, content) for page, content in chunks])
+            except sqlite3.OperationalError:
+                pass
+            conn.commit()
+        finally:
+            conn.close()
+        return {"document_id": document_id, "filename": filename, "chunks": len(chunks)}
+    except Exception:
         path.unlink(missing_ok=True)
-        raise ValueError("No readable text was found in the uploaded document.")
-    digest = hashlib.sha256(path.read_bytes()).hexdigest()
-    conn = _connection()
-    conn.execute("INSERT INTO documents(document_id,session_id,filename,content_hash) VALUES(?,?,?,?)",
-                 (document_id, session_id, filename, digest))
-    conn.executemany("INSERT INTO document_chunks(document_id,session_id,chunk_index,page,content) VALUES(?,?,?,?,?)",
-                     [(document_id, session_id, index, page, content) for index, (page, content) in enumerate(chunks)])
-    conn.commit()
-    conn.close()
-    return {"document_id": document_id, "filename": filename, "chunks": len(chunks)}
+        raise
 
 
 def _tokens(text):
@@ -118,6 +162,17 @@ def search(query, session_id, top_k=6):
     if not wanted:
         return []
     conn = _connection()
+    try:
+        fts_query = " AND ".join(f'"{token}"' for token in sorted(wanted))
+        rows = conn.execute("""SELECT document_id, session_id, page, content, filename
+            FROM document_chunks_fts WHERE session_id=? AND document_chunks_fts MATCH ?
+            LIMIT ?""", (session_id, fts_query, max(1, int(top_k)))).fetchall()
+        if rows:
+            conn.close()
+            return [{"document_id": row["document_id"], "filename": row["filename"], "page": row["page"],
+                     "content": row["content"], "score": 1.0} for row in rows]
+    except sqlite3.OperationalError:
+        pass
     rows = conn.execute("""SELECT c.*, d.filename FROM document_chunks c
         JOIN documents d ON d.document_id=c.document_id WHERE c.session_id=?""", (session_id,)).fetchall()
     conn.close()

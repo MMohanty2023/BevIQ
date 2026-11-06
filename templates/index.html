@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BevIQ | Beverage Intelligence</title>
+    <title>BevIQ | Beverage Intelligence, Simplified</title>
     <style>
         :root {
             --bg-page: #090d16;
@@ -22,6 +22,33 @@
             --accent-rose: #f43f5e;
             --accent-purple: #a855f7;
             --accent-orange: #fb923c;
+            --theme-toggle-bg: #111827;
+            --theme-toggle-border: #334155;
+            --theme-choice-idle: #94a3b8;
+            --theme-choice-hover: #263449;
+            --theme-choice-selected: #3b82f6;
+            --theme-choice-selected-text: #ffffff;
+            --theme-choice-focus: rgba(96, 165, 250, 0.55);
+        }
+
+        html[data-theme="light"] {
+            --bg-page: #f5f7fb;
+            --bg-surface: #ffffff;
+            --bg-card: #ffffff;
+            --bg-hover: #eef3fb;
+            --border-color: #d9e2ef;
+            --border-light: #b8c5d6;
+            --text-main: #17243a;
+            --text-secondary: #4a5b73;
+            --text-muted: #63748b;
+            --accent-blue: #2563eb;
+            --theme-toggle-bg: #f1f5f9;
+            --theme-toggle-border: #d7e0ec;
+            --theme-choice-idle: #52647d;
+            --theme-choice-hover: #e2eaf5;
+            --theme-choice-selected: #2563eb;
+            --theme-choice-selected-text: #ffffff;
+            --theme-choice-focus: rgba(37, 99, 235, 0.4);
         }
 
         * {
@@ -40,6 +67,10 @@
             flex-direction: column;
         }
 
+        #beviq-app {
+            display: block;
+        }
+
         /* Top Header */
         header {
             background: linear-gradient(180deg, #0f172a 0%, #0c1222 100%);
@@ -51,6 +82,54 @@
             position: sticky;
             top: 0;
             z-index: 50;
+        }
+
+        html[data-theme="light"] header,
+        html[data-theme="light"] .nav-tabs-wrapper {
+            background: #ffffff;
+        }
+
+        .theme-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.28rem;
+            border: 1px solid var(--theme-toggle-border);
+            background: var(--theme-toggle-bg);
+            border-radius: 999px;
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.12);
+        }
+
+        .theme-choice {
+            display: inline-grid;
+            place-items: center;
+            width: 32px;
+            height: 32px;
+            border: 0;
+            border-radius: 50%;
+            background: transparent;
+            color: var(--theme-choice-idle);
+            font-size: 1.05rem;
+            line-height: 1;
+            cursor: pointer;
+            transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .theme-choice:hover {
+            transform: translateY(-1px);
+            color: var(--text-main);
+            background: var(--theme-choice-hover);
+        }
+
+        .theme-choice:focus-visible {
+            outline: 3px solid var(--theme-choice-focus);
+            outline-offset: 2px;
+        }
+
+        .theme-choice[aria-pressed="true"] {
+            background: var(--theme-choice-selected);
+            color: var(--theme-choice-selected-text);
+            box-shadow: 0 1px 4px rgba(37, 99, 235, 0.3);
         }
 
         .brand-container {
@@ -120,9 +199,15 @@
             padding: 0 1.75rem;
             display: flex;
             gap: 0.5rem;
+            min-width: 0;
+            max-width: 100%;
+            overflow-x: auto;
+            scrollbar-width: thin;
         }
 
         .nav-tab-btn {
+            flex: 0 0 auto;
+            white-space: nowrap;
             background: transparent;
             border: none;
             color: var(--text-secondary);
@@ -646,7 +731,7 @@
             outline: none;
         }
 
-        /* DBeaver & Datasets Panes */
+        /* Dataset catalog pane */
         .pane-card {
             background: var(--bg-card);
             border: 1px solid var(--border-color);
@@ -790,6 +875,97 @@
         .metric-box { padding: .75rem; border-radius: 8px; }
         .metric-box-value { font-size: 1.35rem; }
 
+        .dashboard-grid { display: grid; gap: 1rem; }
+        .dashboard-kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: .75rem; }
+        .dashboard-chart-card { overflow:hidden; background:linear-gradient(145deg, var(--bg-card), rgba(37,99,235,.055)); }
+        .dashboard-chart-toolbar { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:.9rem; padding:.2rem 0 1rem; }
+        .dashboard-chart-toolbar h3 { color:var(--text-main); font-size:1rem; font-weight:700; }
+        .dashboard-chart-controls, .dashboard-display-controls { display:flex; flex-wrap:wrap; gap:.4rem; }
+        .dashboard-chart-btn, .dashboard-display-btn { border:1px solid var(--border-color); border-radius:999px; padding:.5rem .85rem; color:var(--text-secondary); background:var(--bg-surface); cursor:pointer; transition:all .16s ease; }
+        .dashboard-chart-btn:hover, .dashboard-display-btn:hover, .dashboard-chart-btn.active, .dashboard-display-btn.active { color:var(--text-main); border-color:var(--accent-blue); background:rgba(37,99,235,.16); }
+        .dashboard-chart-btn:focus-visible, .dashboard-display-btn:focus-visible, .dashboard-floating-assistant:focus-visible { outline:3px solid rgba(56,189,248,.65); outline-offset:3px; }
+        .dashboard-visualization { min-height:290px; display:grid; place-items:center; margin-top:.15rem; overflow:auto; border:1px solid var(--border-color); border-radius:12px; background:rgba(15,23,42,.14); }
+        .dashboard-visualization svg { width:min(100%, 760px); min-width:0; height:auto; max-height:300px; }
+        .dashboard-visualization-empty { color:var(--text-muted); padding:2rem; text-align:center; }
+        .dashboard-heatmap { width:100%; display:grid; grid-template-columns:repeat(auto-fit, minmax(130px,1fr)); gap:.65rem; padding:1rem; }
+        .dashboard-heatmap-cell { min-height:88px; display:flex; flex-direction:column; justify-content:space-between; padding:.65rem; border:1px solid var(--border-color); border-radius:10px; color:#fff; }
+        .dashboard-heatmap-cell strong { font-size:1.15rem; }
+        .dashboard-floating-assistant { position:fixed; right:1.25rem; bottom:1.25rem; z-index:80; padding:0; border:0; color:#fff; background:transparent; cursor:pointer; }
+        .dashboard-floating-assistant::before { content:""; position:absolute; inset:0; z-index:0; border:1px solid rgba(147,197,253,.45); border-radius:999px; background:linear-gradient(135deg,#2563eb,#0ea5e9); box-shadow:0 12px 30px rgba(14,165,233,.3); animation:dashboard-assistant-enter .55s cubic-bezier(.2,.8,.2,1) both, dashboard-assistant-float 2.4s .55s ease-in-out infinite; }
+        .dashboard-floating-assistant span { position:relative; z-index:1; display:block; padding:.8rem 1rem; animation:dashboard-assistant-enter .55s cubic-bezier(.2,.8,.2,1) both, dashboard-assistant-float 2.4s .55s ease-in-out infinite; }
+        .dashboard-floating-assistant:hover::before, .dashboard-floating-assistant:hover span, .dashboard-floating-assistant:focus-visible::before, .dashboard-floating-assistant:focus-visible span { animation-play-state:paused; }
+        @keyframes dashboard-assistant-enter { from { opacity:0; translate:0 28px; } to { opacity:1; translate:0 0; } }
+        @keyframes dashboard-assistant-float { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-7px); } }
+        @media (prefers-reduced-motion: reduce) { .dashboard-floating-assistant::before, .dashboard-floating-assistant span { animation:none; } }
+        .dashboard-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 10px; padding: 1rem; }
+        .dashboard-card h3 { font-size: .82rem; color: var(--text-secondary); margin-bottom: .35rem; font-weight: 600; }
+        .dashboard-card h2 { margin: 0; font-size: 1rem; }
+        .supplier-directory-toolbar { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:.75rem; margin-bottom:.9rem; }
+        .supplier-directory-search { min-width:240px; flex:1; max-width:360px; }
+        .supplier-directory-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:.75rem; }
+        .supplier-card { border:1px solid var(--border-color); border-radius:12px; background:var(--bg-surface); overflow:hidden; }
+        .supplier-card__toggle { width:100%; display:flex; justify-content:space-between; align-items:flex-start; gap:.75rem; padding:.9rem; border:0; color:var(--text-main); background:transparent; text-align:left; cursor:pointer; }
+        .supplier-card__toggle:hover { background:var(--bg-hover); }
+        .supplier-card__name { font-weight:700; }
+        .supplier-card__meta { color:var(--text-muted); font-size:.76rem; margin-top:.2rem; }
+        .supplier-card__chevron { color:var(--accent-blue); font-size:1.1rem; }
+        .supplier-card__body { display:none; padding:0 .9rem .9rem; border-top:1px solid var(--border-color); }
+        .supplier-card.is-open .supplier-card__body { display:block; }
+        .supplier-card__stats { display:grid; grid-template-columns:repeat(3,1fr); gap:.45rem; padding:.75rem 0; }
+        .supplier-card__stat { padding:.5rem; border-radius:8px; background:var(--bg-card); }
+        .supplier-card__stat strong { display:block; font-size:1.05rem; }
+        .supplier-card__stat span, .supplier-card__body small { color:var(--text-muted); font-size:.72rem; }
+        .supplier-brand-list { display:flex; flex-wrap:wrap; gap:.35rem; margin:.35rem 0 .8rem; }
+        .supplier-brand-pill { border:1px solid var(--border-light); border-radius:999px; padding:.25rem .5rem; color:var(--text-secondary); font-size:.74rem; }
+        .supplier-record-list { display:grid; gap:.35rem; max-height:220px; overflow:auto; }
+        .supplier-record { padding:.45rem .55rem; border-left:2px solid var(--accent-blue); background:var(--bg-card); font-size:.76rem; }
+        .analytics-grid { display:grid; grid-template-columns: minmax(240px, .85fr) minmax(0, 1.5fr); gap: .85rem; }
+        .upc-quality { display:flex; align-items:center; gap:1.25rem; min-height:190px; }
+        .upc-pie { width:150px; height:150px; border-radius:50%; flex:0 0 auto; background: conic-gradient(var(--accent-emerald) 0deg, var(--accent-emerald) 0deg, var(--accent-rose) 0deg, var(--accent-rose) 360deg); box-shadow:0 0 0 1px var(--border-color); }
+        .legend-list { display:grid; gap:.55rem; font-size:.82rem; color:var(--text-secondary); }
+        .legend-item { display:flex; justify-content:space-between; gap:1rem; }
+        .legend-dot { width:9px; height:9px; border-radius:50%; display:inline-block; margin-right:.4rem; }
+        .category-kpi-grid { display:grid; grid-template-columns:repeat(4, 1fr); gap:.65rem; }
+        .category-kpi { cursor:pointer; transition:transform .15s ease, border-color .15s ease; }
+        .category-kpi:hover { transform:translateY(-2px); border-color:var(--accent-blue); }
+        .category-kpi .dashboard-number { font-size:1.45rem; }
+        .master-summary-grid { display:grid; grid-template-columns:repeat(5, 1fr); gap:.65rem; }
+        .master-summary-item { background:rgba(56,189,248,.06); border:1px solid var(--border-color); border-radius:8px; padding:.7rem; }
+        .master-summary-item strong { display:block; font-size:1.1rem; color:var(--text-main); }
+        .master-summary-item span { color:var(--text-secondary); font-size:.72rem; }
+        .db-status-grid { display:flex; flex-wrap:wrap; gap:.55rem; font-size:.78rem; color:var(--text-secondary); }
+        .status-chip { padding:.35rem .6rem; border:1px solid var(--border-color); border-radius:999px; }
+        .master-search-grid { display:grid; grid-template-columns:repeat(4, 1fr); gap:.6rem; margin:1rem 0; }
+        .master-search-grid .btn-submit-send { min-height:40px; }
+        .master-results { max-height:520px; overflow:auto; }
+        .master-brand-result-card { display:grid; grid-template-columns:96px minmax(0,1fr); gap:.85rem; align-items:start; margin-top:.8rem; padding:.8rem; border:1px solid var(--border-color); border-radius:10px; background:var(--bg-card); }
+        .master-brand-result-media { min-height:84px; display:grid; place-items:center; overflow:hidden; border-radius:8px; background:transparent; border:0; }
+        .master-brand-result-media img { width:84px; height:84px; object-fit:contain; display:block; cursor:zoom-in; transition:transform .2s ease, filter .2s ease; }
+        .master-brand-result-media img:hover { transform:scale(1.12); filter:brightness(1.08); }
+        .master-brand-result-media:has(img:only-child) { min-height:84px; }
+        .master-brand-result-media:empty { display:none; }
+        .master-brand-result-card:has(.master-brand-result-media:empty) { display:block; }
+        .master-brand-image-lightbox { position:fixed; inset:0; z-index:1000; display:grid; place-items:center; padding:2rem; background:rgba(2,6,23,.86); cursor:zoom-out; }
+        .master-brand-image-lightbox[hidden] { display:none; }
+        .master-brand-image-lightbox img { max-width:min(90vw,720px); max-height:86vh; object-fit:contain; border:1px solid var(--border-color); border-radius:12px; background:var(--bg-card); box-shadow:0 20px 70px rgba(0,0,0,.45); cursor:default; }
+        .master-brand-image-lightbox-close { position:absolute; top:1rem; right:1.25rem; width:2.5rem; height:2.5rem; border:1px solid var(--border-color); border-radius:50%; color:var(--text-main); background:var(--bg-card); font-size:1.8rem; line-height:1; cursor:pointer; }
+        .master-brand-image-lightbox-close:hover { border-color:var(--accent-blue); color:var(--accent-blue); }
+        body.master-brand-lightbox-open { overflow:hidden; }
+        .dashboard-number { font-size: 1.65rem; font-weight: 700; color: var(--text-main); }
+        .dashboard-subtle { color: var(--text-muted); font-size: .8rem; }
+        .dashboard-table { width: 100%; border-collapse: collapse; font-size: .84rem; }
+        .dashboard-table th, .dashboard-table td { padding: .65rem .7rem; text-align: left; border-bottom: 1px solid var(--border-color); }
+        .dashboard-table th { color: var(--text-secondary); font-weight: 600; }
+        .upload-preview { display: none; align-items: center; gap: .6rem; margin-top: .45rem; color: var(--text-secondary); font-size: .8rem; }
+        .upload-preview img { width: 52px; height: 52px; object-fit: cover; border-radius: 7px; border: 1px solid var(--border-color); }
+
+        @media (max-width: 900px) {
+            .dashboard-kpis,
+            .category-kpi-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
         @media (max-width: 760px) {
             header { align-items: flex-start; gap: .65rem; flex-direction: column; }
             .status-strip { width: 100%; }
@@ -801,10 +977,159 @@
             .chat-form { gap: .45rem; }
             .btn-submit-send { padding: 0 .8rem; }
             .metric-cards-grid { grid-template-columns: repeat(2, 1fr); }
+            .dashboard-kpis, .category-kpi-grid, .master-summary-grid { grid-template-columns: repeat(2, 1fr); }
+            .analytics-grid { grid-template-columns: 1fr; }
+            .master-search-grid { grid-template-columns: 1fr 1fr; }
+            .dashboard-chart-toolbar { align-items:flex-start; }
+            .dashboard-chart-controls { flex:1 1 100%; display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); }
+            .dashboard-chart-btn { text-align:center; }
+            .dashboard-floating-assistant { right:.8rem; bottom:.8rem; }
+        }
+
+        html[data-theme="light"] body {
+            background:
+                radial-gradient(ellipse at 10% 0%, rgba(37, 99, 235, .045), transparent 35%),
+                var(--bg-page);
+        }
+
+        html[data-theme="light"] header {
+            background: rgba(255, 255, 255, .96);
+            box-shadow: 0 2px 12px rgba(23, 36, 58, .06);
+        }
+
+        html[data-theme="light"] .nav-tabs-wrapper {
+            background: rgba(255, 255, 255, .92);
+            box-shadow: 0 1px 4px rgba(23, 36, 58, .04);
+        }
+
+        html[data-theme="light"] .brand-title,
+        html[data-theme="light"] .studio-title,
+        html[data-theme="light"] .card-heading,
+        html[data-theme="light"] .metric-box-value,
+        html[data-theme="light"] .bot-markdown h3 {
+            color: var(--text-main);
+        }
+
+        html[data-theme="light"] .brand-title {
+            background: none;
+            -webkit-text-fill-color: var(--text-main);
+        }
+
+        html[data-theme="light"] .brand-subtitle {
+            color: var(--text-secondary);
+        }
+
+        html[data-theme="light"] #tab-dashboard > .dashboard-grid > div:first-child .studio-title {
+            color: var(--text-main);
+        }
+
+        html[data-theme="light"] .nav-tab-btn {
+            color: var(--text-secondary);
+        }
+
+        html[data-theme="light"] .nav-tab-btn:hover {
+            color: #1d4ed8;
+            background: #f1f5fb;
+        }
+
+        html[data-theme="light"] .nav-tab-btn.active {
+            color: #1d4ed8;
+        }
+
+        html[data-theme="light"] .brand-subtitle,
+        html[data-theme="light"] .bot-markdown h4 {
+            color: var(--text-secondary);
+        }
+
+        html[data-theme="light"] .quick-prompts-bar,
+        html[data-theme="light"] .dashboard-card,
+        html[data-theme="light"] .studio-sidebar,
+        html[data-theme="light"] .studio-main,
+        html[data-theme="light"] .pane-card,
+        html[data-theme="light"] .chat-layout {
+            background: var(--bg-surface);
+            border-color: var(--border-color);
+            box-shadow: 0 2px 8px rgba(15, 23, 42, .04);
+        }
+
+        html[data-theme="light"] .dashboard-card {
+            transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+        }
+
+        html[data-theme="light"] .dashboard-card:hover {
+            transform: translateY(-2px);
+            border-color: #b9c9df;
+            box-shadow: 0 8px 20px rgba(23, 36, 58, .08);
+        }
+
+        html[data-theme="light"] .prompt-chip,
+        html[data-theme="light"] .preset-btn:hover {
+            background: #f1f5f9;
+            border-color: var(--border-color);
+            color: var(--text-main);
+        }
+
+        html[data-theme="light"] .prompt-chip:hover,
+        html[data-theme="light"] .preset-btn.active {
+            background: #dbeafe;
+            border-color: #93c5fd;
+            color: #1d4ed8;
+        }
+
+        html[data-theme="light"] .bot-message,
+        html[data-theme="light"] .chat-input-bar,
+        html[data-theme="light"] .metric-box {
+            background: #f8fafc;
+            border-color: var(--border-color);
+            color: var(--text-main);
+        }
+
+        html[data-theme="light"] .bot-message-header,
+        html[data-theme="light"] .source-pill-bar {
+            border-color: var(--border-color);
+        }
+
+        html[data-theme="light"] .text-input-field,
+        html[data-theme="light"] .search-filter-input {
+            background: #ffffff;
+            border-color: var(--border-light);
+            color: var(--text-main);
+        }
+
+        html[data-theme="light"] .markdown-table-wrapper {
+            background: #ffffff;
+        }
+
+        html[data-theme="light"] .styled-table th {
+            background: #eaf0f7;
+            color: var(--text-main);
+        }
+
+        html[data-theme="light"] .styled-table td {
+            border-bottom-color: var(--border-color);
+            color: var(--text-main);
+        }
+
+        html[data-theme="light"] .source-chip {
+            background: #f1f5f9;
+            border-color: var(--border-color);
+            color: var(--text-secondary);
+        }
+
+        html[data-theme="light"] .code-block {
+            background: #f1f5f9;
+            border-color: var(--border-color);
+            color: #1d4ed8;
+        }
+
+        html[data-theme="light"] .card-heading,
+        html[data-theme="light"] .pane-card h4 {
+            color: var(--text-main) !important;
         }
     </style>
 </head>
 <body>
+    <div id="beviq-app">
 
     <!-- Header -->
     <header>
@@ -814,33 +1139,32 @@
             </div>
             <div>
                 <div class="brand-title">BEVIQ</div>
-                <div class="brand-subtitle">Beverage Intelligence, Simply</div>
+                <div class="brand-subtitle">Beverage Intelligence, Simplified</div>
             </div>
         </div>
-
-        <div class="status-strip">
-            <span class="pill-badge pill-mysql" id="mysql-badge">
-                ● MySQL 3307: Connected (beverage_db)
-            </span>
-            <span class="pill-badge pill-db">
-                ⚡ 702,207 Records Ready
-            </span>
-            <span class="pill-badge pill-offline">
-                🛡️ 100% Offline & Secure
-            </span>
+        <div id="theme-toggle" class="theme-toggle" role="group" aria-label="Choose color theme" data-active-theme="dark">
+            <button class="theme-choice theme-choice--light" type="button" title="Light mode" aria-label="Light mode" aria-pressed="false">&#9728;</button>
+            <button class="theme-choice theme-choice--dark" type="button" title="Dark mode" aria-label="Dark mode" aria-pressed="true">&#9790;</button>
         </div>
+
     </header>
 
     <!-- Nav Tabs -->
     <div class="nav-tabs-wrapper">
-        <button class="nav-tab-btn active" onclick="switchTab('chat', this)">
+        <button class="nav-tab-btn active" onclick="switchTab('dashboard', this)">
+            Dashboard
+        </button>
+        <button class="nav-tab-btn" onclick="switchTab('chat', this)">
             💬 AI Assistant
+        </button>
+        <button class="nav-tab-btn" onclick="switchTab('master-brands', this)">
+            Master Brands
+        </button>
+        <button class="nav-tab-btn" onclick="switchTab('suppliers', this); loadSupplierDashboard()">
+            Supplier Overview
         </button>
         <button class="nav-tab-btn" onclick="switchTab('comparison', this)">
             ⚖️ Comparison Studio
-        </button>
-        <button class="nav-tab-btn" onclick="switchTab('dbeaver', this)">
-            🐬 DBeaver & MySQL 3307
         </button>
         <button class="nav-tab-btn" onclick="switchTab('datasets', this)">
             📊 Datasets & Schema
@@ -850,8 +1174,8 @@
     <!-- Main Content Area -->
     <div class="main-content">
 
-        <!-- TAB 1: AI CHAT ASSISTANT -->
-        <div id="tab-chat" class="tab-panel active">
+        <!-- AI ASSISTANT PANEL -->
+        <div id="tab-chat" class="tab-panel">
             <!-- Quick Prompts Bar -->
             <div class="quick-prompts-bar">
                 <span class="prompt-label">⚡ Quick Queries:</span>
@@ -892,12 +1216,13 @@
                             <div class="bot-identity">
                                 🤖 BevIQ Assistant
                             </div>
-                            <div>Local Engine • Ready</div>
+                            <div>Local Assistant • Ready</div>
                         </div>
                         <div class="bot-markdown">
-                            <p>Hello! I am your <strong>BevIQ Assistant</strong>. All <strong>702,207 records</strong> from your 7 CSV datasets and your MySQL <code>beverage_db</code> database are fully indexed.</p>
-                            <p>You can also use me for <strong>normal chat</strong> in English or Hinglish. I can find UPCs, audit missing records, compare categorization sheets, answer questions from uploaded documents, or generate downloadable CSV reports.</p>
-                            <p style="color: #93c5fd; font-size: 0.82rem;">UPC audits are review-only: no master product or UPC is changed automatically.</p>
+                            <p>👋 <strong>Welcome to BevIQ!</strong></p>
+                            <p>I'm here to help you with beverage data and everyday questions.</p>
+                            <p>You can chat with me in English or Hinglish, ask anything, find UPCs, compare products, check missing records, or create reports.</p>
+                            <p>Just type your question and let's get started! 😊</p>
                         </div>
                     </div>
                 </div>
@@ -906,8 +1231,9 @@
                 <div class="chat-input-bar">
                     <div style="display:flex; align-items:center; gap:.65rem; margin-bottom:.65rem; color:var(--text-secondary); font-size:.8rem;">
                         <label for="document-upload" class="prompt-chip">📎 Attach PDF / image / document</label>
-                        <input type="file" id="document-upload" accept=".pdf,.docx,.txt,.md,.csv,.xlsx,.xls,.png,.jpg,.jpeg,.webp,.bmp,.tiff" style="display:none" onchange="showSelectedDocument(this)">
+                        <input type="file" id="document-upload" accept=".pdf,.doc,.docx,.txt,.md,.csv,.xlsx,.xls,.png,.jpg,.jpeg,.webp,.bmp,.tiff" style="display:none" onchange="showSelectedDocument(this)">
                         <span id="selected-document" style="color:var(--accent-emerald);"></span>
+                        <div id="upload-preview" class="upload-preview"></div>
                     </div>
                     <form class="chat-form" onsubmit="submitUserChat(event)">
                         <input type="text" id="chat-input-box" class="text-input-field" placeholder="Chat normally or ask about products, UPCs, datasets, or uploaded files..." autocomplete="off">
@@ -919,7 +1245,538 @@
             </div>
         </div>
 
-        <!-- TAB 2: COMPARISON STUDIO -->
+        <!-- BUSINESS DASHBOARD PANEL -->
+        <div id="tab-dashboard" class="tab-panel active">
+            <div class="dashboard-grid">
+                <div>
+                    <div class="studio-title">Beverage Dashboard</div>
+                </div>
+                <div class="dashboard-card dashboard-chart-card">
+                    <div class="dashboard-chart-toolbar">
+                        <div>
+                            <h3 style="margin:0;">Explore your dashboard</h3>
+                            <div class="dashboard-subtle">Use the same live data as a chart or heatmap</div>
+                        </div>
+                        <div id="dashboard-chart-controls" class="dashboard-chart-controls" role="group" aria-label="Dashboard chart type">
+                            <button class="dashboard-chart-btn active" type="button" data-dashboard-chart="overview" aria-pressed="true" onclick="setDashboardChart('overview', this)">Overview</button>
+                            <button class="dashboard-chart-btn" type="button" data-dashboard-chart="pie" aria-pressed="false" onclick="setDashboardChart('pie', this)">Pie Chart</button>
+                            <button class="dashboard-chart-btn" type="button" data-dashboard-chart="bar" aria-pressed="false" onclick="setDashboardChart('bar', this)">Bar Graph</button>
+                            <button class="dashboard-chart-btn" type="button" data-dashboard-chart="heatmap" aria-pressed="false" onclick="setDashboardChart('heatmap', this)">Heatmap</button>
+                        </div>
+                        <div class="dashboard-display-controls" role="group" aria-label="Dashboard value format">
+                            <button class="dashboard-display-btn active" type="button" data-dashboard-display="count" aria-pressed="true" onclick="setDashboardDisplayMode('count', this)">Count</button>
+                            <button class="dashboard-display-btn" type="button" data-dashboard-display="percentage" aria-pressed="false" onclick="setDashboardDisplayMode('percentage', this)">Percentage</button>
+                        </div>
+                    </div>
+                    <div id="dashboard-visualization" class="dashboard-visualization" aria-live="polite"><div class="dashboard-visualization-empty">Open Dashboard to load chart data.</div></div>
+                </div>
+                <button id="dashboard-floating-assistant" class="dashboard-floating-assistant" type="button" onclick="openDashboardAssistant()"><span>💬 AI Assistant</span></button>
+                <div id="dashboard-error" class="dashboard-card" style="display:none; color:#fda4af;"></div>
+                <div class="dashboard-kpis">
+                    <div class="dashboard-card"><h3>Total records</h3><div class="dashboard-number" id="dashboard-total-records">—</div></div>
+                    <div class="dashboard-card"><h3>Dataset UPC entries</h3><div class="dashboard-number" id="dashboard-total-upcs">—</div></div>
+                    <div class="dashboard-card"><h3>Datasets</h3><div class="dashboard-number" id="dashboard-dataset-count">—</div></div>
+                    <div class="dashboard-card"><h3>Primary database</h3><div class="dashboard-number" id="dashboard-backend">—</div><div class="dashboard-subtle" id="dashboard-backend-detail">Checking MySQL connection and active fallback status...</div></div>
+                </div>
+                <div class="dashboard-kpis" id="dashboard-category-kpis">
+                    <div class="dashboard-card"><h3>Beer products</h3><div class="dashboard-number" id="dashboard-beer-total">—</div></div>
+                    <div class="dashboard-card"><h3>Wine products</h3><div class="dashboard-number" id="dashboard-wine-total">—</div></div>
+                    <div class="dashboard-card"><h3>RTD products</h3><div class="dashboard-number" id="dashboard-rtd-total">—</div></div>
+                    <div class="dashboard-card"><h3>Spirits products</h3><div class="dashboard-number" id="dashboard-spirits-total">—</div></div>
+                    <div class="dashboard-card"><h3>Master Brand records</h3><div class="dashboard-number" id="dashboard-master-total">—</div></div>
+                    <div class="dashboard-card"><h3>UPC completion</h3><div class="dashboard-number" id="dashboard-upc-completion">—</div></div>
+                </div>
+                <div class="analytics-grid">
+                    <div class="dashboard-card">
+                        <h3>UPC availability summary</h3>
+                        <div class="dashboard-subtle">Master Brand and categorization UPCs shown separately</div>
+                        <div class="upc-quality">
+                            <div class="upc-pie" id="dashboard-upc-pie" role="img" aria-label="Master Brand, Beer, RTD, Wine, and Spirits UPC pie chart"></div>
+                            <div class="legend-list">
+                                <div class="legend-item"><span><i class="legend-dot" style="background:#38bdf8"></i>Master Brand UPC</span><strong id="dashboard-upc-master">—</strong></div>
+                                <div class="legend-item"><span><i class="legend-dot" style="background:#f59e0b"></i>Beer UPC</span><strong id="dashboard-upc-beer">—</strong></div>
+                                <div class="legend-item"><span><i class="legend-dot" style="background:#a78bfa"></i>RTD UPC</span><strong id="dashboard-upc-rtd">—</strong></div>
+                                <div class="legend-item"><span><i class="legend-dot" style="background:#f472b6"></i>Wine UPC</span><strong id="dashboard-upc-wine">—</strong></div>
+                                <div class="legend-item"><span><i class="legend-dot" style="background:#14b8a6"></i>Spirits UPC</span><strong id="dashboard-upc-spirits">—</strong></div>
+                                <div class="legend-item"><span>Total UPC records</span><strong id="dashboard-upc-total">—</strong></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="dashboard-card">
+                        <h3>Category UPC availability</h3>
+                        <div class="dashboard-subtle">Available and missing UPC counts by category; click a category to review missing records</div>
+                        <div class="category-kpi-grid" id="dashboard-category-quality"></div>
+                    </div>
+                </div>
+                <div class="dashboard-card">
+                    <h3>Master Brand overview</h3>
+                    <div class="dashboard-subtle">Distinct counts from the Master Brand table</div>
+                    <div class="master-summary-grid">
+                        <div class="master-summary-item"><strong id="dashboard-master-total-summary">—</strong><span>Total records</span></div>
+                        <div class="master-summary-item"><strong id="dashboard-master-brands">—</strong><span>Unique brands</span></div>
+                        <div class="master-summary-item"><strong id="dashboard-master-ids">—</strong><span>Unique Master IDs</span></div>
+                        <div class="master-summary-item"><strong id="dashboard-master-with-upc">—</strong><span>Records with UPC</span></div>
+                        <div class="master-summary-item"><strong id="dashboard-master-without-upc">—</strong><span>Records without UPC</span></div>
+                    </div>
+                </div>
+                <div class="dashboard-card" id="supplier-directory-card">
+                    <div class="supplier-directory-toolbar">
+                        <div><h3 style="margin:0;">Supplier Directory</h3><div class="dashboard-subtle">Master Brand suppliers and their related brands/products</div></div>
+                        <div class="dashboard-number" id="dashboard-supplier-total">—</div>
+                    </div>
+                    <input class="text-input-field supplier-directory-search" id="dashboard-supplier-search" type="search" placeholder="Search supplier name..." aria-label="Search suppliers" oninput="filterSupplierCards(this.value)">
+                    <div id="dashboard-supplier-directory" class="supplier-directory-grid" aria-live="polite"><div class="dashboard-subtle">Open Dashboard to load suppliers.</div></div>
+                </div>
+                <div class="dashboard-card">
+                    <div style="display:flex; justify-content:space-between; align-items:center; gap:.75rem; margin-bottom:.6rem;">
+                        <div><h3 style="margin:0;">Dataset health</h3><div class="dashboard-subtle">Counts from the active database</div><div class="dashboard-subtle" id="dashboard-refresh-time">Last refreshed: —</div></div>
+                        <a id="dashboard-export-link" class="btn-download-csv" href="/api/dashboard/export/ai_master?limit=50000">Power BI CSV</a>
+                    </div>
+                    <div style="overflow-x:auto;"><table class="dashboard-table"><thead><tr><th>Dataset</th><th>Rows</th><th>Distinct UPCs</th><th>Source file</th></tr></thead><tbody id="dashboard-datasets"><tr><td colspan="4">Open Dashboard to load live data.</td></tr></tbody></table></div>
+                </div>
+                <div class="dashboard-card">
+                    <h3>Category UPCs missing from AI Master</h3>
+                    <div id="dashboard-missing-summary" class="dashboard-subtle">Loading...</div>
+                    <div id="dashboard-missing-by-category" class="legend-list" style="margin-top:.7rem;"></div>
+                </div>
+                <div class="dashboard-card database-status-card">
+                    <h3>Database connection</h3>
+                    <div class="db-status-grid" id="dashboard-database-status">Checking SQLite and MySQL status...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SUPPLIER DASHBOARD -->
+        <div id="tab-suppliers" class="tab-panel">
+            <div class="supplier-dashboard">
+                <div class="supplier-dashboard__heading">
+                    <div>
+                        <div class="studio-title">Supplier Overview</div>
+                        <div class="studio-subtitle">Explore suppliers and deduplicated brands across MasterData and AllBrand, with trained brand details.</div>
+                    </div>
+                    <div class="supplier-dashboard__total-card">
+                        <span>Total suppliers</span>
+                        <strong id="supplier-dashboard-total">—</strong>
+                    </div>
+                </div>
+                <div class="dashboard-card supplier-dashboard__content">
+                    <div class="supplier-dashboard__filters">
+                        <div class="supplier-dashboard__filter-group">
+                            <label class="supplier-dashboard__search-label" for="supplier-dashboard-search">Search</label>
+                            <input class="text-input-field supplier-dashboard__search" id="supplier-dashboard-search" type="search" placeholder="Supplier name/code, brand name or brand ID..." autocomplete="off">
+                        </div>
+                        <div class="supplier-dashboard__filter-group">
+                            <label class="supplier-dashboard__filter-label" for="supplier-dashboard-category">Category</label>
+                            <select class="text-input-field supplier-dashboard__filter" id="supplier-dashboard-category">
+                                <option value="">All categories</option><option>Beer</option><option>Wine</option><option>Spirits</option><option>Non Alcoholic</option><option>Uncategorized</option>
+                            </select>
+                        </div>
+                        <div class="supplier-dashboard__filter-group">
+                            <label class="supplier-dashboard__filter-label" for="supplier-dashboard-supplier">Supplier</label>
+                            <input class="text-input-field supplier-dashboard__filter" id="supplier-dashboard-supplier" type="search" placeholder="Filter supplier name/code..." autocomplete="off">
+                        </div>
+                        <div class="supplier-dashboard__filter-group">
+                            <label class="supplier-dashboard__filter-label" for="supplier-dashboard-status">Status</label>
+                            <select class="text-input-field supplier-dashboard__filter" id="supplier-dashboard-status">
+                                <option value="">All statuses</option><option>Active</option><option>Inactive</option><option>Unknown</option>
+                            </select>
+                        </div>
+                        <div class="supplier-dashboard__filter-group">
+                            <label class="supplier-dashboard__filter-label" for="supplier-dashboard-sort">Sort by</label>
+                            <select class="text-input-field supplier-dashboard__filter" id="supplier-dashboard-sort">
+                                <option value="name">Supplier name</option><option value="highest">Most brands</option><option value="lowest">Fewest brands</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="supplier-dashboard-summary" class="dashboard-subtle" aria-live="polite">Open Supplier Overview to load live data.</div>
+                    <div id="supplier-dashboard-results" class="supplier-dashboard__results" aria-live="polite"></div>
+                </div>
+                <dialog class="supplier-brand-dialog" id="supplier-brand-dialog" aria-labelledby="supplier-brand-dialog-title">
+                    <div class="supplier-brand-dialog__heading">
+                        <h2 id="supplier-brand-dialog-title">Brand details</h2>
+                        <button class="btn-secondary" id="supplier-brand-dialog-close" type="button" aria-label="Close brand details">Close</button>
+                    </div>
+                    <div id="supplier-brand-dialog-content" class="supplier-brand-dialog__content"></div>
+                </dialog>
+            </div>
+            <style>
+                #tab-suppliers .supplier-dashboard { display:grid; gap:1rem; }
+                #tab-suppliers .supplier-dashboard__heading { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:1rem; }
+                #tab-suppliers .supplier-dashboard__total-card { min-width:155px; padding:.8rem 1rem; border:1px solid var(--border-color); border-radius:12px; background:linear-gradient(135deg,rgba(37,99,235,.16),rgba(14,165,233,.07)); }
+                #tab-suppliers .supplier-dashboard__total-card span { display:block; color:var(--text-secondary); font-size:.78rem; }
+                #tab-suppliers .supplier-dashboard__total-card strong { display:block; margin-top:.15rem; color:var(--text-main); font-size:1.55rem; }
+                #tab-suppliers .supplier-dashboard__content { padding:1.1rem; }
+                #tab-suppliers .supplier-dashboard__search-label { display:block; margin-bottom:.4rem; color:var(--text-secondary); font-size:.8rem; font-weight:600; }
+                #tab-suppliers .supplier-dashboard__filters { display:grid; grid-template-columns:minmax(240px,2fr) repeat(4,minmax(145px,1fr)); align-items:end; gap:.65rem; margin-bottom:.8rem; }
+                #tab-suppliers .supplier-dashboard__filter-group { min-width:0; }
+                #tab-suppliers .supplier-dashboard__search, #tab-suppliers .supplier-dashboard__filter { width:100%; min-width:0; }
+                #tab-suppliers .supplier-dashboard__filter-label { display:block; margin-bottom:.4rem; color:var(--text-secondary); font-size:.8rem; font-weight:600; }
+                #tab-suppliers .supplier-dashboard__results { display:grid; gap:.8rem; margin-top:.8rem; }
+                #tab-suppliers .supplier-dashboard__table-wrap { max-height:68vh; overflow:auto; border:1px solid var(--border-color); border-radius:10px; }
+                #tab-suppliers .supplier-dashboard__table { width:100%; border-collapse:collapse; }
+                #tab-suppliers .supplier-dashboard__table th { position:sticky; top:0; z-index:1; padding:.65rem .8rem; color:var(--text-secondary); background:var(--bg-card); text-align:left; font-size:.76rem; }
+                #tab-suppliers .supplier-dashboard__table td { padding:.3rem .6rem; border-top:1px solid var(--border-color); }
+                #tab-suppliers .supplier-dashboard__table td:last-child, #tab-suppliers .supplier-dashboard__table th:last-child { text-align:right; }
+                #tab-suppliers .supplier-dashboard__supplier-button { display:block; width:100%; padding:.35rem .2rem; border:0; color:var(--text-main); background:transparent; text-align:left; cursor:pointer; }
+                #tab-suppliers .supplier-dashboard__supplier-button:hover { color:var(--accent-blue); }
+                #tab-suppliers .supplier-dashboard__supplier-name { font-weight:700; }
+                #tab-suppliers .supplier-dashboard__supplier-code { display:block; color:var(--text-muted); font-size:.72rem; }
+                #tab-suppliers .supplier-dashboard__brand-panel { border:1px solid var(--border-color); border-radius:10px; padding:.75rem; background:var(--bg-surface); }
+                #tab-suppliers .supplier-dashboard__brand-heading { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:.5rem; margin-bottom:.6rem; }
+                #tab-suppliers .supplier-dashboard__brand-list { display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:.45rem; }
+                #tab-suppliers .supplier-dashboard__brand-button { display:flex; justify-content:space-between; align-items:center; gap:.5rem; width:100%; min-width:0; padding:.65rem; border:1px solid var(--border-color); border-radius:8px; color:var(--text-main); background:var(--bg-card); text-align:left; cursor:pointer; }
+                #tab-suppliers .supplier-dashboard__brand-button:hover { border-color:var(--accent-blue); background:var(--bg-hover); }
+                #tab-suppliers .supplier-dashboard__brand-button span:first-child { overflow:hidden; text-overflow:ellipsis; }
+                #tab-suppliers .supplier-dashboard__brand-meta { display:block; color:var(--text-muted); font-size:.7rem; }
+                #tab-suppliers .supplier-dashboard__empty { padding:1rem; color:var(--text-muted); text-align:center; }
+                #tab-suppliers .supplier-dashboard__category-image { width:2.4rem; height:2.4rem; padding:.35rem; border-radius:50%; color:var(--accent-blue); background:var(--bg-hover); vertical-align:middle; }
+                #tab-suppliers .supplier-brand-dialog { width:min(900px,calc(100vw - 2rem)); max-height:90vh; overflow:auto; padding:1.1rem; border:1px solid var(--border-color); border-radius:14px; color:var(--text-main); background:var(--bg-card); box-shadow:0 24px 80px rgba(0,0,0,.4); }
+                #tab-suppliers .supplier-brand-dialog::backdrop { background:rgba(2,6,23,.72); }
+                #tab-suppliers .supplier-brand-dialog__heading { display:flex; justify-content:space-between; align-items:center; gap:1rem; position:sticky; top:-1.1rem; z-index:1; padding:.25rem 0 .75rem; background:var(--bg-card); border-bottom:1px solid var(--border-color); }
+                #tab-suppliers .supplier-brand-dialog__heading h2 { margin:0; font-size:1.1rem; }
+                #tab-suppliers .supplier-brand-dialog__content { padding-top:.9rem; }
+                #tab-suppliers .supplier-brand-dialog__facts { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:.55rem; }
+                #tab-suppliers .supplier-brand-dialog__fact { padding:.65rem; border:1px solid var(--border-color); border-radius:8px; background:var(--bg-surface); }
+                #tab-suppliers .supplier-brand-dialog__fact span { display:block; margin-bottom:.2rem; color:var(--text-muted); font-size:.72rem; }
+                #tab-suppliers .supplier-brand-dialog__images { display:grid; grid-template-columns:repeat(auto-fill,minmax(135px,1fr)); gap:.6rem; margin-top:.75rem; }
+                #tab-suppliers .supplier-brand-dialog__images img { width:100%; height:130px; object-fit:contain; padding:.4rem; border:1px solid var(--border-color); border-radius:8px; background:var(--bg-surface); cursor:zoom-in; }
+                #tab-suppliers .supplier-brand-dialog__products { margin-top:.9rem; color:var(--text-secondary); font-size:.8rem; }
+                @media (max-width:640px) {
+                    #tab-suppliers .supplier-dashboard__filters { grid-template-columns:1fr 1fr; }
+                    #tab-suppliers .supplier-dashboard__filter-group:first-child { grid-column:1 / -1; }
+                    #tab-suppliers .supplier-dashboard__table th, #tab-suppliers .supplier-dashboard__table td { padding:.5rem; }
+                }
+            </style>
+            <script>
+                let supplierDashboardData = null;
+                let supplierDashboardRequestId = 0;
+                let supplierDashboardSearchTimer = null;
+                let supplierBrandDetailsRequestId = 0;
+                const supplierBrandCache = new Map();
+
+                function supplierDashboardParams(includeSupplier = false) {
+                    const params = new URLSearchParams({
+                        q: document.getElementById('supplier-dashboard-search').value.trim(),
+                        category: document.getElementById('supplier-dashboard-category').value,
+                        status: document.getElementById('supplier-dashboard-status').value,
+                        sort: document.getElementById('supplier-dashboard-sort').value
+                    });
+                    if (includeSupplier) params.set('supplier', document.getElementById('supplier-dashboard-supplier').value);
+                    return params;
+                }
+
+                async function loadSupplierDashboard() {
+                    const results = document.getElementById('supplier-dashboard-results');
+                    const summary = document.getElementById('supplier-dashboard-summary');
+                    const requestId = ++supplierDashboardRequestId;
+                    summary.textContent = 'Loading supplier and brand counts...';
+                    const request = fetch(`/api/suppliers/overview?${supplierDashboardParams(true)}`)
+                        .then(async response => {
+                            const data = await response.json();
+                            if (!response.ok) throw new Error(data.error || 'Unable to load supplier overview.');
+                            if (requestId !== supplierDashboardRequestId) return;
+                            supplierDashboardData = data;
+                            document.getElementById('supplier-dashboard-total').textContent = Number(data.total_suppliers || 0).toLocaleString();
+                            renderSupplierDashboard();
+                        })
+                        .catch(error => {
+                            if (requestId !== supplierDashboardRequestId) return;
+                            summary.textContent = `Unable to load supplier data: ${error.message}`;
+                            results.innerHTML = '';
+                        });
+                    return request;
+                }
+
+                function renderSupplierDashboard() {
+                    if (!supplierDashboardData) return;
+                    const suppliers = supplierDashboardData.suppliers || [];
+                    const results = document.getElementById('supplier-dashboard-results');
+                    document.getElementById('supplier-dashboard-summary').textContent =
+                        `${Number(supplierDashboardData.filtered_suppliers || 0).toLocaleString()} matching suppliers · ${Number(supplierDashboardData.total_brands || 0).toLocaleString()} total brands across ${Number(supplierDashboardData.total_suppliers || 0).toLocaleString()} suppliers`;
+                    if (!suppliers.length) {
+                        results.innerHTML = '<div class="supplier-dashboard__empty">No suppliers or brands match these filters.</div>';
+                        return;
+                    }
+                    results.innerHTML = `<div class="supplier-dashboard__table-wrap"><table class="supplier-dashboard__table">
+                        <thead><tr><th>Supplier</th><th>Total brands</th></tr></thead>
+                        <tbody>${suppliers.map(supplier => `
+                            <tr><td><button class="supplier-dashboard__supplier-button" type="button" data-supplier-select data-supplier-key="${escapeHtml(supplier.supplier_key)}">
+                                <span class="supplier-dashboard__supplier-name">${escapeHtml(supplier.supplier || 'NA')}</span>
+                                <span class="supplier-dashboard__supplier-code">Supplier code ${escapeHtml(supplier.supplier_code || 'unavailable')}</span>
+                            </button></td><td>${Number(supplier.brand_count || 0).toLocaleString()}${supplier.brand_count !== supplier.total_brand_count ? ` <span class="dashboard-subtle">(${Number(supplier.total_brand_count || 0).toLocaleString()} total)</span>` : ''}</td></tr>
+                        `).join('')}</tbody>
+                    </table></div><section class="supplier-dashboard__brand-panel" id="supplier-dashboard-selected" hidden></section>`;
+                }
+
+                function refreshSupplierDashboard() {
+                    clearTimeout(supplierDashboardSearchTimer);
+                    supplierDashboardSearchTimer = setTimeout(() => {
+                        supplierBrandCache.clear();
+                        loadSupplierDashboard();
+                    }, 250);
+                }
+
+                async function loadSupplierBrands(supplierButton) {
+                    const supplierKey = supplierButton.dataset.supplierKey;
+                    const panel = document.getElementById('supplier-dashboard-selected');
+                    panel.hidden = false;
+                    if (supplierBrandCache.has(supplierKey)) {
+                        renderSupplierBrands(supplierBrandCache.get(supplierKey), supplierKey);
+                        return;
+                    }
+                    panel.innerHTML = '<div class="supplier-dashboard__empty">Loading brands...</div>';
+                    const params = supplierDashboardParams();
+                    params.set('supplier_key', supplierKey);
+                    const requestId = supplierDashboardRequestId;
+                    try {
+                        const response = await fetch(`/api/suppliers/brands?${params}`);
+                        const data = await response.json();
+                        if (!response.ok) throw new Error(data.error || 'Unable to load supplier brands.');
+                        if (requestId !== supplierDashboardRequestId) return;
+                        supplierBrandCache.set(supplierKey, data);
+                        renderSupplierBrands(data, supplierKey);
+                    } catch (error) {
+                        if (requestId === supplierDashboardRequestId) {
+                            panel.innerHTML = `<div class="supplier-dashboard__empty">${escapeHtml(error.message)}</div>`;
+                        }
+                    }
+                }
+
+                function renderSupplierBrands(data, supplierKey) {
+                    const panel = document.getElementById('supplier-dashboard-selected');
+                    panel.hidden = false;
+                    const brands = data.brands || [];
+                    panel.innerHTML = `<div class="supplier-dashboard__brand-heading"><strong>${Number(data.brand_count || 0).toLocaleString()} brands for ${escapeHtml(data.supplier || 'NA')}</strong><span class="dashboard-subtle">${Number(data.total_brand_count || 0).toLocaleString()} total associated brands</span><button class="btn-secondary" type="button" data-close-supplier-brands>Close</button></div>
+                        ${brands.length ? `<div class="supplier-dashboard__brand-list">${brands.map((brand, index) => `
+                            <button class="supplier-dashboard__brand-button" type="button" data-brand-index="${index}" data-supplier-key="${escapeHtml(supplierKey)}">
+                                <span>${escapeHtml(brand.brand_name || 'Unnamed brand')}<span class="supplier-dashboard__brand-meta">${escapeHtml(brand.brand_code || 'No brand code')} · ${escapeHtml(brand.category || 'Uncategorized')}</span></span>
+                                <span aria-hidden="true">›</span>
+                            </button>`).join('')}</div>` : '<div class="supplier-dashboard__empty">No brands match the selected search and filters.</div>'}`;
+                    supplierBrandCache.set(supplierKey, { ...data, brands });
+                }
+
+                function supplierCategoryImage(category) {
+                    const categoryKey = String(category || '').toLowerCase();
+                    const shapes = {
+                        beer: '<path d="M8 4h8l-1 16H9L8 4zm8 4h2a2 2 0 1 1 0 4h-2M7 2h10"/>',
+                        wine: '<path d="M8 3h8v4a4 4 0 0 1-8 0V3zm4 8v7m-4 3h8m-7-8 3 2 3-2"/>',
+                        spirits: '<path d="M10 3h4v4l2 2v10H8V9l2-2V3zm-2 9h8"/>',
+                        "non alcoholic": '<path d="M7 5h10l-1 15H8L7 5zm2-3h6m-2 3 2-3"/>'
+                    };
+                    const icon = shapes[categoryKey] || '<circle cx="12" cy="12" r="8"/><path d="M8 12h8"/>';
+                    return `<svg class="supplier-dashboard__category-image" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="${escapeHtml(category || 'Uncategorized')} category image">${icon}</svg>`;
+                }
+
+                async function showSupplierBrandDetails(brand, supplier) {
+                    const dialog = document.getElementById('supplier-brand-dialog');
+                    const content = document.getElementById('supplier-brand-dialog-content');
+                    content.innerHTML = '<div class="supplier-dashboard__empty">Loading brand details...</div>';
+                    document.getElementById('supplier-brand-dialog-title').textContent = brand.brand_name || 'Brand details';
+                    dialog.showModal();
+                    const requestId = ++supplierBrandDetailsRequestId;
+                    const params = new URLSearchParams({
+                        supplier_code: supplier.supplier_code || '',
+                        supplier_name: supplier.supplier_name || '',
+                        brand_code: brand.brand_code || '',
+                        brand_name: brand.brand_name || ''
+                    });
+                    try {
+                        const response = await fetch(`/api/suppliers/brand-details?${params}`);
+                        const data = await response.json();
+                        if (!response.ok) throw new Error(data.error || 'Unable to load brand details.');
+                        if (requestId !== supplierBrandDetailsRequestId) return;
+                        const facts = [
+                            ['Brand Name', data.brand_name], ['Brand ID', data.brand_id],
+                            ['Class ID', data.class_id], ['MasterData ID', data.master_id],
+                            ['Brand Code', data.brand_code], ['Category', data.category],
+                            ['Supplier Name', data.supplier], ['Supplier Code', data.supplier_code],
+                            ['SKU', data.sku], ['Image Count', data.image_count],
+                            ['Model Name', data.model_name], ['Model ID', data.model_id],
+                            ['Status', data.status]
+                        ];
+                        content.innerHTML = `<div class="supplier-brand-dialog__facts">${facts.map(([label, value]) => `
+                            <div class="supplier-brand-dialog__fact"><span>${escapeHtml(label)}</span>${label === 'Category' ? `${supplierCategoryImage(value)} ` : ''}<strong>${escapeHtml(value || 'Not available')}</strong></div>`).join('')}</div>
+                            <h3>Available brand/product images (${Number((data.images || []).length).toLocaleString()})</h3>
+                            ${(data.images || []).length ? `<div class="supplier-brand-dialog__images">${data.images.map((url, index) => `<img src="${escapeHtml(url)}" alt="${escapeHtml(data.brand_name)} image ${index + 1}" loading="lazy" onclick="openMasterBrandImage(this.src, this.alt)" onerror="this.remove()">`).join('')}</div>` : '<div class="supplier-dashboard__empty">No brand or product images are available in the source data.</div>'}
+                            <div class="supplier-brand-dialog__products"><strong>AIMasterBrandData products:</strong> ${(data.products || []).map(product => `${escapeHtml(product.product_name || 'Unnamed product')} (UPC: ${escapeHtml(product.upc || 'Unavailable')})`).join(' · ') || 'No product rows available.'}</div>`;
+                    } catch (error) {
+                        if (requestId === supplierBrandDetailsRequestId) {
+                            content.innerHTML = `<div class="supplier-dashboard__empty">${escapeHtml(error.message)}</div>`;
+                        }
+                    }
+                }
+
+                document.getElementById('supplier-dashboard-results').addEventListener('toggle', event => {
+                    const card = event.target;
+                    if (card.matches('.supplier-dashboard__supplier') && card.open) loadSupplierBrands(card);
+                }, true);
+                document.getElementById('supplier-dashboard-results').addEventListener('click', event => {
+                    const supplierButton = event.target.closest('[data-supplier-select]');
+                    if (supplierButton) {
+                        loadSupplierBrands(supplierButton);
+                        return;
+                    }
+                    if (event.target.closest('[data-close-supplier-brands]')) {
+                        document.getElementById('supplier-dashboard-selected').hidden = true;
+                        return;
+                    }
+                    const button = event.target.closest('[data-brand-index]');
+                    if (!button) return;
+                    const cached = supplierBrandCache.get(button.dataset.supplierKey);
+                    const brand = cached?.brands?.[Number(button.dataset.brandIndex)];
+                    const supplier = (supplierDashboardData?.suppliers || []).find(item => item.supplier_key === button.dataset.supplierKey);
+                    if (brand && supplier) showSupplierBrandDetails(brand, {
+                        supplier_code: supplier.supplier_code,
+                        supplier_name: supplier.supplier
+                    });
+                });
+                document.getElementById('supplier-dashboard-search').addEventListener('input', refreshSupplierDashboard);
+                document.getElementById('supplier-dashboard-supplier').addEventListener('input', refreshSupplierDashboard);
+                ['supplier-dashboard-category', 'supplier-dashboard-status', 'supplier-dashboard-sort']
+                    .forEach(id => document.getElementById(id).addEventListener('change', refreshSupplierDashboard));
+                document.getElementById('supplier-brand-dialog-close').addEventListener('click', () => document.getElementById('supplier-brand-dialog').close());
+                document.getElementById('supplier-brand-dialog').addEventListener('click', event => {
+                    if (event.target === event.currentTarget) event.currentTarget.close();
+                });
+            </script>
+        </div>
+
+        <!-- MASTER BRAND SEARCH -->
+        <div id="tab-master-brands" class="tab-panel">
+            <div class="studio-title">Master Brand Search</div>
+            <div class="studio-subtitle">Search exact IDs, brand names, UPCs, or product names from the live Master Brand table.</div>
+            <div class="dashboard-card" style="margin-top:1rem;">
+                <form id="master-brand-search-form" class="master-search-grid" onsubmit="searchMasterBrands(event)">
+                    <input class="text-input-field" id="master-id-input" placeholder="Master Brand ID">
+                    <input class="text-input-field" id="master-brand-input" placeholder="Brand name">
+                    <input class="text-input-field" id="master-upc-input" placeholder="UPC / alternate UPC">
+                    <input class="text-input-field" id="master-product-input" placeholder="Product name">
+                    <button class="btn-submit-send" type="submit">Search Master Brands</button>
+                    <button class="btn-download-csv" type="button" onclick="clearMasterBrandSearch()">Clear</button>
+                </form>
+                <div id="master-brand-search-status" class="dashboard-subtle">Enter at least one search field.</div>
+                <div id="master-brand-results" class="master-results"></div>
+            </div>
+            <style>
+                #tab-master-brands .master-results { max-height:none; }
+                #tab-master-brands .master-brand-result-card { grid-template-columns:minmax(0,1fr) 112px; align-items:stretch; }
+                #tab-master-brands .master-brand-result-details { grid-column:1; grid-row:1; min-width:0; }
+                #tab-master-brands .master-brand-result-media { grid-column:2; grid-row:1; align-self:start; width:100%; min-height:112px; }
+                #tab-master-brands .master-brand-result-media img { width:100%; height:112px; object-fit:contain; background:transparent; }
+                #tab-master-brands .master-brand-image-placeholder { width:100%; min-height:112px; display:grid; place-content:center; gap:.3rem; padding:.5rem; border:1px dashed var(--border-color); border-radius:8px; color:var(--text-muted); text-align:center; font-size:.72rem; }
+                #tab-master-brands .master-brand-image-placeholder span:first-child { font-size:1.35rem; }
+                #tab-master-brands .master-brand-preview { position:fixed; inset:0; z-index:1001; display:grid; grid-template-rows:auto minmax(0,1fr); gap:.8rem; padding:1rem; background:rgba(2,6,23,.9); }
+                #tab-master-brands .master-brand-preview[hidden] { display:none; }
+                #tab-master-brands .master-brand-preview-toolbar { display:flex; justify-content:flex-end; align-items:center; gap:.5rem; }
+                #tab-master-brands .master-brand-preview-toolbar button { min-width:2.5rem; min-height:2.5rem; border:1px solid rgba(148,163,184,.45); border-radius:8px; color:#fff; background:#1e293b; font-size:1rem; cursor:pointer; }
+                #tab-master-brands .master-brand-preview-toolbar button:hover { background:#334155; }
+                #tab-master-brands .master-brand-preview-stage { overflow:auto; display:grid; place-items:center; }
+                #tab-master-brands .master-brand-preview-image { max-width:min(90vw,1000px); max-height:78vh; object-fit:contain; background:transparent; transition:transform .18s ease; transform-origin:center; cursor:zoom-in; }
+                #tab-master-brands .master-brand-preview-image.is-zoomed { cursor:zoom-out; }
+                @media (max-width:600px) {
+                    #tab-master-brands .master-brand-result-card { grid-template-columns:minmax(0,1fr) 84px; gap:.5rem; padding:.55rem; }
+                    #tab-master-brands .master-brand-result-media { min-height:84px; }
+                    #tab-master-brands .master-brand-result-media img, #tab-master-brands .master-brand-image-placeholder { min-height:84px; height:84px; }
+                }
+            </style>
+            <div id="master-brand-preview" class="master-brand-preview" hidden role="dialog" aria-modal="true" aria-label="Master Brand image preview">
+                <div class="master-brand-preview-toolbar">
+                    <button id="master-brand-preview-zoom-out" type="button" aria-label="Zoom out">−</button>
+                    <button id="master-brand-preview-zoom-in" type="button" aria-label="Zoom in">+</button>
+                    <button id="master-brand-preview-close" type="button" aria-label="Close image preview">&times;</button>
+                </div>
+                <div class="master-brand-preview-stage">
+                    <img id="master-brand-preview-image" class="master-brand-preview-image" alt="">
+                </div>
+            </div>
+            <script>
+                (() => {
+                    const section = document.getElementById('tab-master-brands');
+                    const results = document.getElementById('master-brand-results');
+                    const preview = document.getElementById('master-brand-preview');
+                    const previewImage = document.getElementById('master-brand-preview-image');
+                    const previewStage = section.querySelector('.master-brand-preview-stage');
+                    let zoom = 1;
+
+                    function enhanceResults() {
+                        results.querySelectorAll('.master-brand-result-card').forEach(card => {
+                            let media = card.querySelector(':scope > .master-brand-result-media');
+                            if (!media) {
+                                media = document.createElement('div');
+                                media.className = 'master-brand-result-media';
+                            }
+                            const details = Array.from(card.children).find(child => child !== media);
+                            if (details) details.classList.add('master-brand-result-details');
+                            if (!media.querySelector('img') && !media.querySelector('.master-brand-image-placeholder')) {
+                                const placeholder = document.createElement('div');
+                                placeholder.className = 'master-brand-image-placeholder';
+                                placeholder.setAttribute('role', 'img');
+                                placeholder.setAttribute('aria-label', 'Brand image unavailable');
+                                placeholder.innerHTML = '<span aria-hidden="true">▧</span><span>Image unavailable</span>';
+                                media.appendChild(placeholder);
+                            }
+                            if (card.lastElementChild !== media) card.appendChild(media);
+                        });
+                    }
+
+                    function closePreview() {
+                        preview.hidden = true;
+                        previewImage.removeAttribute('src');
+                        previewImage.alt = '';
+                        previewImage.classList.remove('is-zoomed');
+                        previewImage.style.transform = '';
+                        zoom = 1;
+                    }
+
+                    function setZoom(nextZoom) {
+                        zoom = Math.max(1, Math.min(3, nextZoom));
+                        previewImage.style.transform = `scale(${zoom})`;
+                        previewImage.classList.toggle('is-zoomed', zoom > 1);
+                        previewImage.style.cursor = zoom > 1 ? 'zoom-out' : 'zoom-in';
+                    }
+
+                    results.addEventListener('click', event => {
+                        const image = event.target.closest('.master-brand-result-media img');
+                        if (!image) return;
+                        event.preventDefault();
+                        event.stopImmediatePropagation();
+                        previewImage.src = image.currentSrc || image.src;
+                        previewImage.alt = image.alt;
+                        preview.hidden = false;
+                        setZoom(1);
+                    }, true);
+
+                    results.addEventListener('error', event => {
+                        if (event.target.matches('.master-brand-result-media img')) enhanceResults();
+                    }, true);
+                    preview.addEventListener('click', event => {
+                        if (event.target === preview) closePreview();
+                    });
+                    previewImage.addEventListener('click', () => setZoom(zoom > 1 ? 1 : 2));
+                    previewStage.addEventListener('wheel', event => {
+                        if (preview.hidden) return;
+                        event.preventDefault();
+                        setZoom(zoom + (event.deltaY < 0 ? .25 : -.25));
+                    }, { passive: false });
+                    section.querySelector('#master-brand-preview-zoom-in').addEventListener('click', () => setZoom(zoom + .25));
+                    section.querySelector('#master-brand-preview-zoom-out').addEventListener('click', () => setZoom(zoom - .25));
+                    section.querySelector('#master-brand-preview-close').addEventListener('click', closePreview);
+                    document.addEventListener('keydown', event => {
+                        if (event.key === 'Escape' && !preview.hidden) closePreview();
+                    });
+
+                    new MutationObserver(enhanceResults).observe(results, { childList: true, subtree: true });
+                    enhanceResults();
+                })();
+            </script>
+        </div>
+
+        <div id="master-brand-image-lightbox" class="master-brand-image-lightbox" hidden role="dialog" aria-modal="true" aria-label="Enlarged Master Brand image" onclick="closeMasterBrandImage(event)">
+            <button class="master-brand-image-lightbox-close" type="button" aria-label="Close enlarged image" onclick="closeMasterBrandImage(event)">&times;</button>
+            <img id="master-brand-image-lightbox-preview" alt="" onclick="event.stopPropagation()">
+        </div>
+
+        <!-- TAB 3: COMPARISON STUDIO -->
         <div id="tab-comparison" class="tab-panel">
             <div class="studio-grid">
                 <!-- Sidebar Presets -->
@@ -1023,45 +1880,7 @@
             </div>
         </div>
 
-        <!-- TAB 3: DBEAVER & MYSQL 3307 -->
-        <div id="tab-dbeaver" class="tab-panel">
-            <div class="pane-card">
-                <div class="card-heading">
-                    🐬 DBeaver MySQL 3307 Direct Integration
-                </div>
-                <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1rem;">
-                    Your MySQL Server 8.0 on port <strong>3307</strong> is connected! DBeaver can directly query the <code>beverage_db</code> database containing all 7 datasets:
-                </p>
-
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;">
-                    <div>
-                        <h4 style="font-size: 0.9rem; color: #ffffff; margin-bottom: 0.5rem;">DBeaver Connection Parameters:</h4>
-                        <div class="code-block">
-Host: localhost (or 127.0.0.1)<br>
-Port: 3307<br>
-Database: beverage_db<br>
-Username: root<br>
-Password: Madhu@123<br>
-JDBC URL: jdbc:mysql://127.0.0.1:3307/beverage_db
-                        </div>
-                    </div>
-                    <div>
-                        <h4 style="font-size: 0.9rem; color: #ffffff; margin-bottom: 0.5rem;">Available Tables in DBeaver:</h4>
-                        <ul style="color: var(--text-secondary); font-size: 0.85rem; padding-left: 1.2rem; line-height: 1.8;">
-                            <li><code>aimasterbranddata</code> — 189,752 Master Records</li>
-                            <li><code>allbrand_data</code> — 189,619 Records</li>
-                            <li><code>beer_data</code> — 50,441 Categorization Records</li>
-                            <li><code>rtd_data</code> — 153,026 Categorization Records</li>
-                            <li><code>spirits_data</code> — 41,554 Categorization Records</li>
-                            <li><code>wine_data</code> — 61,031 Categorization Records</li>
-                            <li><code>supplier_data</code> — 16,784 Supplier Records</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- TAB 4: DATASETS & SCHEMA -->
+        <!-- TAB 5: DATASETS & SCHEMA -->
         <div id="tab-datasets" class="tab-panel">
             <div class="pane-card">
                 <div class="card-heading">
@@ -1146,16 +1965,89 @@ JDBC URL: jdbc:mysql://127.0.0.1:3307/beverage_db
 
     <!-- Client Script (100% Offline & Pure JS) -->
     <script>
+        const savedTheme = localStorage.getItem('beviq_theme') || 'dark';
+        document.documentElement.dataset.theme = savedTheme;
+
+        function applyTheme(theme) {
+            const normalized = theme === 'light' ? 'light' : 'dark';
+            document.documentElement.dataset.theme = normalized;
+            localStorage.setItem('beviq_theme', normalized);
+            const toggle = document.getElementById('theme-toggle');
+            if (toggle) {
+                const light = normalized === 'light';
+                toggle.dataset.activeTheme = normalized;
+                toggle.querySelector('.theme-choice--light')?.setAttribute('aria-pressed', String(light));
+                toggle.querySelector('.theme-choice--dark')?.setAttribute('aria-pressed', String(!light));
+            }
+        }
+
+        document.querySelector('.theme-choice--light')?.addEventListener('click', () => applyTheme('light'));
+        document.querySelector('.theme-choice--dark')?.addEventListener('click', () => applyTheme('dark'));
+        applyTheme(savedTheme);
+
         let currentStudioRecords = [];
         let currentStudioPreset = 'all_missing';
         let lastServerSearch = '';
         let studioSearchTimer = null;
         let studioLoaded = false;
+        let dashboardLoaded = false;
+        let supplierDirectoryData = [];
+        const dashboardVisualizationState = {
+            chartType: 'overview',
+            displayMode: 'count',
+            metrics: null,
+        };
         const chatSessionId = localStorage.getItem('beverage_chat_session') ||
             (window.crypto && typeof window.crypto.randomUUID === 'function'
                 ? window.crypto.randomUUID()
                 : `session-${Date.now()}-${Math.random().toString(16).slice(2)}`);
         localStorage.setItem('beverage_chat_session', chatSessionId);
+
+        const dashboardRequestCache = new Map();
+        function getDashboardData(url) {
+            if (!dashboardRequestCache.has(url)) {
+                const request = fetch(url).then(async response => {
+                    const data = await response.json();
+                    if (!response.ok) throw new Error(data.error || `Request failed: ${url}`);
+                    return data;
+                }).catch(error => {
+                    dashboardRequestCache.delete(url);
+                    throw error;
+                });
+                dashboardRequestCache.set(url, request);
+            }
+            return dashboardRequestCache.get(url);
+        }
+
+        getDashboardData('/api/db-status').then(status => {
+            const badge = document.getElementById('backend-badge');
+            if (badge) badge.textContent = `● ${(status.active_backend || 'sqlite').toUpperCase()} active`;
+        }).catch(() => {});
+
+        async function updateHeaderStatus() {
+            const backendBadge = document.getElementById('header-backend-status');
+            const recordBadge = document.getElementById('header-record-status');
+            const securityBadge = document.getElementById('header-security-status');
+            try {
+                const [status, overview] = await Promise.all([
+                    getDashboardData('/api/db-status'),
+                    getDashboardData('/api/dashboard/overview')
+                ]);
+                const active = (status.active_backend || overview.backend || 'sqlite').toUpperCase();
+                const connected = active === 'MYSQL' ? status.mysql_connected : status.sqlite_connected;
+                if (backendBadge) backendBadge.textContent = `${active}: ${connected ? 'Connected' : 'Unavailable'} (${status.database_name || 'unknown'})`;
+                if (recordBadge) recordBadge.textContent = `${Number((overview.kpis || {}).total_records || 0).toLocaleString()} records ready`;
+                if (securityBadge) securityBadge.textContent = active === 'SQLITE' ? 'Local SQLite • Credentials server-side' : 'MySQL connection • Credentials server-side';
+            } catch (error) {
+                if (backendBadge) backendBadge.textContent = 'Database status unavailable';
+                if (recordBadge) recordBadge.textContent = 'Live metrics unavailable';
+            }
+        }
+
+        updateHeaderStatus();
+        getDashboardData('/api/dashboard/metrics').catch(error => {
+            console.warn('Dashboard metrics prefetch failed:', error);
+        });
 
         function switchTab(tabId, btn) {
             document.querySelectorAll('.nav-tab-btn').forEach(b => b.classList.remove('active'));
@@ -1163,6 +2055,10 @@ JDBC URL: jdbc:mysql://127.0.0.1:3307/beverage_db
 
             btn.classList.add('active');
             document.getElementById('tab-' + tabId).classList.add('active');
+            if (tabId === 'dashboard' && !dashboardLoaded) {
+                dashboardLoaded = true;
+                loadDashboard();
+            }
             if (tabId === 'comparison' && !studioLoaded) {
                 studioLoaded = true;
                 executeComparison('all_missing');
@@ -1170,14 +2066,392 @@ JDBC URL: jdbc:mysql://127.0.0.1:3307/beverage_db
         }
 
         function triggerQuickPrompt(query) {
-            switchTab('chat', document.querySelectorAll('.nav-tab-btn')[0]);
+            openDashboardAssistant();
             document.getElementById('chat-input-box').value = query;
             submitUserChat(new Event('submit'));
+        }
+
+        function getDashboardVisualizationSeries(metrics) {
+            const categories = metrics?.categories || {};
+            const master = metrics?.master_brand || {};
+            return [
+                { label: 'Master Brand', value: Number(master.distinct_upcs || 0), color: '#38bdf8' },
+                { label: 'Beer', value: Number((categories.beer || {}).distinct_upcs || 0), color: '#f59e0b' },
+                { label: 'RTD', value: Number((categories.rtd || {}).distinct_upcs || 0), color: '#a78bfa' },
+                { label: 'Wine', value: Number((categories.wine || {}).distinct_upcs || 0), color: '#f472b6' },
+                { label: 'Spirits', value: Number((categories.spirits || {}).distinct_upcs || 0), color: '#14b8a6' },
+            ];
+        }
+
+        function formatDashboardVisualizationValue(value, series) {
+            if (dashboardVisualizationState.displayMode === 'count') return Number(value || 0).toLocaleString();
+            const total = series.reduce((sum, item) => sum + item.value, 0);
+            return total ? `${((Number(value || 0) / total) * 100).toFixed(1)}%` : '0.0%';
+        }
+
+        function setDashboardChart(chartType, button) {
+            dashboardVisualizationState.chartType = chartType;
+            document.querySelectorAll('#dashboard-chart-controls .dashboard-chart-btn').forEach(item => {
+                const active = item === button;
+                item.classList.toggle('active', active);
+                item.setAttribute('aria-pressed', String(active));
+            });
+            renderDashboardVisualization();
+        }
+
+        function setDashboardDisplayMode(displayMode, button) {
+            dashboardVisualizationState.displayMode = displayMode;
+            document.querySelectorAll('.dashboard-display-btn').forEach(item => {
+                const active = item === button;
+                item.classList.toggle('active', active);
+                item.setAttribute('aria-pressed', String(active));
+            });
+            renderDashboardVisualization();
+        }
+
+        function renderDashboardOverview(series) {
+            const total = series.reduce((sum, item) => sum + item.value, 0);
+            return `<div class="dashboard-heatmap">${series.map(item => {
+                const intensity = total ? 0.3 + (item.value / total) * 0.7 : 0.3;
+                return `<div class="dashboard-heatmap-cell" style="background:rgba(37,99,235,${intensity.toFixed(2)})"><span>${item.label}</span><strong>${formatDashboardVisualizationValue(item.value, series)}</strong></div>`;
+            }).join('')}</div>`;
+        }
+
+        function renderDashboardPie(series) {
+            const total = series.reduce((sum, item) => sum + item.value, 0);
+            const radius = 72;
+            const circumference = 2 * Math.PI * radius;
+            let offset = 0;
+            const rings = total ? series.map(item => {
+                const length = (item.value / total) * circumference;
+                const ring = `<circle cx="120" cy="120" r="${radius}" fill="none" stroke="${item.color}" stroke-width="42" stroke-dasharray="${length} ${circumference - length}" stroke-dashoffset="${-offset}" transform="rotate(-90 120 120)"></circle>`;
+                offset += length;
+                return ring;
+            }).join('') : `<circle cx="120" cy="120" r="${radius}" fill="none" stroke="var(--border-color)" stroke-width="42"></circle>`;
+            return `<svg viewBox="0 0 440 250" role="img" aria-label="Dashboard pie chart"><g>${rings}</g>${series.map((item, index) => `<g transform="translate(245 ${34 + index * 39})"><rect width="14" height="14" rx="3" fill="${item.color}"></rect><text x="23" y="12" fill="var(--text-main)" font-size="13">${item.label}</text><text x="23" y="29" fill="var(--text-muted)" font-size="12">${formatDashboardVisualizationValue(item.value, series)}</text></g>`).join('')}</svg>`;
+        }
+
+        function renderDashboardBar(series) {
+            const max = Math.max(...series.map(item => item.value), 1);
+            return `<svg viewBox="0 0 620 290" role="img" aria-label="Dashboard bar graph"><line x1="34" y1="224" x2="600" y2="224" stroke="var(--border-color)"></line>${series.map((item, index) => {
+                const height = (item.value / max) * 170;
+                const x = 54 + index * 108;
+                return `<g><rect x="${x}" y="${224 - height}" width="58" height="${height}" rx="8" fill="${item.color}"></rect><text x="${x + 29}" y="${244}" text-anchor="middle" fill="var(--text-main)" font-size="12">${item.label}</text><text x="${x + 29}" y="${Math.max(16, 214 - height)}" text-anchor="middle" fill="var(--text-main)" font-size="12">${formatDashboardVisualizationValue(item.value, series)}</text></g>`;
+            }).join('')}</svg>`;
+        }
+
+        function renderDashboardHeatmap(series) {
+            const max = Math.max(...series.map(item => item.value), 1);
+            return `<div class="dashboard-heatmap">${series.map(item => {
+                const intensity = 0.25 + (item.value / max) * 0.75;
+                return `<div class="dashboard-heatmap-cell" style="background:rgba(14,165,233,${intensity.toFixed(2)})"><span>${item.label}</span><strong>${formatDashboardVisualizationValue(item.value, series)}</strong><small>${dashboardVisualizationState.displayMode === 'count' ? 'distinct UPCs' : 'share of UPCs'}</small></div>`;
+            }).join('')}</div>`;
+        }
+
+        function renderDashboardVisualization(metrics = dashboardVisualizationState.metrics) {
+            const target = document.getElementById('dashboard-visualization');
+            if (!target) return;
+            if (metrics) dashboardVisualizationState.metrics = metrics;
+            if (!dashboardVisualizationState.metrics) {
+                target.innerHTML = '<div class="dashboard-visualization-empty">Open Dashboard to load chart data.</div>';
+                return;
+            }
+            const series = getDashboardVisualizationSeries(dashboardVisualizationState.metrics);
+            const renderer = {
+                overview: renderDashboardOverview,
+                pie: renderDashboardPie,
+                bar: renderDashboardBar,
+                heatmap: renderDashboardHeatmap,
+            }[dashboardVisualizationState.chartType] || renderDashboardOverview;
+            target.innerHTML = renderer(series);
+        }
+
+        function openDashboardAssistant() {
+            const chatButton = Array.from(document.querySelectorAll('.nav-tab-btn')).find(button => button.getAttribute('onclick')?.includes("switchTab('chat'"));
+            if (chatButton) switchTab('chat', chatButton);
         }
 
         function showSelectedDocument(input) {
             const label = document.getElementById('selected-document');
             label.textContent = input.files.length ? `Selected: ${input.files[0].name}` : '';
+            previewSelectedDocument(input);
+        }
+
+        function previewSelectedDocument(input) {
+            const preview = document.getElementById('upload-preview');
+            preview.innerHTML = '';
+            preview.style.display = 'none';
+            if (!input.files.length) return;
+            const file = input.files[0];
+            const wrapper = document.createElement('span');
+            wrapper.textContent = `${file.type || 'File'} · ${(file.size / 1024).toFixed(1)} KB`;
+            if (file.type.startsWith('image/')) {
+                const image = document.createElement('img');
+                image.alt = file.name;
+                image.src = URL.createObjectURL(file);
+                preview.appendChild(image);
+            }
+            preview.appendChild(wrapper);
+            preview.style.display = 'flex';
+        }
+
+        function renderSupplierCards(suppliers = supplierDirectoryData) {
+            const target = document.getElementById('dashboard-supplier-directory');
+            if (!target) return;
+            if (!suppliers.length) {
+                target.innerHTML = '<div class="dashboard-subtle">No suppliers match this search.</div>';
+                return;
+            }
+            target.innerHTML = suppliers.map((supplier, index) => {
+                const brands = (supplier.brand_names || []).map(name => `<span class="supplier-brand-pill">${escapeHtml(name)}</span>`).join('') || '<small>No brand names available</small>';
+                const records = (supplier.records || []).slice(0, 25).map(record => `
+                    <div class="supplier-record"><strong>${escapeHtml(record.BrandName || 'NA')}</strong> · ${escapeHtml(record.ProductName || 'Product unavailable')}<br><small>UPC: ${escapeHtml(record.clean_upc || 'NA')}</small></div>`).join('') || '<small>No related product details available</small>';
+                return `<article class="supplier-card" data-supplier-name="${escapeHtml(supplier.supplier || 'NA').toLowerCase()}" id="supplier-card-${index}">
+                    <button class="supplier-card__toggle" type="button" aria-expanded="false" aria-controls="supplier-body-${index}" onclick="toggleSupplierCard(${index})">
+                        <span><span class="supplier-card__name">${escapeHtml(supplier.supplier || 'NA')}</span><span class="supplier-card__meta">${Number(supplier.record_count || 0).toLocaleString()} Master Brand record(s)</span></span><span class="supplier-card__chevron">⌄</span>
+                    </button>
+                    <div class="supplier-card__body" id="supplier-body-${index}">
+                        <div class="supplier-card__stats"><div class="supplier-card__stat"><strong>${Number(supplier.record_count || 0).toLocaleString()}</strong><span>Records</span></div><div class="supplier-card__stat"><strong>${Number(supplier.brand_count || 0).toLocaleString()}</strong><span>Brands</span></div><div class="supplier-card__stat"><strong>${Number(supplier.upc_count || 0).toLocaleString()}</strong><span>UPCs</span></div></div>
+                        <small>Brand names</small><div class="supplier-brand-list">${brands}</div>
+                        <small>Related products</small><div class="supplier-record-list">${records}</div>
+                    </div>
+                </article>`;
+            }).join('');
+        }
+
+        function toggleSupplierCard(index) {
+            const card = document.getElementById(`supplier-card-${index}`);
+            const button = card?.querySelector('.supplier-card__toggle');
+            if (!card || !button) return;
+            const open = card.classList.toggle('is-open');
+            button.setAttribute('aria-expanded', String(open));
+        }
+
+        function filterSupplierCards(query) {
+            const term = String(query || '').trim().toLowerCase();
+            renderSupplierCards(supplierDirectoryData.filter(item => String(item.supplier || 'NA').toLowerCase().includes(term)));
+        }
+
+        async function loadSupplierDirectory() {
+            const target = document.getElementById('dashboard-supplier-directory');
+            try {
+                const data = await getDashboardData('/api/dashboard/suppliers');
+                supplierDirectoryData = data.suppliers || [];
+                document.getElementById('dashboard-supplier-total').textContent = Number(data.total_suppliers || 0).toLocaleString();
+                renderSupplierCards(supplierDirectoryData);
+            } catch (err) {
+                if (target) target.innerHTML = `<div class="dashboard-subtle">${escapeHtml(err.message)}</div>`;
+            }
+        }
+
+        async function loadDashboard() {
+            const error = document.getElementById('dashboard-error');
+            try {
+                const [overview, status] = await Promise.all([
+                    getDashboardData('/api/dashboard/overview'),
+                    getDashboardData('/api/db-status')
+                ]);
+                document.getElementById('dashboard-total-records').textContent = Number(overview.kpis.total_records || 0).toLocaleString();
+                document.getElementById('dashboard-total-upcs').textContent = Number(overview.kpis.total_unique_upcs || 0).toLocaleString();
+                document.getElementById('dashboard-dataset-count').textContent = overview.kpis.dataset_count || 0;
+                const primaryBackend = (status.primary_backend || status.active_backend || 'sqlite').toUpperCase();
+                const activeBackend = (status.active_backend || 'sqlite').toUpperCase();
+                document.getElementById('dashboard-backend').textContent = primaryBackend;
+                const backendDetail = document.getElementById('dashboard-backend-detail');
+                if (backendDetail) {
+                    if (primaryBackend === 'MYSQL' && activeBackend === 'SQLITE') {
+                        const reason = !status.mysql_connected
+                            ? (status.mysql_message || 'MySQL connection unavailable.')
+                            : (status.mysql_schema_message || 'MySQL schema is not ready.');
+                        backendDetail.textContent = `SQLite fallback is serving data. MySQL primary is unavailable: ${reason}`;
+                    } else {
+                        backendDetail.textContent = `${activeBackend} is serving live dashboard queries.`;
+                    }
+                }
+                document.getElementById('dashboard-datasets').innerHTML = (overview.datasets || []).map(dataset => `
+                    <tr><td>${escapeHtml(dataset.dataset_key)}</td><td>${Number(dataset.total_rows || 0).toLocaleString()}</td>
+                    <td>${Number(dataset.unique_upcs || 0).toLocaleString()}</td><td>${escapeHtml(dataset.file_name || '')}</td></tr>`).join('');
+                document.getElementById('dashboard-refresh-time').textContent = `Last refreshed: ${overview.generated_at ? new Date(overview.generated_at).toLocaleString() : 'Unavailable'}`;
+                document.getElementById('dashboard-database-status').innerHTML = `
+                    <span class="status-chip">Active: <strong>${escapeHtml((status.active_backend || 'sqlite').toUpperCase())}</strong></span>
+                    <span class="status-chip">SQLite: ${status.sqlite_connected ? 'Connected' : 'Unavailable'}</span>
+                    <span class="status-chip">MySQL: ${status.mysql_connected ? (status.mysql_schema_ready ? 'Connected' : `Connected · ${escapeHtml(status.mysql_schema_message || 'schema not ready')}`) : `Not connected · ${escapeHtml(status.mysql_message || 'connection unavailable')}`}</span>
+                    <span class="status-chip">Database: ${escapeHtml(status.database_name || 'unknown')}</span>
+                    <span class="status-chip">${escapeHtml(status.mysql_schema_message || '')}</span>`;
+                error.style.display = 'none';
+                loadDashboardMetrics();
+                loadDashboardMissing();
+                loadSupplierDirectory();
+            } catch (err) {
+                error.textContent = err.message;
+                error.style.display = 'block';
+                dashboardLoaded = false;
+                ['dashboard-total-records', 'dashboard-total-upcs', 'dashboard-dataset-count', 'dashboard-backend', 'dashboard-master-total', 'dashboard-upc-completion', 'dashboard-upc-available', 'dashboard-upc-missing', 'dashboard-upc-total'].forEach(id => {
+                    const node = document.getElementById(id);
+                    if (node) node.textContent = '—';
+                });
+            }
+        }
+
+        async function loadDashboardMetrics() {
+            try {
+                const metrics = await getDashboardData('/api/dashboard/metrics');
+                dashboardVisualizationState.metrics = metrics;
+                renderDashboardVisualization(metrics);
+                const categories = metrics.categories || {};
+                ['beer', 'wine', 'rtd', 'spirits'].forEach(category => {
+                    const node = document.getElementById(`dashboard-${category}-total`);
+                    if (node) node.textContent = Number((categories[category] || {}).total_records || 0).toLocaleString();
+                });
+                const quality = metrics.overall_upc || {};
+                const completion = Number(quality.completion_percentage || 0);
+                const master = metrics.master_brand || {};
+                const upcSegments = [
+                    { key: 'master', value: Number(master.distinct_upcs || 0), color: '#38bdf8' },
+                    { key: 'beer', value: Number((categories.beer || {}).distinct_upcs || 0), color: '#f59e0b' },
+                    { key: 'rtd', value: Number((categories.rtd || {}).distinct_upcs || 0), color: '#a78bfa' },
+                    { key: 'wine', value: Number((categories.wine || {}).distinct_upcs || 0), color: '#f472b6' },
+                    { key: 'spirits', value: Number((categories.spirits || {}).distinct_upcs || 0), color: '#14b8a6' },
+                ];
+                const totalDatasetUpcs = upcSegments.reduce((sum, segment) => sum + segment.value, 0);
+                let angle = 0;
+                const pieStops = upcSegments.map(segment => {
+                    const nextAngle = totalDatasetUpcs ? angle + (segment.value / totalDatasetUpcs) * 360 : angle;
+                    const stop = `${segment.color} ${angle}deg ${nextAngle}deg`;
+                    angle = nextAngle;
+                    return stop;
+                });
+                document.getElementById('dashboard-upc-pie').style.background = totalDatasetUpcs
+                    ? `conic-gradient(${pieStops.join(', ')})`
+                    : 'var(--border-color)';
+                upcSegments.forEach(segment => {
+                    const node = document.getElementById(`dashboard-upc-${segment.key}`);
+                    if (node) node.textContent = segment.value.toLocaleString();
+                });
+                document.getElementById('dashboard-upc-total').textContent = totalDatasetUpcs.toLocaleString();
+                document.getElementById('dashboard-master-total').textContent = Number(master.total_records || 0).toLocaleString();
+                document.getElementById('dashboard-upc-completion').textContent = `${completion.toFixed(1)}%`;
+                document.getElementById('dashboard-category-quality').innerHTML = Object.entries(categories).map(([name, value]) => `
+                    <div class="dashboard-card category-kpi" onclick="openCategoryMissing('${name}')">
+                        <h3>${name.toUpperCase()}</h3><div class="dashboard-number">${Number(value.total_records || 0).toLocaleString()}</div>
+                    </div>`).join('');
+                document.getElementById('dashboard-master-total-summary').textContent = Number(master.total_records || 0).toLocaleString();
+                document.getElementById('dashboard-master-brands').textContent = Number(master.unique_brands || 0).toLocaleString();
+                document.getElementById('dashboard-master-ids').textContent = Number(master.unique_master_ids || 0).toLocaleString();
+                document.getElementById('dashboard-master-with-upc').textContent = Number(master.records_with_upc || 0).toLocaleString();
+                document.getElementById('dashboard-master-without-upc').textContent = Number(master.records_without_upc || 0).toLocaleString();
+            } catch (err) {
+                const error = document.getElementById('dashboard-error');
+                error.textContent = err.message;
+                error.style.display = 'block';
+            }
+        }
+
+        async function loadDashboardMissing() {
+            const summaryNode = document.getElementById('dashboard-missing-summary');
+            const categoriesNode = document.getElementById('dashboard-missing-by-category');
+            summaryNode.textContent = 'Loading missing UPC summary...';
+            try {
+                const data = await getDashboardData('/api/dashboard/missing-upc?limit=100');
+                const summary = data.summary || {};
+                summaryNode.textContent = `${Number(summary.total_missing_from_master || 0).toLocaleString()} UPCs are missing from the master catalog in the current comparison.`;
+                categoriesNode.innerHTML = (summary.categories || []).map(item => `
+                    <div class="legend-item"><span>${escapeHtml(item.category)} missing from AI Master</span><strong>${Number(item.missing_from_master || 0).toLocaleString()}</strong></div>`).join('');
+            } catch (err) {
+                summaryNode.textContent = err.message;
+                categoriesNode.innerHTML = '';
+            }
+        }
+
+        function openCategoryMissing(category) {
+            switchTab('comparison', document.querySelectorAll('.nav-tab-btn')[3]);
+            const preset = `master_vs_${category === 'rtd' ? 'rtd' : category}`;
+            executeComparison(preset);
+        }
+
+        function getMasterBrandImageUrl(row, columns) {
+            const imageColumnNames = new Set([
+                'imageurl', 'image_url', 'image', 'productimage', 'productimageurl',
+                'brandimage', 'brandimageurl'
+            ]);
+            for (const column of columns || []) {
+                const normalized = String(column).toLowerCase().replace(/[^a-z0-9]/g, '');
+                if (!imageColumnNames.has(normalized) && !normalized.includes('imageurl')) continue;
+                const value = String(row?.[column] ?? '').trim();
+                if (!value) continue;
+                try {
+                    const url = new URL(value);
+                    if (url.protocol === 'http:' || url.protocol === 'https:') return value;
+                } catch (error) {
+                    // Ignore malformed image values and keep rendering the data row.
+                }
+            }
+            return '';
+        }
+
+        function renderMasterBrandResults(data) {
+            const columns = data.columns || Object.keys(data.records?.[0] || {});
+            return (data.records || []).map(row => {
+                const imageUrl = getMasterBrandImageUrl(row, columns);
+                const media = imageUrl
+                    ? `<div class="master-brand-result-media"><img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(row.BrandName || row.ProductName || 'Master Brand')}" loading="lazy" onclick="openMasterBrandImage(this.src, this.alt)" onerror="this.remove()"></div>`
+                    : '';
+                const table = `<div style="overflow:auto"><table class="dashboard-table"><thead><tr>${columns.map(column => `<th>${escapeHtml(column)}</th>`).join('')}</tr></thead><tbody><tr>${columns.map(column => `<td>${escapeHtml(row[column])}</td>`).join('')}</tr></tbody></table></div>`;
+                return `<div class="master-brand-result-card">${media}${table}</div>`;
+            }).join('');
+        }
+
+        function openMasterBrandImage(src, alt) {
+            const lightbox = document.getElementById('master-brand-image-lightbox');
+            const preview = document.getElementById('master-brand-image-lightbox-preview');
+            if (!lightbox || !preview || !src) return;
+            preview.src = src;
+            preview.alt = alt || 'Master Brand image';
+            lightbox.hidden = false;
+            document.body.classList.add('master-brand-lightbox-open');
+        }
+
+        function closeMasterBrandImage(event) {
+            if (event) event.stopPropagation();
+            const lightbox = document.getElementById('master-brand-image-lightbox');
+            const preview = document.getElementById('master-brand-image-lightbox-preview');
+            if (!lightbox || !preview) return;
+            lightbox.hidden = true;
+            preview.removeAttribute('src');
+            document.body.classList.remove('master-brand-lightbox-open');
+        }
+
+        document.addEventListener('keydown', event => {
+            if (event.key === 'Escape') closeMasterBrandImage();
+        });
+
+        async function searchMasterBrands(event) {
+            if (event) event.preventDefault();
+            const params = new URLSearchParams();
+            const fields = { id: 'master-id-input', brand: 'master-brand-input', upc: 'master-upc-input', product: 'master-product-input' };
+            Object.entries(fields).forEach(([key, id]) => {
+                const value = document.getElementById(id).value.trim();
+                if (value) params.set(key, value);
+            });
+            const status = document.getElementById('master-brand-search-status');
+            const results = document.getElementById('master-brand-results');
+            if (!params.toString()) { status.textContent = 'Enter at least one search field.'; results.innerHTML = ''; return; }
+            status.textContent = 'Searching the Master Brand table...';
+            results.innerHTML = '';
+            try {
+                const response = await fetch(`/api/master-brands/search?${params.toString()}`);
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || 'Master Brand search failed');
+                status.textContent = `${Number(data.total_matches || 0).toLocaleString()} matching record(s)`;
+                if (!data.records || !data.records.length) { results.innerHTML = '<div class="dashboard-subtle">No matching Master Brand records found.</div>'; return; }
+                results.innerHTML = renderMasterBrandResults(data);
+            } catch (err) { status.textContent = err.message; }
+        }
+
+        function clearMasterBrandSearch() {
+            ['master-id-input', 'master-brand-input', 'master-upc-input', 'master-product-input'].forEach(id => document.getElementById(id).value = '');
+            document.getElementById('master-brand-search-status').textContent = 'Enter at least one search field.';
+            document.getElementById('master-brand-results').innerHTML = '';
         }
 
         function submitUserChat(e) {
@@ -1200,7 +2474,7 @@ JDBC URL: jdbc:mysql://127.0.0.1:3307/beverage_db
             loadingBubble.innerHTML = `
                 <div class="bot-message-header">
                     <div class="bot-identity">🤖 BevIQ Assistant</div>
-                    <div>Auditing 702k+ records...</div>
+                    <div id="bot-loading-title">Thinking...</div>
                 </div>
                 <div>
                     <span class="loading-dots">
@@ -1208,7 +2482,7 @@ JDBC URL: jdbc:mysql://127.0.0.1:3307/beverage_db
                         <span class="loading-dot"></span>
                         <span class="loading-dot"></span>
                     </span>
-                    <span style="color: var(--text-secondary); font-size: 0.88rem; margin-left: 0.5rem;">Analyzing records and cross-referencing Master datasets...</span>
+                    <span style="color: var(--text-secondary); font-size: 0.88rem; margin-left: 0.5rem;">Understanding your question and preparing a response...</span>
                 </div>
             `;
             history.appendChild(loadingBubble);
@@ -1245,6 +2519,8 @@ JDBC URL: jdbc:mysql://127.0.0.1:3307/beverage_db
                 if (fileInput.files.length) {
                     fileInput.value = '';
                     document.getElementById('selected-document').textContent = '';
+                    document.getElementById('upload-preview').innerHTML = '';
+                    document.getElementById('upload-preview').style.display = 'none';
                 }
                 input.focus();
             });
@@ -1276,7 +2552,7 @@ JDBC URL: jdbc:mysql://127.0.0.1:3307/beverage_db
             const headerHtml = `
                 <div class="bot-message-header">
                     <div class="bot-identity">🤖 BevIQ Assistant</div>
-                    <div>Retrieved ${data.record_count || 0} records</div>
+                    <div>${(data.record_count || 0) > 0 ? `Retrieved ${data.record_count} records` : "General response"}</div>
                 </div>
             `;
 
@@ -1521,6 +2797,12 @@ JDBC URL: jdbc:mysql://127.0.0.1:3307/beverage_db
 
             renderStudioTable(filtered);
         }
+
+        if (document.getElementById('tab-dashboard')?.classList.contains('active')) {
+            dashboardLoaded = true;
+            loadDashboard();
+        }
     </script>
+    </div>
 </body>
 </html>
