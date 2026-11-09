@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from flask import Flask, render_template, request, jsonify, send_file, send_from_directory
 from config import REPORTS_DIR, MYSQL_PORT, MYSQL_DB, OLLAMA_MODEL, CSV_FILES
-from database.db_manager import db_manager
+from database.db_manager import DBManager, db_manager
 from database.mysql_migrator import migrate_data_to_mysql
 from engines.sql_engine import sql_engine
 from engines.comparison_engine import comparison_engine
@@ -97,20 +97,49 @@ def api_compare():
             res = comparison_engine.compare_beer_vs_rtd(limit=limit)
         elif comp_type == 'duplicate_upcs':
             res = comparison_engine.find_duplicate_upcs_across_all(limit=limit)
+        elif comp_type == 'untrained_brands':
+            res = comparison_engine.find_untrained_brands(limit=limit, search=search or None)
         else:
             return jsonify({'error': f"Unknown comparison type: {comp_type}"}), 400
 
         # Create download token
         import uuid, pandas as pd
         token = str(uuid.uuid4())[:8]
-        if res.get('records'):
-            df = pd.DataFrame(res['records'])
+        export_records = res.pop('export_records', None)
+        if export_records is None:
+            export_records = res.get('records')
+        if export_records:
+            df = pd.DataFrame(export_records)
             df.to_csv(REPORTS_DIR / f"report_{token}.csv", index=False)
         res['download_token'] = token
 
         return jsonify(res)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@app.route('/api/untrained-dataset', methods=['GET'])
+def api_untrained_dataset():
+    original_db = getattr(comparison_engine, 'db', None)
+    try:
+        limit = max(1, min(int(request.args.get('limit', 250)), 50000))
+        search = (request.args.get('search') or '').strip()[:100]
+        if getattr(db_manager, 'use_mysql', False):
+            mysql_ready, _ = db_manager.mysql_schema_status()
+            if not mysql_ready and original_db is not None:
+                comparison_engine.db = DBManager(use_mysql=False)
+        result = comparison_engine.find_untrained_brands(limit=limit, search=search or None)
+        result.pop('export_records', None)
+        return jsonify({
+            'backend': comparison_engine.db.backend_name() if original_db is not None else db_manager.backend_name(),
+            **result,
+        })
+    except (TypeError, ValueError):
+        return jsonify({'error': 'Invalid untrained dataset limit'}), 400
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        if original_db is not None:
+            comparison_engine.db = original_db
 
 @app.route('/api/stats', methods=['GET'])
 def api_stats():
@@ -160,80 +189,109 @@ def api_dashboard_metrics():
 def api_dashboard_suppliers():
     try:
         limit = max(1, min(int(request.args.get('limit', 500)), 500))
+        directory_kwargs = {'limit': limit}
+        if 'include_records' in request.args:
+            directory_kwargs['include_records'] = request.args.get('include_records', '1').lower() in {'1', 'true', 'yes'}
         return jsonify({
             'backend': db_manager.backend_name(),
-            **sql_engine.get_supplier_directory(limit=limit),
+            **sql_engine.get_supplier_directory(**directory_kwargs),
         })
     except (TypeError, ValueError):
         return jsonify({'error': 'limit must be a valid number'}), 400
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/suppliers/dashboard', methods=['GET'])
-def api_supplier_dashboard():
+@app.route('/api/dashboard/supplier-brand-details', methods=['GET'])
+def api_dashboard_supplier_brand_details():
+    supplier = (request.args.get('supplier') or '').strip()
+    brand = (request.args.get('brand') or '').strip()
+    if not supplier or not brand:
+        return jsonify({'error': 'supplier and brand are required'}), 400
     try:
         return jsonify({
             'backend': db_manager.backend_name(),
-            **sql_engine.get_supplier_dashboard(),
+            **sql_engine.get_supplier_brand_details(supplier, brand),
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/suppliers/overview', methods=['GET'])
-def api_supplier_overview():
-    sort = (request.args.get('sort') or 'name').strip().lower()
-    if sort not in {'name', 'highest', 'lowest'}:
-        return jsonify({'error': 'sort must be name, highest, or lowest'}), 400
+def _trained_request_filters():
+    filters = {
+        'query': (request.args.get('q') or '').strip(),
+        'category': (request.args.get('category') or '').strip(),
+        'supplier': (request.args.get('supplier') or '').strip(),
+        'brand': (request.args.get('brand') or '').strip(),
+        'status': (request.args.get('status') or '').strip(),
+        'model': (request.args.get('model') or '').strip(),
+    }
+    for key in ('missing_sku', 'missing_images', 'missing_model_id'):
+        filters[key] = request.args.get(key, '').lower() in {'1', 'true', 'yes'}
+    for key in ('min_images', 'max_images'):
+        value = request.args.get(key)
+        if value not in (None, ''):
+            filters[key] = max(0, int(value))
+    return filters
+
+@app.route('/api/trained-dataset/summary', methods=['GET'])
+def api_trained_dataset_summary():
     try:
-        return jsonify({
-            'backend': db_manager.backend_name(),
-            **sql_engine.get_supplier_overview(
-                search=(request.args.get('q') or '').strip(),
-                category=(request.args.get('category') or '').strip(),
-                supplier=(request.args.get('supplier') or '').strip(),
-                status=(request.args.get('status') or '').strip(),
-                sort=sort,
-            ),
-        })
+        return jsonify({'backend': db_manager.backend_name(), **sql_engine.get_trained_dataset_summary(_trained_request_filters())})
+    except (TypeError, ValueError):
+        return jsonify({'error': 'Invalid trained dataset filter'}), 400
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/suppliers/brands', methods=['GET'])
-def api_supplier_brands():
-    supplier_key = (request.args.get('supplier_key') or '').strip()
-    if not supplier_key:
-        return jsonify({'error': 'supplier_key is required'}), 400
+@app.route('/api/trained-dataset/analytics', methods=['GET'])
+def api_trained_dataset_analytics():
     try:
-        result = sql_engine.get_supplier_brands(
-            supplier_key=supplier_key,
-            search=(request.args.get('q') or '').strip(),
-            category=(request.args.get('category') or '').strip(),
-            status=(request.args.get('status') or '').strip(),
-        )
-        if result is None:
-            return jsonify({'error': 'Supplier was not found'}), 404
-        return jsonify(result)
+        return jsonify({'backend': db_manager.backend_name(), **sql_engine.get_trained_dataset_analytics(_trained_request_filters())})
+    except (TypeError, ValueError):
+        return jsonify({'error': 'Invalid trained dataset filter'}), 400
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/suppliers/brand-details', methods=['GET'])
-def api_supplier_brand_details():
-    supplier_code = (request.args.get('supplier_code') or '').strip()
-    supplier_name = (request.args.get('supplier_name') or '').strip()
-    brand_code = (request.args.get('brand_code') or '').strip()
-    brand_name = (request.args.get('brand_name') or '').strip()
-    if not (supplier_code or supplier_name) or not (brand_code or brand_name):
-        return jsonify({'error': 'A supplier and brand identifier are required'}), 400
+@app.route('/api/trained-dataset/records', methods=['GET'])
+def api_trained_dataset_records():
     try:
-        result = sql_engine.get_supplier_brand_details(
-            supplier_code=supplier_code,
-            supplier_name=supplier_name,
-            brand_code=brand_code,
-            brand_name=brand_name,
-        )
-        if result is None:
-            return jsonify({'error': 'Brand was not found for this supplier'}), 404
-        return jsonify(result)
+        page = max(1, int(request.args.get('page', 1)))
+        page_size = max(1, min(int(request.args.get('page_size', 50)), 200))
+        return jsonify({'backend': db_manager.backend_name(), **sql_engine.search_trained_brands(
+            page=page, page_size=page_size,
+            sort_by=request.args.get('sort_by', 'BrandName'), sort_dir=request.args.get('sort_dir', 'asc'),
+            **_trained_request_filters(),
+        )})
+    except (TypeError, ValueError):
+        return jsonify({'error': 'Invalid trained dataset pagination or filter'}), 400
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/trained-dataset/detail/<record_id>', methods=['GET'])
+def api_trained_dataset_detail(record_id):
+    try:
+        payload = sql_engine.get_trained_brand_detail(record_id)
+        if not payload.get('record'):
+            return jsonify({'error': 'Trained brand record not found'}), 404
+        return jsonify({'backend': db_manager.backend_name(), **payload})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/trained-dataset/export', methods=['GET'])
+def api_trained_dataset_export():
+    try:
+        filters = _trained_request_filters()
+        records = []
+        page = 1
+        while len(records) < 50000:
+            batch = sql_engine.search_trained_brands(page=page, page_size=200, **filters).get('records', [])
+            if not batch:
+                break
+            records.extend(batch)
+            page += 1
+        token = str(__import__('uuid').uuid4())[:8]
+        pd.DataFrame(records[:50000]).to_csv(REPORTS_DIR / f'report_{token}.csv', index=False)
+        return jsonify({'download_token': token, 'record_count': len(records[:50000])})
+    except (TypeError, ValueError):
+        return jsonify({'error': 'Invalid trained dataset filter'}), 400
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

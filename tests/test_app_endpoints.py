@@ -20,7 +20,7 @@ def test_all_endpoints():
     res = client.get('/api/stats')
     assert res.status_code == 200
     stats = res.get_json()
-    assert stats['total_records'] == 702207, f"Expected 702207 total records, got {stats['total_records']}"
+    assert stats['total_records'] == 718046, f"Expected 718046 total records, got {stats['total_records']}"
     print(f"[PASS] GET /api/stats -> HTTP 200 OK (Total records: {stats['total_records']:,})")
 
     # 3. Test DB Status

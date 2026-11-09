@@ -111,11 +111,11 @@ class RAGOrchestrator:
         # for words such as "day", "joke", or "India" in product names.
         has_identifier_intent = bool(re.search(r'\b(?:id|identifier)\s*[:#-]?\s*[a-z0-9_-]+\b', q_lower))
         has_catalog_entity = bool(re.search(
-            r'\b(?:upc|barcode|product|products|brand|brands|supplier|vendor|beer|wine|rtd|spirits|master|categorization|dataset|category|flavour|flavor|size|origin|records?)\b',
+            r'\b(?:upc|barcode|product|products|brand|brands|supplier|vendor|beer|wine|rtd|spirits|master|categorization|dataset|category|flavour|flavor|size|origin|records?|trained|training|class\s+id|model\s+id|image\s+count|trained\s+images?)\b',
             q_lower,
         ))
         has_catalog_action = bool(re.search(
-            r'\b(?:find|search|look up|lookup|show|list|count|how many|compare|missing|not found|absent|duplicate|audit|verify|check|export|report|profile|details?|kitne|kitni|gino|dikhao|batao)\b',
+            r'\b(?:find|search|look up|lookup|show|list|count|how many|compare|missing|not found|absent|duplicate|audit|verify|check|export|report|profile|details?|highest|lowest|top|more than|over|above|at least|kitne|kitni|gino|dikhao|batao)\b',
             q_lower,
         ))
         has_general_question_shape = bool(re.search(
@@ -247,8 +247,65 @@ class RAGOrchestrator:
         upc_match = re.search(r'\b(\d{10,14})\b', q)
         is_upc_query = bool(upc_match) or 'upc' in q_lower or 'barcode' in q_lower
         identifier_match = re.search(r'\b(?:id|identifier)\s*[:#-]?\s*([a-z0-9_-]+)\b', q_lower)
+        trained_class_match = re.search(r'\bclass\s*id\s*[:#-]?\s*([a-z0-9_-]+)\b', q_lower)
+        trained_model_match = re.search(r'\bmodel\s*id\s*[:#-]?\s*([a-z0-9_-]+)\b', q_lower)
+        trained_intent = bool(re.search(
+            r'\b(?:trained|training|class\s+id|model\s+id|trained\s+images?|image\s+count|average\s+trained)\b',
+            q_lower,
+        ))
         is_master_brand_request = 'master brand' in q_lower or ('master' in q_lower and 'brand' in q_lower)
         master_brand_phrase = re.search(r'(?:find|search|show)\s+(.+?)\s+with\s+(?:a\s+)?(?:upc|barcode)\b', q, re.I)
+
+        # TrainedBrandsData questions use the existing assistant and return
+        # records from the trained dataset without falling through to the
+        # legacy MasterData identifier lookup.
+        if trained_intent:
+            trained_filters = {}
+            category = next((name for name in ('beer', 'wine', 'spirits', 'non alcoholic') if re.search(rf'\b{re.escape(name)}\b', q_lower)), None)
+            if category:
+                trained_filters['category'] = category
+            status = 'inactive' if re.search(r'\binactive\b|\bnot active\b', q_lower) else ('active' if re.search(r'\bactive\b', q_lower) else None)
+            if status:
+                trained_filters['status'] = status
+            image_threshold = re.search(r'\b(?:more than|over|above|at least)\s+(\d+)\s+images?\b', q_lower)
+            if image_threshold:
+                trained_filters['min_images'] = image_threshold.group(1)
+            if re.search(r'\bmissing\s+(?:sku|skus)\b', q_lower):
+                trained_filters['missing_sku'] = True
+            if re.search(r'\bmissing\s+(?:images?|image\s+urls?)\b|\bwithout\s+images?\b', q_lower):
+                trained_filters['missing_images'] = True
+            if re.search(r'\bmissing\s+model\s+id\b', q_lower):
+                trained_filters['missing_model_id'] = True
+
+            supplier_match = re.search(r'\bhow many brands? does\s+(.+?)\s+have\b', q, re.I)
+            if supplier_match:
+                trained_filters['supplier'] = supplier_match.group(1).strip(' ?.,')
+
+            if re.search(r'\b(?:highest|top)\b.*\b(?:supplier|suppliers)\b', q_lower):
+                analytics = sql_engine.get_trained_dataset_analytics(trained_filters)
+                top_supplier = (analytics.get('top_suppliers') or [{}])[0]
+                if top_supplier.get('supplier_name'):
+                    ans = f"### 📊 Top Trained-Dataset Supplier\n\n**{top_supplier['supplier_name']}** has **{int(top_supplier.get('brand_count') or 0):,} unique brands** in TrainedBrandsData."
+                    return self._format_response(ans, [], ['TrainedBrandsData.csv'], token)
+
+            if re.search(r'\bcompare\b', q_lower) and len(re.findall(r'\b(?:beer|wine|spirits|non alcoholic)\b', q_lower)) >= 2:
+                analytics = sql_engine.get_trained_dataset_analytics(trained_filters)
+                wanted = [name for name in ('beer', 'wine', 'spirits', 'non alcoholic') if name in q_lower]
+                rows = [item for item in analytics.get('category_brands', []) if str(item.get('category', '')).lower() in wanted]
+                comparison = '\n'.join(f"- **{item.get('category', 'Unknown')}**: {int(item.get('brand_count') or 0):,} brands" for item in rows)
+                ans = "### 📊 Trained Dataset Category Comparison\n\n" + (comparison or "No matching category records were found.")
+                return self._format_response(ans, [], ['TrainedBrandsData.csv'] if rows else [], token)
+
+            exact_query = trained_class_match.group(1) if trained_class_match else (trained_model_match.group(1) if trained_model_match else None)
+            res = sql_engine.search_trained_brands(query=exact_query or '', page=1, page_size=200, **trained_filters)
+            report_records = res.get('records', [])
+            source_files = ['TrainedBrandsData.csv'] if report_records else []
+            if report_records:
+                ans = f"### ✅ Trained Dataset Results\n\nFound **{res.get('total_matches', len(report_records)):,} matching trained record(s)** in TrainedBrandsData. Complete matching details are available below."
+            else:
+                lookup_label = exact_query or trained_filters.get('supplier') or q
+                ans = f"### ❌ Trained Dataset Record Not Found\n\nNo TrainedBrandsData record matched `{lookup_label}`."
+            return self._format_response(ans, report_records, source_files, token)
 
         # 2. Check for Comparison Intent
         is_compare = any(w in q_lower for w in ['compare', 'mismatch', 'diff', 'versus', 'vs', 'difference', 'farq'])

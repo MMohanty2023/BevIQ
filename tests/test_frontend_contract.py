@@ -23,15 +23,6 @@ def test_dashboard_navigation_places_dashboard_before_ai_assistant():
     assert nav.index("switchTab('dashboard'") < nav.index("switchTab('chat'")
 
 
-def test_dashboard_is_the_default_view_and_assistant_opens_only_on_request():
-    nav = HTML.split('<div class="nav-tabs-wrapper"', 1)[1].split('</div>', 1)[0]
-    assert 'class="nav-tab-btn active" onclick="switchTab(\'dashboard\', this)"' in nav
-    assert '<div id="tab-dashboard" class="tab-panel active">' in HTML
-    assert 'onclick="openDashboardAssistant()"' in HTML
-    assert "if (document.getElementById('tab-dashboard')?.classList.contains('active'))" in HTML
-    assert "openDashboardAssistant();" not in HTML.split("if (document.getElementById('tab-dashboard')", 1)[1]
-
-
 def test_dashboard_exposes_chart_and_display_mode_controls():
     assert 'id="dashboard-chart-controls"' in HTML
     assert 'data-dashboard-chart="pie"' in HTML
@@ -49,8 +40,11 @@ def test_dashboard_has_native_visualization_and_floating_assistant_hooks():
     assert "renderDashboardHeatmap" in HTML
     assert 'id="dashboard-floating-assistant"' in HTML
     assert "dashboard-floating-assistant" in HTML
-    assert "@keyframes dashboard-assistant-enter" in HTML
-    assert "prefers-reduced-motion: reduce" in HTML
+
+
+def test_floating_assistant_shortcut_is_dashboard_only():
+    assert "getElementById('dashboard-floating-assistant')?.setAttribute('hidden', '')" in HTML
+    assert "assistantShortcut.hidden = tabId !== 'dashboard'" in HTML
 
 
 def test_frontend_contains_upload_preview_and_clear_loading_states():
@@ -130,30 +124,85 @@ def test_dashboard_contains_supplier_directory_card_hooks():
     assert "NA" in HTML
 
 
-def test_supplier_dashboard_is_separate_and_supports_supplier_brand_counts_and_search():
-    assert 'onclick="switchTab(\'suppliers\', this); loadSupplierDashboard()"' in HTML
-    assert "Supplier Overview" in HTML
-    assert '<div id="tab-suppliers" class="tab-panel">' in HTML
-    assert 'id="supplier-dashboard-total"' in HTML
-    assert 'id="supplier-dashboard-search"' in HTML
-    assert 'id="supplier-dashboard-category"' in HTML
-    assert 'id="supplier-dashboard-supplier"' in HTML
-    assert 'id="supplier-dashboard-status"' in HTML
-    assert 'id="supplier-dashboard-sort"' in HTML
-    assert 'id="supplier-dashboard-results"' in HTML
-    assert "/api/suppliers/overview" in HTML
-    assert "/api/suppliers/brands" in HTML
-    assert "/api/suppliers/brand-details" in HTML
-    assert "AIMasterBrandData products" in HTML
-    assert "AllBrand Record IDs" not in HTML
-    assert "supplier.brand_count" in HTML
-    assert "brand.brand_name" in HTML
-    assert "data.class_id" in HTML
-    assert "data.image_count" in HTML
-    assert "data.model_name" in HTML
-    assert "openMasterBrandImage" in HTML
-    assert "Supplier name/code, brand name or brand ID" in HTML
-    assert 'id="tab-master-brands"' in HTML
+def test_supplier_directory_renders_brand_record_counts_and_searches_brands():
+    assert "brand_details" in HTML
+    assert "Records by brand" in HTML
+    assert "supplier.categories" in HTML
+    assert "detail.categories" in HTML
+    assert "Master Brand records" in HTML
+    assert "Unique brands" in HTML
+    assert "Search suppliers, codes, brands or IDs" in HTML
+    assert "brandNames.some" in HTML
+
+
+def test_supplier_overview_tab_owns_supplier_directory_and_dashboard_does_not():
+    assert "switchTab('supplier-overview'" in HTML
+    assert 'id="tab-supplier-overview"' in HTML
+    dashboard = HTML.split('id="tab-dashboard"', 1)[1].split('<!-- SUPPLIER OVERVIEW -->', 1)[0]
+    supplier_tab = HTML.split('id="tab-supplier-overview"', 1)[1].split('<!-- MASTER BRAND SEARCH -->', 1)[0]
+    assert 'id="supplier-directory-card"' not in dashboard
+    assert 'id="supplier-directory-card"' in supplier_tab
+
+
+def test_supplier_overview_has_total_supplier_kpi_card():
+    supplier_tab = HTML.split('id="tab-supplier-overview"', 1)[1].split('<!-- MASTER BRAND SEARCH -->', 1)[0]
+    assert 'id="supplier-overview-total-suppliers-card"' in supplier_tab
+    assert 'id="supplier-overview-total-suppliers"' in supplier_tab
+    assert "Total Suppliers" in supplier_tab
+
+
+def test_supplier_overview_has_clustered_supplier_chart_hooks():
+    supplier_tab = HTML.split('id="tab-supplier-overview"', 1)[1].split('<!-- MASTER BRAND SEARCH -->', 1)[0]
+    assert 'id="supplier-overview-clustered-chart"' in supplier_tab
+    assert "renderSupplierClusteredChart" in HTML
+    assert "Unique Brands" in supplier_tab
+    assert "Master Brand Records" in supplier_tab
+
+
+def test_supplier_overview_has_professional_directory_layout_hooks():
+    supplier_tab = HTML.split('id="tab-supplier-overview"', 1)[1].split('<!-- MASTER BRAND SEARCH -->', 1)[0]
+    for hook in (
+        'class="supplier-overview-header"',
+        'class="supplier-overview-eyebrow"',
+        'class="supplier-overview-summary"',
+        'class="supplier-filter-heading"',
+        'class="supplier-filter-help"',
+    ):
+        assert hook in supplier_tab
+    for hook in (
+        'class="supplier-card__brand-count"',
+        'class="supplier-card__category-list"',
+        'class="supplier-brand-panel__header"',
+    ):
+        assert hook in HTML
+
+
+def test_supplier_overview_loads_directory_when_tab_opens():
+    switch_tab = HTML.split("function switchTab(tabId, btn)", 1)[1].split("function triggerQuickPrompt", 1)[0]
+    assert "tabId === 'supplier-overview'" in switch_tab
+    assert "loadSupplierDirectory()" in switch_tab
+
+
+def test_supplier_overview_has_detail_filters_sorting_and_brand_drilldown_hooks():
+    for hook in (
+        "dashboard-supplier-category-filter",
+        "dashboard-supplier-status-filter",
+        "dashboard-supplier-sort",
+        "filterSupplierDirectory",
+        "loadSupplierBrandDetails",
+        "/api/dashboard/supplier-brand-details",
+        "available_images",
+        "category_image_url",
+        "supplier_code",
+        "brand_code",
+    ):
+        assert hook in HTML
+
+
+def test_supplier_filter_auto_opens_matching_supplier_brands():
+    assert "const autoOpen = suppliers.length === 1;" in HTML
+    assert "class=\"supplier-card${autoOpen ? ' is-open' : ''}\"" in HTML
+    assert "aria-expanded=\"${autoOpen}\"" in HTML
 
 
 def test_dataset_upc_kpi_has_no_explanatory_subtitle():
@@ -183,6 +232,12 @@ def test_master_brand_results_render_image_urls_on_existing_search_page():
     assert "image_url" in HTML
 
 
+def test_master_brand_result_places_image_before_details_and_enhances_frame():
+    assert "grid-template-columns:96px minmax(0,1fr)" in HTML
+    assert "${media}${table}" in HTML
+    assert "box-shadow:0 8px 24px" in HTML
+
+
 def test_master_brand_image_renderer_validates_urls_and_handles_broken_images():
     assert "http:" in HTML
     assert "https:" in HTML
@@ -202,6 +257,65 @@ def test_master_brand_thumbnail_frame_does_not_add_image_background():
     assert ".master-brand-result-media {" in HTML
     assert "background:transparent" in HTML
     assert "border:0" in HTML
+
+
+def test_master_brand_images_stay_inside_result_cards_with_placeholder_fallback():
+    assert "master-brand-image-placeholder" in HTML
+    assert "handleMasterBrandImageError" in HTML
+    assert "${media}${table}" in HTML
+    assert "Image unavailable" in HTML
+
+
+def test_master_brand_lightbox_supports_preview_zoom():
+    assert ".master-brand-image-lightbox img:hover" in HTML
+    assert "transform:scale(1.16)" in HTML
+    assert "transition:transform" in HTML
+
+
+def test_trained_dataset_dashboard_has_navigation_data_and_chart_hooks():
+    for hook in (
+        "switchTab('trained-dataset'",
+        'id="tab-trained-dataset"',
+        'id="trained-total-brands"',
+        'id="trained-total-suppliers"',
+        'id="trained-total-images"',
+        'id="trained-records-table"',
+        'id="trained-global-search"',
+        'id="trained-category-filter"',
+        'id="trained-image-count-filter"',
+        'id="trained-category-chart"',
+        'id="trained-supplier-chart"',
+        'id="trained-brand-chart"',
+        'id="trained-detail-panel"',
+        '/api/trained-dataset/records',
+        '/api/trained-dataset/analytics',
+        'trainedCategoryVisual',
+    ):
+        assert hook in HTML
+
+
+def test_untrained_dataset_has_separate_navigation_page_and_unique_brand_hooks():
+    for hook in (
+        "switchTab('untrained-dataset'",
+        'id="tab-untrained-dataset"',
+        'id="untrained-total-missing-upcs"',
+        'id="untrained-total-brands"',
+        'id="untrained-brand-search"',
+        'id="untrained-brands-table"',
+        '/api/untrained-dataset',
+        'loadUntrainedDataset',
+    ):
+        assert hook in HTML
+
+
+def test_untrained_dataset_shows_total_records_and_unique_brand_count_cards():
+    untrained_tab = HTML.split('id="tab-untrained-dataset"', 1)[1].split('<!-- TAB: COMPARISON STUDIO -->', 1)[0]
+    assert 'class="untrained-summary-strip"' in untrained_tab
+    assert 'id="untrained-total-records"' in untrained_tab
+    assert 'id="untrained-total-brands"' in untrained_tab
+    assert 'Dataset Records' in untrained_tab
+    assert 'Unique Brands' in untrained_tab
+    assert 'class="trained-summary-card"' not in untrained_tab
 
 
 def test_chat_welcome_message_is_friendly_and_general_purpose():

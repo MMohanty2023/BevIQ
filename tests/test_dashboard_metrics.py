@@ -76,7 +76,7 @@ def test_dataset_overview_combines_row_and_distinct_upc_counts():
     database = OverviewDB()
     overview = SQLEngine(database).get_dataset_overview()
 
-    assert len(overview) == 7
+    assert len(overview) == 8
     assert len(database.queries) == 1
     assert "UNION ALL" in database.queries[0]
     assert "COUNT(DISTINCT NULLIF(clean_upc, ''))" in database.queries[0]
@@ -97,8 +97,8 @@ def test_dataset_overview_retries_tables_individually_when_combined_query_fails(
     database = OverviewDB()
     overview = SQLEngine(database).get_dataset_overview()
 
-    assert len(overview) == 7
-    assert len(database.queries) == 8
+    assert len(overview) == 8
+    assert len(database.queries) == 9
     assert all(item["total_rows"] == 25 and item["unique_upcs"] == 20 for item in overview)
 
 
@@ -106,10 +106,15 @@ def test_supplier_directory_groups_na_and_returns_brand_summary_and_details():
     class SupplierDB:
         def query(self, sql, params=None):
             normalized = " ".join(sql.lower().split())
-            if "group by" in normalized and "supplier" in normalized:
+            if "select case when" in normalized and "count(distinct" in normalized:
                 return [
                     {"supplier": "Acme Imports", "record_count": 3, "brand_count": 2, "upc_count": 2},
                     {"supplier": "NA", "record_count": 2, "brand_count": 1, "upc_count": 0},
+                ]
+            if "select case when" in normalized and "group by" in normalized:
+                return [
+                    {"supplier_key": "acme imports", "brand_name": "Fizz", "brand_code": "F1", "brand_id": "B1", "record_count": 2, "categories": "Beer"},
+                    {"supplier_key": "NA", "brand_name": "NA Brand", "brand_code": None, "brand_id": None, "record_count": 1, "categories": None},
                 ]
             if "select distinct" in normalized:
                 if params == ("NA",):
@@ -133,73 +138,46 @@ def test_supplier_directory_groups_na_and_returns_brand_summary_and_details():
     assert result["suppliers"][1]["records"]
 
 
-def test_supplier_overview_uses_master_and_trained_brand_data(monkeypatch, tmp_path):
-    trained_data = (
-        "Id|Class Id|SupplierCode|SupplierName|BrandCode|BrandName|Category (Wine/Spirits/Beer/Non Alcoholic)|ImageCounts|Status|RecordStatus|SKU|Model|Model Id|ImageUrls\n"
-        "10|20|A1|Acme|FIZZ|Fizz|Wine|3|1|Active|2|Model A|7|https://images.test/fizz.png\n"
-        "13|23|A1|Acme|FIZZ|Fizz|Spirits|2|1|Active|1|Model A2|10|https://images.test/fizz-class2.png\n"
-        "11|21|A1|Acme|POP|Pop|Non Alcoholic|5|2|Inactive|4|Model B|8|\n"
-        "14|24|A2|ACME|MIX|Mix|Beer|1|1|Active|1|Model D|11|https://images.test/mix.png\n"
-        "12|22|B1|Other|OTHER|Other Brand|Beer|1|1|Active|1|Model C|9|\n"
-    )
-    trained_file = tmp_path / "TrainedBrandsData.csv"
-    trained_file.write_text(trained_data, encoding="utf-8")
-    monkeypatch.setattr("engines.sql_engine.TRAINED_BRANDS_FILE", trained_file)
-
-    class SupplierOverviewDB:
+def test_supplier_directory_reports_allmaster_record_count_and_product_categories():
+    class AllMasterOnlyDB:
         def query(self, sql, params=None):
-            assert "SELECT DISTINCT SupplierCode AS supplier_code" in sql
-            assert "FROM `ai_master`" in sql
-            assert "all_brands" not in sql
-            return [
-                {"supplier_code": "A1", "supplier_name": "Acme", "brand_code": "FIZZ", "brand_name": "Fizz", "product_category": "1"},
-                {"supplier_code": "A1", "supplier_name": "Acme", "brand_code": "POP", "brand_name": "Pop", "product_category": "2"},
-                {"supplier_code": "A2", "supplier_name": "ACME", "brand_code": "MIX", "brand_name": "Mix", "product_category": "3"},
-                {"supplier_code": "B1", "supplier_name": "Other", "brand_code": "OTHER", "brand_name": "Other Brand", "product_category": "1"},
-            ]
-
-    engine = SQLEngine(SupplierOverviewDB())
-    overview = engine.get_supplier_overview(sort="highest")
-
-    assert overview["total_suppliers"] == 2
-    assert overview["total_brands"] == 4
-    assert overview["suppliers"][0]["supplier"] == "Acme"
-    assert overview["suppliers"][0]["brand_count"] == 3
-    assert engine.get_supplier_overview(search="20")["suppliers"][0]["supplier"] == "Acme"
-    assert engine.get_supplier_overview(category="Wine")["suppliers"][0]["brand_count"] == 1
-    assert engine.get_supplier_overview(status="Inactive")["suppliers"][0]["supplier"] == "Acme"
-
-    acme_brands = engine.get_supplier_brands("name:acme", category="Wine")
-    assert acme_brands["total_brand_count"] == 3
-    assert acme_brands["brand_count"] == 1
-    assert acme_brands["brands"][0]["class_id"] == "20, 23"
-    assert acme_brands["brands"][0]["category"] == "Spirits / Wine"
-    assert "_trained_rows" not in acme_brands["brands"][0]
-    assert engine.get_supplier_brands("name:acme")["brands"][1]["brand_name"] == "Mix"
-    assert engine.get_supplier_overview(supplier="code:a2")["suppliers"][0]["supplier"] == "Acme"
-
-    class BrandDetailsDB(SupplierOverviewDB):
-        def query(self, sql, params=None):
-            if "SELECT id AS master_id" in sql:
-                assert "FROM `ai_master`" in sql
+            normalized = " ".join(sql.lower().split())
+            assert "from `all_brands`" in normalized
+            assert "ai_master" not in normalized
+            assert "trained_brands" not in normalized
+            if "min(brandname)" in normalized:
+                assert "supplier_key" in normalized
+                assert "group by" in normalized
                 return [
-                    {"master_id": "m1", "supplier_code": "A1", "supplier": "Acme", "brand_code": "FIZZ", "brand_name": "Fizz", "product_category": "1", "product_name": "Fizz Original", "upc": "111", "clean_upc": "111", "image_url": "https://images.test/product.png"},
-                    {"master_id": "m2", "supplier_code": "A1", "supplier": "Acme", "brand_code": "FIZZ", "brand_name": "Fizz", "product_category": "1", "product_name": "Fizz Zero", "upc": "222", "clean_upc": "222", "image_url": "https://images.test/product.png"},
+                    {"supplier_key": "acme", "brand_name": "Fizz", "brand_code": "F1", "brand_id": "B1", "record_count": 3, "categories": "Beer"},
+                    {"supplier_key": "acme", "brand_name": "Wine Star", "brand_code": "W1", "brand_id": "B2", "record_count": 1, "categories": "Wine"},
                 ]
-            assert "all_brands" not in sql
-            return super().query(sql, params)
+            if "group by" in normalized and "supplier" in normalized:
+                assert "productcategory" in normalized
+                assert "order by case when supplier_key" in normalized or "order by supplier_key" in normalized
+                return [{
+                    "supplier_key": "acme",
+                    "supplier": "Acme Imports",
+                    "supplier_code": "S1",
+                    "record_count": 4,
+                    "brand_count": 2,
+                    "upc_count": 4,
+                    "categories": "Beer,Beer,Wine",
+                    "statuses": "1",
+                }]
+            if "select distinct brandname" in normalized:
+                return [{"brand_name": "Fizz"}, {"brand_name": "Wine Star"}]
+            if "select brandname, productname" in normalized:
+                return []
+            raise AssertionError(f"Unexpected query: {sql}")
 
-    details = SQLEngine(BrandDetailsDB()).get_supplier_brand_details(
-        supplier_code="A1", brand_code="FIZZ"
-    )
-    assert details["brand_id"] == "10, 13"
-    assert details["class_id"] == "20, 23"
-    assert details["model_name"] == "Model A, Model A2"
-    assert details["sku"] == "1, 2"
-    assert details["image_count"] == "5"
-    assert details["images"] == [
-        "https://images.test/product.png",
-        "https://images.test/fizz.png",
-        "https://images.test/fizz-class2.png",
-    ]
-    assert len(details["products"]) == 2
+    result = SQLEngine(AllMasterOnlyDB()).get_supplier_directory()
+
+    assert result["total_suppliers"] == 1
+    supplier = result["suppliers"][0]
+    assert supplier["supplier"] == "Acme Imports"
+    assert supplier["record_count"] == 4
+    assert supplier["brand_count"] == 2
+    assert supplier["categories"] == ["Beer", "Wine"]
+    assert supplier["brand_details"][0]["categories"] == ["Beer"]
+    assert supplier["brand_details"][1]["categories"] == ["Wine"]

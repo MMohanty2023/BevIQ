@@ -877,26 +877,19 @@
 
         .dashboard-grid { display: grid; gap: 1rem; }
         .dashboard-kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: .75rem; }
-        .dashboard-chart-card { overflow:hidden; background:linear-gradient(145deg, var(--bg-card), rgba(37,99,235,.055)); }
-        .dashboard-chart-toolbar { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:.9rem; padding:.2rem 0 1rem; }
-        .dashboard-chart-toolbar h3 { color:var(--text-main); font-size:1rem; font-weight:700; }
+        .dashboard-chart-toolbar { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:.75rem; }
         .dashboard-chart-controls, .dashboard-display-controls { display:flex; flex-wrap:wrap; gap:.4rem; }
-        .dashboard-chart-btn, .dashboard-display-btn { border:1px solid var(--border-color); border-radius:999px; padding:.5rem .85rem; color:var(--text-secondary); background:var(--bg-surface); cursor:pointer; transition:all .16s ease; }
+        .dashboard-chart-btn, .dashboard-display-btn { border:1px solid var(--border-color); border-radius:999px; padding:.45rem .75rem; color:var(--text-secondary); background:var(--bg-surface); cursor:pointer; transition:all .16s ease; }
         .dashboard-chart-btn:hover, .dashboard-display-btn:hover, .dashboard-chart-btn.active, .dashboard-display-btn.active { color:var(--text-main); border-color:var(--accent-blue); background:rgba(37,99,235,.16); }
-        .dashboard-chart-btn:focus-visible, .dashboard-display-btn:focus-visible, .dashboard-floating-assistant:focus-visible { outline:3px solid rgba(56,189,248,.65); outline-offset:3px; }
-        .dashboard-visualization { min-height:290px; display:grid; place-items:center; margin-top:.15rem; overflow:auto; border:1px solid var(--border-color); border-radius:12px; background:rgba(15,23,42,.14); }
-        .dashboard-visualization svg { width:min(100%, 760px); min-width:0; height:auto; max-height:300px; }
+        .dashboard-visualization { min-height:260px; display:grid; place-items:center; margin-top:1rem; overflow:auto; }
+        .dashboard-visualization svg { width:100%; min-width:560px; height:270px; }
         .dashboard-visualization-empty { color:var(--text-muted); padding:2rem; text-align:center; }
-        .dashboard-heatmap { width:100%; display:grid; grid-template-columns:repeat(auto-fit, minmax(130px,1fr)); gap:.65rem; padding:1rem; }
+        .dashboard-heatmap { width:100%; display:grid; grid-template-columns:repeat(5, minmax(90px,1fr)); gap:.5rem; }
         .dashboard-heatmap-cell { min-height:88px; display:flex; flex-direction:column; justify-content:space-between; padding:.65rem; border:1px solid var(--border-color); border-radius:10px; color:#fff; }
         .dashboard-heatmap-cell strong { font-size:1.15rem; }
-        .dashboard-floating-assistant { position:fixed; right:1.25rem; bottom:1.25rem; z-index:80; padding:0; border:0; color:#fff; background:transparent; cursor:pointer; }
-        .dashboard-floating-assistant::before { content:""; position:absolute; inset:0; z-index:0; border:1px solid rgba(147,197,253,.45); border-radius:999px; background:linear-gradient(135deg,#2563eb,#0ea5e9); box-shadow:0 12px 30px rgba(14,165,233,.3); animation:dashboard-assistant-enter .55s cubic-bezier(.2,.8,.2,1) both, dashboard-assistant-float 2.4s .55s ease-in-out infinite; }
-        .dashboard-floating-assistant span { position:relative; z-index:1; display:block; padding:.8rem 1rem; animation:dashboard-assistant-enter .55s cubic-bezier(.2,.8,.2,1) both, dashboard-assistant-float 2.4s .55s ease-in-out infinite; }
-        .dashboard-floating-assistant:hover::before, .dashboard-floating-assistant:hover span, .dashboard-floating-assistant:focus-visible::before, .dashboard-floating-assistant:focus-visible span { animation-play-state:paused; }
-        @keyframes dashboard-assistant-enter { from { opacity:0; translate:0 28px; } to { opacity:1; translate:0 0; } }
+        .dashboard-floating-assistant { position:fixed; right:1.25rem; bottom:1.25rem; z-index:80; border:1px solid rgba(147,197,253,.45); border-radius:999px; padding:.8rem 1rem; color:#fff; background:linear-gradient(135deg,#2563eb,#0ea5e9); box-shadow:0 12px 30px rgba(14,165,233,.3); cursor:pointer; animation:dashboard-assistant-float 2.4s ease-in-out infinite; }
         @keyframes dashboard-assistant-float { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-7px); } }
-        @media (prefers-reduced-motion: reduce) { .dashboard-floating-assistant::before, .dashboard-floating-assistant span { animation:none; } }
+        @media (prefers-reduced-motion: reduce) { .dashboard-floating-assistant { animation:none; } }
         .dashboard-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 10px; padding: 1rem; }
         .dashboard-card h3 { font-size: .82rem; color: var(--text-secondary); margin-bottom: .35rem; font-weight: 600; }
         .dashboard-card h2 { margin: 0; font-size: 1rem; }
@@ -919,6 +912,56 @@
         .supplier-brand-pill { border:1px solid var(--border-light); border-radius:999px; padding:.25rem .5rem; color:var(--text-secondary); font-size:.74rem; }
         .supplier-record-list { display:grid; gap:.35rem; max-height:220px; overflow:auto; }
         .supplier-record { padding:.45rem .55rem; border-left:2px solid var(--accent-blue); background:var(--bg-card); font-size:.76rem; }
+        .supplier-brand-detail-list { display:grid; gap:.35rem; margin:.35rem 0 .8rem; }
+        .supplier-brand-detail { display:flex; justify-content:space-between; gap:.75rem; padding:.45rem .55rem; border:1px solid var(--border-light); border-radius:8px; background:var(--bg-card); font-size:.76rem; }
+        .supplier-brand-detail strong { color:var(--text-main); }
+        .supplier-brand-detail span { color:var(--text-muted); white-space:nowrap; }
+        .supplier-directory-filters { display:flex; flex-wrap:wrap; gap:.5rem; margin-bottom:.85rem; }
+        .supplier-directory-filters .search-filter-input { min-width:150px; flex:1 1 150px; }
+        .supplier-clustered-chart { margin:0 0 1rem; }
+        .supplier-chart-legend { display:flex; gap:1rem; color:var(--text-secondary); font-size:.72rem; margin:.65rem 0 .8rem; }
+        .supplier-chart-legend span::before { content:''; display:inline-block; width:9px; height:9px; border-radius:2px; margin-right:.35rem; background:var(--chart-color); }
+        .supplier-chart-row { display:grid; grid-template-columns:minmax(120px, .7fr) minmax(180px, 2fr) auto; gap:.6rem; align-items:center; margin:.55rem 0; font-size:.72rem; }
+        .supplier-chart-bars { display:grid; gap:.25rem; }
+        .supplier-chart-bar { height:8px; min-width:2px; border-radius:99px; background:var(--chart-color); }
+        .supplier-chart-values { color:var(--text-secondary); white-space:nowrap; }
+        .supplier-brand-button { width:100%; display:flex; justify-content:space-between; align-items:center; gap:.75rem; padding:.45rem .55rem; border:1px solid var(--border-light); border-radius:8px; color:var(--text-main); background:var(--bg-card); text-align:left; cursor:pointer; font-size:.76rem; }
+        .supplier-brand-button:hover { border-color:var(--accent-blue); background:var(--bg-hover); }
+        .supplier-brand-panel { margin-top:.75rem; padding:.75rem; border:1px solid var(--accent-blue); border-radius:10px; background:var(--bg-card); }
+        .supplier-brand-panel[hidden] { display:none; }
+        .supplier-brand-panel__grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:.55rem; }
+        .supplier-brand-panel__item { padding:.45rem; border:1px solid var(--border-color); border-radius:7px; }
+        .supplier-brand-panel__item small { display:block; color:var(--text-muted); font-size:.68rem; }
+        .supplier-brand-panel__item strong { display:block; overflow-wrap:anywhere; }
+        .supplier-brand-images { display:flex; flex-wrap:wrap; gap:.5rem; margin-top:.65rem; }
+        .supplier-brand-images img { width:72px; height:72px; object-fit:contain; border-radius:7px; border:1px solid var(--border-color); background:var(--bg-surface); }
+        .supplier-overview-header { display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; padding:1.15rem 1.25rem; border:1px solid var(--border-color); border-radius:14px; background:linear-gradient(135deg, rgba(37,99,235,.18), rgba(15,23,42,.12)); }
+        .supplier-overview-eyebrow { color:var(--accent-blue); font-size:.68rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase; margin-bottom:.35rem; }
+        .supplier-overview-summary { min-width:175px; padding:.75rem .9rem; border:1px solid rgba(147,197,253,.3); border-radius:10px; background:rgba(15,23,42,.34); text-align:right; }
+        .supplier-overview-summary-label { color:var(--text-secondary); font-size:.68rem; text-transform:uppercase; letter-spacing:.06em; }
+        .supplier-overview-summary-value { color:var(--text-main); font-size:1.65rem; font-weight:800; line-height:1.15; margin:.2rem 0; }
+        .supplier-overview-summary-note { color:var(--text-muted); font-size:.68rem; }
+        .supplier-directory-card { padding:1.15rem; }
+        .supplier-filter-heading { color:var(--text-main); font-size:.82rem; font-weight:700; }
+        .supplier-filter-help { color:var(--text-muted); font-size:.72rem; margin-top:.2rem; }
+        .supplier-filter-row { display:grid; grid-template-columns:minmax(260px,1.5fr) repeat(3,minmax(150px,1fr)); gap:.55rem; margin-top:.75rem; }
+        .supplier-filter-row .text-input-field, .supplier-filter-row .search-filter-input { width:100%; min-width:0; }
+        .supplier-card__header-content { min-width:0; flex:1; }
+        .supplier-card__badges { display:flex; flex-wrap:wrap; gap:.35rem; margin-top:.55rem; }
+        .supplier-card__brand-count, .supplier-card__record-count { display:inline-flex; align-items:center; padding:.22rem .48rem; border-radius:999px; font-size:.68rem; font-weight:700; }
+        .supplier-card__brand-count { color:#bfdbfe; background:rgba(37,99,235,.2); }
+        .supplier-card__record-count { color:#e9d5ff; background:rgba(168,85,247,.18); }
+        .supplier-card__category-list { display:flex; flex-wrap:wrap; gap:.3rem; margin:.2rem 0 .65rem; }
+        .supplier-category-badge { color:var(--text-secondary); border:1px solid var(--border-light); border-radius:999px; padding:.18rem .42rem; font-size:.66rem; }
+        .supplier-card__section { margin-top:.8rem; }
+        .supplier-card__section-title { display:flex; align-items:center; justify-content:space-between; gap:.5rem; color:var(--text-main); font-size:.74rem; font-weight:700; }
+        .supplier-card__section-title span:last-child { color:var(--text-muted); font-weight:500; }
+        .supplier-brand-panel__header { display:flex; align-items:flex-start; justify-content:space-between; gap:.75rem; padding-bottom:.55rem; border-bottom:1px solid var(--border-color); }
+        .supplier-brand-panel__header small { display:block; color:var(--accent-blue); font-size:.65rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; }
+        .supplier-brand-panel__header strong { display:block; margin-top:.15rem; }
+        .supplier-brand-panel__header > span { color:var(--text-muted); font-size:.7rem; white-space:nowrap; }
+        @media (max-width: 900px) { .supplier-filter-row { grid-template-columns:1fr 1fr; } .supplier-overview-header { flex-direction:column; } .supplier-overview-summary { width:100%; text-align:left; } }
+        @media (max-width: 560px) { .supplier-filter-row { grid-template-columns:1fr; } }
         .analytics-grid { display:grid; grid-template-columns: minmax(240px, .85fr) minmax(0, 1.5fr); gap: .85rem; }
         .upc-quality { display:flex; align-items:center; gap:1.25rem; min-height:190px; }
         .upc-pie { width:150px; height:150px; border-radius:50%; flex:0 0 auto; background: conic-gradient(var(--accent-emerald) 0deg, var(--accent-emerald) 0deg, var(--accent-rose) 0deg, var(--accent-rose) 360deg); box-shadow:0 0 0 1px var(--border-color); }
@@ -938,24 +981,72 @@
         .master-search-grid { display:grid; grid-template-columns:repeat(4, 1fr); gap:.6rem; margin:1rem 0; }
         .master-search-grid .btn-submit-send { min-height:40px; }
         .master-results { max-height:520px; overflow:auto; }
-        .master-brand-result-card { display:grid; grid-template-columns:96px minmax(0,1fr); gap:.85rem; align-items:start; margin-top:.8rem; padding:.8rem; border:1px solid var(--border-color); border-radius:10px; background:var(--bg-card); }
-        .master-brand-result-media { min-height:84px; display:grid; place-items:center; overflow:hidden; border-radius:8px; background:transparent; border:0; }
-        .master-brand-result-media img { width:84px; height:84px; object-fit:contain; display:block; cursor:zoom-in; transition:transform .2s ease, filter .2s ease; }
+        .master-brand-result-card { display:grid; grid-template-columns:96px minmax(0,1fr); gap:1rem; align-items:stretch; margin-top:.8rem; padding:.9rem; border:1px solid var(--border-color); border-radius:12px; background:linear-gradient(135deg, rgba(56,189,248,.08), var(--bg-card)); box-shadow:0 8px 24px rgba(2,6,23,.22); transition:transform .2s ease, border-color .2s ease, box-shadow .2s ease; }
+        .master-brand-result-card:hover { transform:translateY(-2px); border-color:rgba(56,189,248,.55); box-shadow:0 12px 30px rgba(2,6,23,.32); }
+        .master-brand-result-media { min-height:96px; display:grid; place-items:center; overflow:hidden; border-radius:10px; background:rgba(15,23,42,.46); border:1px solid var(--border-light); }
+        .master-brand-result-media img { width:92px; height:92px; object-fit:contain; display:block; cursor:zoom-in; transition:transform .2s ease, filter .2s ease; }
         .master-brand-result-media img:hover { transform:scale(1.12); filter:brightness(1.08); }
+        .master-brand-image-placeholder { width:84px; height:84px; display:grid; place-items:center; padding:.5rem; box-sizing:border-box; border:1px dashed var(--border-light); border-radius:8px; color:var(--text-muted); background:transparent; font-size:.7rem; text-align:center; }
         .master-brand-result-media:has(img:only-child) { min-height:84px; }
-        .master-brand-result-media:empty { display:none; }
-        .master-brand-result-card:has(.master-brand-result-media:empty) { display:block; }
         .master-brand-image-lightbox { position:fixed; inset:0; z-index:1000; display:grid; place-items:center; padding:2rem; background:rgba(2,6,23,.86); cursor:zoom-out; }
         .master-brand-image-lightbox[hidden] { display:none; }
-        .master-brand-image-lightbox img { max-width:min(90vw,720px); max-height:86vh; object-fit:contain; border:1px solid var(--border-color); border-radius:12px; background:var(--bg-card); box-shadow:0 20px 70px rgba(0,0,0,.45); cursor:default; }
+        .master-brand-image-lightbox img { max-width:min(90vw,720px); max-height:86vh; object-fit:contain; border:1px solid var(--border-color); border-radius:12px; background:transparent; box-shadow:0 20px 70px rgba(0,0,0,.45); cursor:default; transition:transform .25s ease; }
+        .master-brand-image-lightbox img:hover { transform:scale(1.16); }
         .master-brand-image-lightbox-close { position:absolute; top:1rem; right:1.25rem; width:2.5rem; height:2.5rem; border:1px solid var(--border-color); border-radius:50%; color:var(--text-main); background:var(--bg-card); font-size:1.8rem; line-height:1; cursor:pointer; }
         .master-brand-image-lightbox-close:hover { border-color:var(--accent-blue); color:var(--accent-blue); }
         body.master-brand-lightbox-open { overflow:hidden; }
+        @media (max-width: 760px) { .master-brand-result-card { grid-template-columns:1fr; } .master-brand-result-media { min-height:110px; } .master-brand-result-media img { width:104px; height:104px; } }
         .dashboard-number { font-size: 1.65rem; font-weight: 700; color: var(--text-main); }
         .dashboard-subtle { color: var(--text-muted); font-size: .8rem; }
         .dashboard-table { width: 100%; border-collapse: collapse; font-size: .84rem; }
         .dashboard-table th, .dashboard-table td { padding: .65rem .7rem; text-align: left; border-bottom: 1px solid var(--border-color); }
         .dashboard-table th { color: var(--text-secondary); font-weight: 600; }
+        .trained-summary-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:.65rem; margin:1rem 0; }
+        .trained-summary-card { background:var(--bg-card); border:1px solid var(--border-color); border-radius:10px; padding:.8rem; }
+        .trained-summary-card strong { display:block; font-size:1.35rem; color:var(--text-main); }
+        .trained-summary-card span { color:var(--text-secondary); font-size:.72rem; }
+        .trained-filter-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:.55rem; margin:1rem 0; }
+        .trained-filter-grid .text-input-field, .trained-filter-grid .search-filter-input { min-width:0; }
+        .trained-filter-checks { display:flex; flex-wrap:wrap; align-items:center; gap:.6rem; color:var(--text-secondary); font-size:.76rem; }
+        .trained-chart-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.75rem; margin:1rem 0; }
+        .trained-chart-card { min-height:220px; }
+        .trained-chart-card h3 { margin:0 0 .7rem; }
+        .trained-donut-layout { display:flex; align-items:center; gap:1rem; min-height:150px; }
+        .trained-donut { width:138px; height:138px; flex:0 0 auto; border-radius:50%; position:relative; display:grid; place-items:center; }
+        .trained-donut::after { content:''; width:72px; height:72px; border-radius:50%; background:var(--bg-card); position:absolute; }
+        .trained-donut-label { position:relative; z-index:1; color:var(--text-main); font-weight:700; font-size:.85rem; text-align:center; }
+        .trained-chart-legend { display:grid; gap:.3rem; font-size:.72rem; color:var(--text-secondary); max-height:170px; overflow:auto; }
+        .trained-chart-legend div { display:flex; justify-content:space-between; gap:.75rem; }
+        .trained-bar-list { display:grid; gap:.48rem; }
+        .trained-bar-row { display:grid; grid-template-columns:minmax(90px,.8fr) minmax(100px,2fr) auto; gap:.5rem; align-items:center; font-size:.72rem; color:var(--text-secondary); }
+        .trained-bar-track { height:9px; border-radius:99px; background:var(--bg-hover); overflow:hidden; }
+        .trained-bar-fill { height:100%; border-radius:inherit; background:linear-gradient(90deg,var(--accent-blue),var(--accent-purple)); }
+        .trained-category-visual { display:inline-grid; place-items:center; width:31px; height:31px; margin-right:.35rem; border-radius:8px; background:rgba(56,189,248,.1); font-size:1.05rem; vertical-align:middle; }
+        .trained-data-shell { position:relative; }
+        .trained-table-controls { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:.6rem; margin:.8rem 0; }
+        .untrained-summary-strip { display:flex; flex-wrap:wrap; gap:.55rem; margin:1rem 0; padding:.7rem; border:1px solid var(--border-color); border-radius:10px; background:var(--bg-card); }
+        .untrained-summary-item { flex:1 1 150px; padding:.35rem .65rem; border-right:1px solid var(--border-color); }
+        .untrained-summary-item:last-child { border-right:0; }
+        .untrained-summary-item strong { display:block; font-size:1.15rem; color:var(--text-main); }
+        .untrained-summary-item span { color:var(--text-secondary); font-size:.7rem; }
+        .trained-table-scroll { overflow:auto; max-height:600px; }
+        .trained-data-table { min-width:1120px; }
+        .trained-data-table th { position:sticky; top:0; z-index:1; background:var(--bg-card); cursor:pointer; }
+        .trained-data-table td { vertical-align:middle; }
+        .trained-row-thumb { width:38px; height:38px; object-fit:contain; border-radius:6px; background:transparent; cursor:zoom-in; }
+        .trained-detail-panel { position:fixed; top:0; right:0; width:min(560px,95vw); height:100vh; z-index:900; overflow:auto; padding:1.2rem; background:var(--bg-card); border-left:1px solid var(--border-color); box-shadow:-20px 0 60px rgba(0,0,0,.35); }
+        .trained-detail-panel[hidden] { display:none; }
+        .trained-detail-close { float:right; border:1px solid var(--border-color); background:transparent; color:var(--text-main); border-radius:50%; width:32px; height:32px; cursor:pointer; }
+        .trained-detail-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.55rem; clear:both; margin-top:1rem; }
+        .trained-detail-item { padding:.55rem; border:1px solid var(--border-color); border-radius:8px; }
+        .trained-detail-item small { display:block; color:var(--text-muted); font-size:.68rem; }
+        .trained-detail-item strong { display:block; overflow-wrap:anywhere; }
+        .trained-gallery { display:flex; flex-wrap:wrap; gap:.55rem; margin-top:.75rem; }
+        .trained-gallery img { width:88px; height:88px; object-fit:contain; border:1px solid var(--border-color); border-radius:8px; background:transparent; cursor:zoom-in; }
+        .trained-column-menu { display:flex; flex-wrap:wrap; gap:.45rem; max-width:480px; color:var(--text-secondary); font-size:.72rem; }
+        .trained-column-menu label { white-space:nowrap; }
+        @media (max-width:900px) { .trained-summary-grid { grid-template-columns:repeat(2,1fr); } .trained-filter-grid { grid-template-columns:repeat(2,1fr); } .trained-chart-grid { grid-template-columns:1fr; } }
+        @media (max-width:560px) { .trained-filter-grid { grid-template-columns:1fr; } .trained-summary-grid { grid-template-columns:1fr 1fr; } .trained-detail-grid { grid-template-columns:1fr; } }
         .upload-preview { display: none; align-items: center; gap: .6rem; margin-top: .45rem; color: var(--text-secondary); font-size: .8rem; }
         .upload-preview img { width: 52px; height: 52px; object-fit: cover; border-radius: 7px; border: 1px solid var(--border-color); }
 
@@ -980,10 +1071,6 @@
             .dashboard-kpis, .category-kpi-grid, .master-summary-grid { grid-template-columns: repeat(2, 1fr); }
             .analytics-grid { grid-template-columns: 1fr; }
             .master-search-grid { grid-template-columns: 1fr 1fr; }
-            .dashboard-chart-toolbar { align-items:flex-start; }
-            .dashboard-chart-controls { flex:1 1 100%; display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); }
-            .dashboard-chart-btn { text-align:center; }
-            .dashboard-floating-assistant { right:.8rem; bottom:.8rem; }
         }
 
         html[data-theme="light"] body {
@@ -1151,17 +1238,23 @@
 
     <!-- Nav Tabs -->
     <div class="nav-tabs-wrapper">
-        <button class="nav-tab-btn active" onclick="switchTab('dashboard', this)">
+        <button class="nav-tab-btn" onclick="switchTab('dashboard', this)">
             Dashboard
         </button>
-        <button class="nav-tab-btn" onclick="switchTab('chat', this)">
+        <button class="nav-tab-btn" onclick="switchTab('supplier-overview', this)">
+            Supplier Overview
+        </button>
+        <button class="nav-tab-btn active" onclick="switchTab('chat', this)">
             💬 AI Assistant
         </button>
         <button class="nav-tab-btn" onclick="switchTab('master-brands', this)">
             Master Brands
         </button>
-        <button class="nav-tab-btn" onclick="switchTab('suppliers', this); loadSupplierDashboard()">
-            Supplier Overview
+        <button class="nav-tab-btn" onclick="switchTab('trained-dataset', this)">
+            Trained Dataset
+        </button>
+        <button class="nav-tab-btn" onclick="switchTab('untrained-dataset', this)">
+            Untrained Dataset
         </button>
         <button class="nav-tab-btn" onclick="switchTab('comparison', this)">
             ⚖️ Comparison Studio
@@ -1174,8 +1267,8 @@
     <!-- Main Content Area -->
     <div class="main-content">
 
-        <!-- AI ASSISTANT PANEL -->
-        <div id="tab-chat" class="tab-panel">
+        <!-- TAB 1: AI CHAT ASSISTANT -->
+        <div id="tab-chat" class="tab-panel active">
             <!-- Quick Prompts Bar -->
             <div class="quick-prompts-bar">
                 <span class="prompt-label">⚡ Quick Queries:</span>
@@ -1245,32 +1338,31 @@
             </div>
         </div>
 
-        <!-- BUSINESS DASHBOARD PANEL -->
-        <div id="tab-dashboard" class="tab-panel active">
+        <!-- TAB 2: BUSINESS DASHBOARD -->
+        <div id="tab-dashboard" class="tab-panel">
             <div class="dashboard-grid">
                 <div>
                     <div class="studio-title">Beverage Dashboard</div>
                 </div>
-                <div class="dashboard-card dashboard-chart-card">
+                <div class="dashboard-card">
                     <div class="dashboard-chart-toolbar">
                         <div>
-                            <h3 style="margin:0;">Explore your dashboard</h3>
+                            <h3 style="margin:0;">Dashboard visual view</h3>
                             <div class="dashboard-subtle">Use the same live data as a chart or heatmap</div>
                         </div>
                         <div id="dashboard-chart-controls" class="dashboard-chart-controls" role="group" aria-label="Dashboard chart type">
-                            <button class="dashboard-chart-btn active" type="button" data-dashboard-chart="overview" aria-pressed="true" onclick="setDashboardChart('overview', this)">Overview</button>
-                            <button class="dashboard-chart-btn" type="button" data-dashboard-chart="pie" aria-pressed="false" onclick="setDashboardChart('pie', this)">Pie Chart</button>
-                            <button class="dashboard-chart-btn" type="button" data-dashboard-chart="bar" aria-pressed="false" onclick="setDashboardChart('bar', this)">Bar Graph</button>
-                            <button class="dashboard-chart-btn" type="button" data-dashboard-chart="heatmap" aria-pressed="false" onclick="setDashboardChart('heatmap', this)">Heatmap</button>
+                            <button class="dashboard-chart-btn active" type="button" data-dashboard-chart="overview" onclick="setDashboardChart('overview', this)">Overview</button>
+                            <button class="dashboard-chart-btn" type="button" data-dashboard-chart="pie" onclick="setDashboardChart('pie', this)">Pie Chart</button>
+                            <button class="dashboard-chart-btn" type="button" data-dashboard-chart="bar" onclick="setDashboardChart('bar', this)">Bar Graph</button>
+                            <button class="dashboard-chart-btn" type="button" data-dashboard-chart="heatmap" onclick="setDashboardChart('heatmap', this)">Heatmap</button>
                         </div>
                         <div class="dashboard-display-controls" role="group" aria-label="Dashboard value format">
-                            <button class="dashboard-display-btn active" type="button" data-dashboard-display="count" aria-pressed="true" onclick="setDashboardDisplayMode('count', this)">Count</button>
-                            <button class="dashboard-display-btn" type="button" data-dashboard-display="percentage" aria-pressed="false" onclick="setDashboardDisplayMode('percentage', this)">Percentage</button>
+                            <button class="dashboard-display-btn active" type="button" data-dashboard-display="count" onclick="setDashboardDisplayMode('count', this)">Count</button>
+                            <button class="dashboard-display-btn" type="button" data-dashboard-display="percentage" onclick="setDashboardDisplayMode('percentage', this)">Percentage</button>
                         </div>
                     </div>
                     <div id="dashboard-visualization" class="dashboard-visualization" aria-live="polite"><div class="dashboard-visualization-empty">Open Dashboard to load chart data.</div></div>
                 </div>
-                <button id="dashboard-floating-assistant" class="dashboard-floating-assistant" type="button" onclick="openDashboardAssistant()"><span>💬 AI Assistant</span></button>
                 <div id="dashboard-error" class="dashboard-card" style="display:none; color:#fda4af;"></div>
                 <div class="dashboard-kpis">
                     <div class="dashboard-card"><h3>Total records</h3><div class="dashboard-number" id="dashboard-total-records">—</div></div>
@@ -1319,14 +1411,6 @@
                         <div class="master-summary-item"><strong id="dashboard-master-without-upc">—</strong><span>Records without UPC</span></div>
                     </div>
                 </div>
-                <div class="dashboard-card" id="supplier-directory-card">
-                    <div class="supplier-directory-toolbar">
-                        <div><h3 style="margin:0;">Supplier Directory</h3><div class="dashboard-subtle">Master Brand suppliers and their related brands/products</div></div>
-                        <div class="dashboard-number" id="dashboard-supplier-total">—</div>
-                    </div>
-                    <input class="text-input-field supplier-directory-search" id="dashboard-supplier-search" type="search" placeholder="Search supplier name..." aria-label="Search suppliers" oninput="filterSupplierCards(this.value)">
-                    <div id="dashboard-supplier-directory" class="supplier-directory-grid" aria-live="polite"><div class="dashboard-subtle">Open Dashboard to load suppliers.</div></div>
-                </div>
                 <div class="dashboard-card">
                     <div style="display:flex; justify-content:space-between; align-items:center; gap:.75rem; margin-bottom:.6rem;">
                         <div><h3 style="margin:0;">Dataset health</h3><div class="dashboard-subtle">Counts from the active database</div><div class="dashboard-subtle" id="dashboard-refresh-time">Last refreshed: —</div></div>
@@ -1346,299 +1430,47 @@
             </div>
         </div>
 
-        <!-- SUPPLIER DASHBOARD -->
-        <div id="tab-suppliers" class="tab-panel">
-            <div class="supplier-dashboard">
-                <div class="supplier-dashboard__heading">
+        <!-- SUPPLIER OVERVIEW -->
+        <div id="tab-supplier-overview" class="tab-panel">
+            <div class="dashboard-grid">
+                <div class="supplier-overview-header">
                     <div>
+                        <div class="supplier-overview-eyebrow">Supplier intelligence</div>
                         <div class="studio-title">Supplier Overview</div>
-                        <div class="studio-subtitle">Explore suppliers and deduplicated brands across MasterData and AllBrand, with trained brand details.</div>
+                        <div class="studio-subtitle">Explore each supplier's brand portfolio, categories, and Master Brand coverage.</div>
                     </div>
-                    <div class="supplier-dashboard__total-card">
-                        <span>Total suppliers</span>
-                        <strong id="supplier-dashboard-total">—</strong>
+                    <div class="supplier-overview-summary" id="supplier-overview-total-suppliers-card">
+                        <div class="supplier-overview-summary-label">Total Suppliers</div>
+                        <div class="supplier-overview-summary-value" id="supplier-overview-total-suppliers">—</div>
+                        <div class="supplier-overview-summary-note">Source: AllMasterBrands</div>
                     </div>
                 </div>
-                <div class="dashboard-card supplier-dashboard__content">
-                    <div class="supplier-dashboard__filters">
-                        <div class="supplier-dashboard__filter-group">
-                            <label class="supplier-dashboard__search-label" for="supplier-dashboard-search">Search</label>
-                            <input class="text-input-field supplier-dashboard__search" id="supplier-dashboard-search" type="search" placeholder="Supplier name/code, brand name or brand ID..." autocomplete="off">
-                        </div>
-                        <div class="supplier-dashboard__filter-group">
-                            <label class="supplier-dashboard__filter-label" for="supplier-dashboard-category">Category</label>
-                            <select class="text-input-field supplier-dashboard__filter" id="supplier-dashboard-category">
-                                <option value="">All categories</option><option>Beer</option><option>Wine</option><option>Spirits</option><option>Non Alcoholic</option><option>Uncategorized</option>
-                            </select>
-                        </div>
-                        <div class="supplier-dashboard__filter-group">
-                            <label class="supplier-dashboard__filter-label" for="supplier-dashboard-supplier">Supplier</label>
-                            <input class="text-input-field supplier-dashboard__filter" id="supplier-dashboard-supplier" type="search" placeholder="Filter supplier name/code..." autocomplete="off">
-                        </div>
-                        <div class="supplier-dashboard__filter-group">
-                            <label class="supplier-dashboard__filter-label" for="supplier-dashboard-status">Status</label>
-                            <select class="text-input-field supplier-dashboard__filter" id="supplier-dashboard-status">
-                                <option value="">All statuses</option><option>Active</option><option>Inactive</option><option>Unknown</option>
-                            </select>
-                        </div>
-                        <div class="supplier-dashboard__filter-group">
-                            <label class="supplier-dashboard__filter-label" for="supplier-dashboard-sort">Sort by</label>
-                            <select class="text-input-field supplier-dashboard__filter" id="supplier-dashboard-sort">
-                                <option value="name">Supplier name</option><option value="highest">Most brands</option><option value="lowest">Fewest brands</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div id="supplier-dashboard-summary" class="dashboard-subtle" aria-live="polite">Open Supplier Overview to load live data.</div>
-                    <div id="supplier-dashboard-results" class="supplier-dashboard__results" aria-live="polite"></div>
+                <div class="dashboard-card supplier-clustered-chart" id="supplier-overview-clustered-chart">
+                    <h3 style="margin:0;">Supplier scale at a glance</h3>
+                    <div class="dashboard-subtle">Compare unique brands with the total records stored for each supplier.</div>
+                    <div class="supplier-chart-legend"><span style="--chart-color:var(--accent-blue);">Unique Brands</span><span style="--chart-color:var(--accent-purple);">Master Brand Records</span></div>
+                    <div id="supplier-overview-clustered-chart-body" class="dashboard-subtle">Open Supplier Overview to load chart.</div>
                 </div>
-                <dialog class="supplier-brand-dialog" id="supplier-brand-dialog" aria-labelledby="supplier-brand-dialog-title">
-                    <div class="supplier-brand-dialog__heading">
-                        <h2 id="supplier-brand-dialog-title">Brand details</h2>
-                        <button class="btn-secondary" id="supplier-brand-dialog-close" type="button" aria-label="Close brand details">Close</button>
+                <div class="dashboard-card supplier-directory-card" id="supplier-directory-card">
+                    <div class="supplier-directory-toolbar">
+                        <div><h3 style="margin:0;">Supplier directory</h3><div class="dashboard-subtle">Select a supplier to see its complete brand portfolio.</div></div>
+                        <div class="dashboard-number" id="dashboard-supplier-total">—</div>
                     </div>
-                    <div id="supplier-brand-dialog-content" class="supplier-brand-dialog__content"></div>
-                </dialog>
+                    <div class="supplier-filter-heading">Find a supplier or brand</div>
+                    <div class="supplier-filter-help">Search by supplier, supplier code, brand name, brand code, or class ID.</div>
+                    <div class="supplier-filter-row" aria-label="Supplier filters">
+                        <input class="text-input-field" id="dashboard-supplier-search" type="search" placeholder="Search suppliers, brands, codes..." aria-label="Search suppliers, codes, brands or IDs" oninput="filterSupplierCards(this.value)">
+                        <select class="search-filter-input" id="dashboard-supplier-category-filter" aria-label="Filter supplier brands by category" onchange="filterSupplierDirectory()">
+                            <option value="">All categories</option><option>Beer</option><option>Wine</option><option>Spirits</option><option>Non Alcoholic</option>
+                        </select>
+                        <select class="search-filter-input" id="dashboard-supplier-filter" aria-label="Filter by supplier"><option value="">All suppliers</option></select>
+                        <select class="search-filter-input" id="dashboard-supplier-status-filter" aria-label="Filter by status" onchange="filterSupplierDirectory()"><option value="">All statuses</option></select>
+                        <select class="search-filter-input" id="dashboard-supplier-sort" aria-label="Sort suppliers by brand count" onchange="filterSupplierDirectory()"><option value="">Sort: default</option><option value="brand_desc">Most brands</option><option value="brand_asc">Fewest brands</option></select>
+                    </div>
+                    <div id="dashboard-supplier-directory" class="supplier-directory-grid" aria-live="polite"><div class="dashboard-subtle">Open Supplier Overview to load suppliers.</div></div>
+                    <div id="dashboard-supplier-visible-total" class="dashboard-subtle" style="margin-top:.75rem;"></div>
+                </div>
             </div>
-            <style>
-                #tab-suppliers .supplier-dashboard { display:grid; gap:1rem; }
-                #tab-suppliers .supplier-dashboard__heading { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:1rem; }
-                #tab-suppliers .supplier-dashboard__total-card { min-width:155px; padding:.8rem 1rem; border:1px solid var(--border-color); border-radius:12px; background:linear-gradient(135deg,rgba(37,99,235,.16),rgba(14,165,233,.07)); }
-                #tab-suppliers .supplier-dashboard__total-card span { display:block; color:var(--text-secondary); font-size:.78rem; }
-                #tab-suppliers .supplier-dashboard__total-card strong { display:block; margin-top:.15rem; color:var(--text-main); font-size:1.55rem; }
-                #tab-suppliers .supplier-dashboard__content { padding:1.1rem; }
-                #tab-suppliers .supplier-dashboard__search-label { display:block; margin-bottom:.4rem; color:var(--text-secondary); font-size:.8rem; font-weight:600; }
-                #tab-suppliers .supplier-dashboard__filters { display:grid; grid-template-columns:minmax(240px,2fr) repeat(4,minmax(145px,1fr)); align-items:end; gap:.65rem; margin-bottom:.8rem; }
-                #tab-suppliers .supplier-dashboard__filter-group { min-width:0; }
-                #tab-suppliers .supplier-dashboard__search, #tab-suppliers .supplier-dashboard__filter { width:100%; min-width:0; }
-                #tab-suppliers .supplier-dashboard__filter-label { display:block; margin-bottom:.4rem; color:var(--text-secondary); font-size:.8rem; font-weight:600; }
-                #tab-suppliers .supplier-dashboard__results { display:grid; gap:.8rem; margin-top:.8rem; }
-                #tab-suppliers .supplier-dashboard__table-wrap { max-height:68vh; overflow:auto; border:1px solid var(--border-color); border-radius:10px; }
-                #tab-suppliers .supplier-dashboard__table { width:100%; border-collapse:collapse; }
-                #tab-suppliers .supplier-dashboard__table th { position:sticky; top:0; z-index:1; padding:.65rem .8rem; color:var(--text-secondary); background:var(--bg-card); text-align:left; font-size:.76rem; }
-                #tab-suppliers .supplier-dashboard__table td { padding:.3rem .6rem; border-top:1px solid var(--border-color); }
-                #tab-suppliers .supplier-dashboard__table td:last-child, #tab-suppliers .supplier-dashboard__table th:last-child { text-align:right; }
-                #tab-suppliers .supplier-dashboard__supplier-button { display:block; width:100%; padding:.35rem .2rem; border:0; color:var(--text-main); background:transparent; text-align:left; cursor:pointer; }
-                #tab-suppliers .supplier-dashboard__supplier-button:hover { color:var(--accent-blue); }
-                #tab-suppliers .supplier-dashboard__supplier-name { font-weight:700; }
-                #tab-suppliers .supplier-dashboard__supplier-code { display:block; color:var(--text-muted); font-size:.72rem; }
-                #tab-suppliers .supplier-dashboard__brand-panel { border:1px solid var(--border-color); border-radius:10px; padding:.75rem; background:var(--bg-surface); }
-                #tab-suppliers .supplier-dashboard__brand-heading { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:.5rem; margin-bottom:.6rem; }
-                #tab-suppliers .supplier-dashboard__brand-list { display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:.45rem; }
-                #tab-suppliers .supplier-dashboard__brand-button { display:flex; justify-content:space-between; align-items:center; gap:.5rem; width:100%; min-width:0; padding:.65rem; border:1px solid var(--border-color); border-radius:8px; color:var(--text-main); background:var(--bg-card); text-align:left; cursor:pointer; }
-                #tab-suppliers .supplier-dashboard__brand-button:hover { border-color:var(--accent-blue); background:var(--bg-hover); }
-                #tab-suppliers .supplier-dashboard__brand-button span:first-child { overflow:hidden; text-overflow:ellipsis; }
-                #tab-suppliers .supplier-dashboard__brand-meta { display:block; color:var(--text-muted); font-size:.7rem; }
-                #tab-suppliers .supplier-dashboard__empty { padding:1rem; color:var(--text-muted); text-align:center; }
-                #tab-suppliers .supplier-dashboard__category-image { width:2.4rem; height:2.4rem; padding:.35rem; border-radius:50%; color:var(--accent-blue); background:var(--bg-hover); vertical-align:middle; }
-                #tab-suppliers .supplier-brand-dialog { width:min(900px,calc(100vw - 2rem)); max-height:90vh; overflow:auto; padding:1.1rem; border:1px solid var(--border-color); border-radius:14px; color:var(--text-main); background:var(--bg-card); box-shadow:0 24px 80px rgba(0,0,0,.4); }
-                #tab-suppliers .supplier-brand-dialog::backdrop { background:rgba(2,6,23,.72); }
-                #tab-suppliers .supplier-brand-dialog__heading { display:flex; justify-content:space-between; align-items:center; gap:1rem; position:sticky; top:-1.1rem; z-index:1; padding:.25rem 0 .75rem; background:var(--bg-card); border-bottom:1px solid var(--border-color); }
-                #tab-suppliers .supplier-brand-dialog__heading h2 { margin:0; font-size:1.1rem; }
-                #tab-suppliers .supplier-brand-dialog__content { padding-top:.9rem; }
-                #tab-suppliers .supplier-brand-dialog__facts { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:.55rem; }
-                #tab-suppliers .supplier-brand-dialog__fact { padding:.65rem; border:1px solid var(--border-color); border-radius:8px; background:var(--bg-surface); }
-                #tab-suppliers .supplier-brand-dialog__fact span { display:block; margin-bottom:.2rem; color:var(--text-muted); font-size:.72rem; }
-                #tab-suppliers .supplier-brand-dialog__images { display:grid; grid-template-columns:repeat(auto-fill,minmax(135px,1fr)); gap:.6rem; margin-top:.75rem; }
-                #tab-suppliers .supplier-brand-dialog__images img { width:100%; height:130px; object-fit:contain; padding:.4rem; border:1px solid var(--border-color); border-radius:8px; background:var(--bg-surface); cursor:zoom-in; }
-                #tab-suppliers .supplier-brand-dialog__products { margin-top:.9rem; color:var(--text-secondary); font-size:.8rem; }
-                @media (max-width:640px) {
-                    #tab-suppliers .supplier-dashboard__filters { grid-template-columns:1fr 1fr; }
-                    #tab-suppliers .supplier-dashboard__filter-group:first-child { grid-column:1 / -1; }
-                    #tab-suppliers .supplier-dashboard__table th, #tab-suppliers .supplier-dashboard__table td { padding:.5rem; }
-                }
-            </style>
-            <script>
-                let supplierDashboardData = null;
-                let supplierDashboardRequestId = 0;
-                let supplierDashboardSearchTimer = null;
-                let supplierBrandDetailsRequestId = 0;
-                const supplierBrandCache = new Map();
-
-                function supplierDashboardParams(includeSupplier = false) {
-                    const params = new URLSearchParams({
-                        q: document.getElementById('supplier-dashboard-search').value.trim(),
-                        category: document.getElementById('supplier-dashboard-category').value,
-                        status: document.getElementById('supplier-dashboard-status').value,
-                        sort: document.getElementById('supplier-dashboard-sort').value
-                    });
-                    if (includeSupplier) params.set('supplier', document.getElementById('supplier-dashboard-supplier').value);
-                    return params;
-                }
-
-                async function loadSupplierDashboard() {
-                    const results = document.getElementById('supplier-dashboard-results');
-                    const summary = document.getElementById('supplier-dashboard-summary');
-                    const requestId = ++supplierDashboardRequestId;
-                    summary.textContent = 'Loading supplier and brand counts...';
-                    const request = fetch(`/api/suppliers/overview?${supplierDashboardParams(true)}`)
-                        .then(async response => {
-                            const data = await response.json();
-                            if (!response.ok) throw new Error(data.error || 'Unable to load supplier overview.');
-                            if (requestId !== supplierDashboardRequestId) return;
-                            supplierDashboardData = data;
-                            document.getElementById('supplier-dashboard-total').textContent = Number(data.total_suppliers || 0).toLocaleString();
-                            renderSupplierDashboard();
-                        })
-                        .catch(error => {
-                            if (requestId !== supplierDashboardRequestId) return;
-                            summary.textContent = `Unable to load supplier data: ${error.message}`;
-                            results.innerHTML = '';
-                        });
-                    return request;
-                }
-
-                function renderSupplierDashboard() {
-                    if (!supplierDashboardData) return;
-                    const suppliers = supplierDashboardData.suppliers || [];
-                    const results = document.getElementById('supplier-dashboard-results');
-                    document.getElementById('supplier-dashboard-summary').textContent =
-                        `${Number(supplierDashboardData.filtered_suppliers || 0).toLocaleString()} matching suppliers · ${Number(supplierDashboardData.total_brands || 0).toLocaleString()} total brands across ${Number(supplierDashboardData.total_suppliers || 0).toLocaleString()} suppliers`;
-                    if (!suppliers.length) {
-                        results.innerHTML = '<div class="supplier-dashboard__empty">No suppliers or brands match these filters.</div>';
-                        return;
-                    }
-                    results.innerHTML = `<div class="supplier-dashboard__table-wrap"><table class="supplier-dashboard__table">
-                        <thead><tr><th>Supplier</th><th>Total brands</th></tr></thead>
-                        <tbody>${suppliers.map(supplier => `
-                            <tr><td><button class="supplier-dashboard__supplier-button" type="button" data-supplier-select data-supplier-key="${escapeHtml(supplier.supplier_key)}">
-                                <span class="supplier-dashboard__supplier-name">${escapeHtml(supplier.supplier || 'NA')}</span>
-                                <span class="supplier-dashboard__supplier-code">Supplier code ${escapeHtml(supplier.supplier_code || 'unavailable')}</span>
-                            </button></td><td>${Number(supplier.brand_count || 0).toLocaleString()}${supplier.brand_count !== supplier.total_brand_count ? ` <span class="dashboard-subtle">(${Number(supplier.total_brand_count || 0).toLocaleString()} total)</span>` : ''}</td></tr>
-                        `).join('')}</tbody>
-                    </table></div><section class="supplier-dashboard__brand-panel" id="supplier-dashboard-selected" hidden></section>`;
-                }
-
-                function refreshSupplierDashboard() {
-                    clearTimeout(supplierDashboardSearchTimer);
-                    supplierDashboardSearchTimer = setTimeout(() => {
-                        supplierBrandCache.clear();
-                        loadSupplierDashboard();
-                    }, 250);
-                }
-
-                async function loadSupplierBrands(supplierButton) {
-                    const supplierKey = supplierButton.dataset.supplierKey;
-                    const panel = document.getElementById('supplier-dashboard-selected');
-                    panel.hidden = false;
-                    if (supplierBrandCache.has(supplierKey)) {
-                        renderSupplierBrands(supplierBrandCache.get(supplierKey), supplierKey);
-                        return;
-                    }
-                    panel.innerHTML = '<div class="supplier-dashboard__empty">Loading brands...</div>';
-                    const params = supplierDashboardParams();
-                    params.set('supplier_key', supplierKey);
-                    const requestId = supplierDashboardRequestId;
-                    try {
-                        const response = await fetch(`/api/suppliers/brands?${params}`);
-                        const data = await response.json();
-                        if (!response.ok) throw new Error(data.error || 'Unable to load supplier brands.');
-                        if (requestId !== supplierDashboardRequestId) return;
-                        supplierBrandCache.set(supplierKey, data);
-                        renderSupplierBrands(data, supplierKey);
-                    } catch (error) {
-                        if (requestId === supplierDashboardRequestId) {
-                            panel.innerHTML = `<div class="supplier-dashboard__empty">${escapeHtml(error.message)}</div>`;
-                        }
-                    }
-                }
-
-                function renderSupplierBrands(data, supplierKey) {
-                    const panel = document.getElementById('supplier-dashboard-selected');
-                    panel.hidden = false;
-                    const brands = data.brands || [];
-                    panel.innerHTML = `<div class="supplier-dashboard__brand-heading"><strong>${Number(data.brand_count || 0).toLocaleString()} brands for ${escapeHtml(data.supplier || 'NA')}</strong><span class="dashboard-subtle">${Number(data.total_brand_count || 0).toLocaleString()} total associated brands</span><button class="btn-secondary" type="button" data-close-supplier-brands>Close</button></div>
-                        ${brands.length ? `<div class="supplier-dashboard__brand-list">${brands.map((brand, index) => `
-                            <button class="supplier-dashboard__brand-button" type="button" data-brand-index="${index}" data-supplier-key="${escapeHtml(supplierKey)}">
-                                <span>${escapeHtml(brand.brand_name || 'Unnamed brand')}<span class="supplier-dashboard__brand-meta">${escapeHtml(brand.brand_code || 'No brand code')} · ${escapeHtml(brand.category || 'Uncategorized')}</span></span>
-                                <span aria-hidden="true">›</span>
-                            </button>`).join('')}</div>` : '<div class="supplier-dashboard__empty">No brands match the selected search and filters.</div>'}`;
-                    supplierBrandCache.set(supplierKey, { ...data, brands });
-                }
-
-                function supplierCategoryImage(category) {
-                    const categoryKey = String(category || '').toLowerCase();
-                    const shapes = {
-                        beer: '<path d="M8 4h8l-1 16H9L8 4zm8 4h2a2 2 0 1 1 0 4h-2M7 2h10"/>',
-                        wine: '<path d="M8 3h8v4a4 4 0 0 1-8 0V3zm4 8v7m-4 3h8m-7-8 3 2 3-2"/>',
-                        spirits: '<path d="M10 3h4v4l2 2v10H8V9l2-2V3zm-2 9h8"/>',
-                        "non alcoholic": '<path d="M7 5h10l-1 15H8L7 5zm2-3h6m-2 3 2-3"/>'
-                    };
-                    const icon = shapes[categoryKey] || '<circle cx="12" cy="12" r="8"/><path d="M8 12h8"/>';
-                    return `<svg class="supplier-dashboard__category-image" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="${escapeHtml(category || 'Uncategorized')} category image">${icon}</svg>`;
-                }
-
-                async function showSupplierBrandDetails(brand, supplier) {
-                    const dialog = document.getElementById('supplier-brand-dialog');
-                    const content = document.getElementById('supplier-brand-dialog-content');
-                    content.innerHTML = '<div class="supplier-dashboard__empty">Loading brand details...</div>';
-                    document.getElementById('supplier-brand-dialog-title').textContent = brand.brand_name || 'Brand details';
-                    dialog.showModal();
-                    const requestId = ++supplierBrandDetailsRequestId;
-                    const params = new URLSearchParams({
-                        supplier_code: supplier.supplier_code || '',
-                        supplier_name: supplier.supplier_name || '',
-                        brand_code: brand.brand_code || '',
-                        brand_name: brand.brand_name || ''
-                    });
-                    try {
-                        const response = await fetch(`/api/suppliers/brand-details?${params}`);
-                        const data = await response.json();
-                        if (!response.ok) throw new Error(data.error || 'Unable to load brand details.');
-                        if (requestId !== supplierBrandDetailsRequestId) return;
-                        const facts = [
-                            ['Brand Name', data.brand_name], ['Brand ID', data.brand_id],
-                            ['Class ID', data.class_id], ['MasterData ID', data.master_id],
-                            ['Brand Code', data.brand_code], ['Category', data.category],
-                            ['Supplier Name', data.supplier], ['Supplier Code', data.supplier_code],
-                            ['SKU', data.sku], ['Image Count', data.image_count],
-                            ['Model Name', data.model_name], ['Model ID', data.model_id],
-                            ['Status', data.status]
-                        ];
-                        content.innerHTML = `<div class="supplier-brand-dialog__facts">${facts.map(([label, value]) => `
-                            <div class="supplier-brand-dialog__fact"><span>${escapeHtml(label)}</span>${label === 'Category' ? `${supplierCategoryImage(value)} ` : ''}<strong>${escapeHtml(value || 'Not available')}</strong></div>`).join('')}</div>
-                            <h3>Available brand/product images (${Number((data.images || []).length).toLocaleString()})</h3>
-                            ${(data.images || []).length ? `<div class="supplier-brand-dialog__images">${data.images.map((url, index) => `<img src="${escapeHtml(url)}" alt="${escapeHtml(data.brand_name)} image ${index + 1}" loading="lazy" onclick="openMasterBrandImage(this.src, this.alt)" onerror="this.remove()">`).join('')}</div>` : '<div class="supplier-dashboard__empty">No brand or product images are available in the source data.</div>'}
-                            <div class="supplier-brand-dialog__products"><strong>AIMasterBrandData products:</strong> ${(data.products || []).map(product => `${escapeHtml(product.product_name || 'Unnamed product')} (UPC: ${escapeHtml(product.upc || 'Unavailable')})`).join(' · ') || 'No product rows available.'}</div>`;
-                    } catch (error) {
-                        if (requestId === supplierBrandDetailsRequestId) {
-                            content.innerHTML = `<div class="supplier-dashboard__empty">${escapeHtml(error.message)}</div>`;
-                        }
-                    }
-                }
-
-                document.getElementById('supplier-dashboard-results').addEventListener('toggle', event => {
-                    const card = event.target;
-                    if (card.matches('.supplier-dashboard__supplier') && card.open) loadSupplierBrands(card);
-                }, true);
-                document.getElementById('supplier-dashboard-results').addEventListener('click', event => {
-                    const supplierButton = event.target.closest('[data-supplier-select]');
-                    if (supplierButton) {
-                        loadSupplierBrands(supplierButton);
-                        return;
-                    }
-                    if (event.target.closest('[data-close-supplier-brands]')) {
-                        document.getElementById('supplier-dashboard-selected').hidden = true;
-                        return;
-                    }
-                    const button = event.target.closest('[data-brand-index]');
-                    if (!button) return;
-                    const cached = supplierBrandCache.get(button.dataset.supplierKey);
-                    const brand = cached?.brands?.[Number(button.dataset.brandIndex)];
-                    const supplier = (supplierDashboardData?.suppliers || []).find(item => item.supplier_key === button.dataset.supplierKey);
-                    if (brand && supplier) showSupplierBrandDetails(brand, {
-                        supplier_code: supplier.supplier_code,
-                        supplier_name: supplier.supplier
-                    });
-                });
-                document.getElementById('supplier-dashboard-search').addEventListener('input', refreshSupplierDashboard);
-                document.getElementById('supplier-dashboard-supplier').addEventListener('input', refreshSupplierDashboard);
-                ['supplier-dashboard-category', 'supplier-dashboard-status', 'supplier-dashboard-sort']
-                    .forEach(id => document.getElementById(id).addEventListener('change', refreshSupplierDashboard));
-                document.getElementById('supplier-brand-dialog-close').addEventListener('click', () => document.getElementById('supplier-brand-dialog').close());
-                document.getElementById('supplier-brand-dialog').addEventListener('click', event => {
-                    if (event.target === event.currentTarget) event.currentTarget.close();
-                });
-            </script>
         </div>
 
         <!-- MASTER BRAND SEARCH -->
@@ -1657,123 +1489,76 @@
                 <div id="master-brand-search-status" class="dashboard-subtle">Enter at least one search field.</div>
                 <div id="master-brand-results" class="master-results"></div>
             </div>
-            <style>
-                #tab-master-brands .master-results { max-height:none; }
-                #tab-master-brands .master-brand-result-card { grid-template-columns:minmax(0,1fr) 112px; align-items:stretch; }
-                #tab-master-brands .master-brand-result-details { grid-column:1; grid-row:1; min-width:0; }
-                #tab-master-brands .master-brand-result-media { grid-column:2; grid-row:1; align-self:start; width:100%; min-height:112px; }
-                #tab-master-brands .master-brand-result-media img { width:100%; height:112px; object-fit:contain; background:transparent; }
-                #tab-master-brands .master-brand-image-placeholder { width:100%; min-height:112px; display:grid; place-content:center; gap:.3rem; padding:.5rem; border:1px dashed var(--border-color); border-radius:8px; color:var(--text-muted); text-align:center; font-size:.72rem; }
-                #tab-master-brands .master-brand-image-placeholder span:first-child { font-size:1.35rem; }
-                #tab-master-brands .master-brand-preview { position:fixed; inset:0; z-index:1001; display:grid; grid-template-rows:auto minmax(0,1fr); gap:.8rem; padding:1rem; background:rgba(2,6,23,.9); }
-                #tab-master-brands .master-brand-preview[hidden] { display:none; }
-                #tab-master-brands .master-brand-preview-toolbar { display:flex; justify-content:flex-end; align-items:center; gap:.5rem; }
-                #tab-master-brands .master-brand-preview-toolbar button { min-width:2.5rem; min-height:2.5rem; border:1px solid rgba(148,163,184,.45); border-radius:8px; color:#fff; background:#1e293b; font-size:1rem; cursor:pointer; }
-                #tab-master-brands .master-brand-preview-toolbar button:hover { background:#334155; }
-                #tab-master-brands .master-brand-preview-stage { overflow:auto; display:grid; place-items:center; }
-                #tab-master-brands .master-brand-preview-image { max-width:min(90vw,1000px); max-height:78vh; object-fit:contain; background:transparent; transition:transform .18s ease; transform-origin:center; cursor:zoom-in; }
-                #tab-master-brands .master-brand-preview-image.is-zoomed { cursor:zoom-out; }
-                @media (max-width:600px) {
-                    #tab-master-brands .master-brand-result-card { grid-template-columns:minmax(0,1fr) 84px; gap:.5rem; padding:.55rem; }
-                    #tab-master-brands .master-brand-result-media { min-height:84px; }
-                    #tab-master-brands .master-brand-result-media img, #tab-master-brands .master-brand-image-placeholder { min-height:84px; height:84px; }
-                }
-            </style>
-            <div id="master-brand-preview" class="master-brand-preview" hidden role="dialog" aria-modal="true" aria-label="Master Brand image preview">
-                <div class="master-brand-preview-toolbar">
-                    <button id="master-brand-preview-zoom-out" type="button" aria-label="Zoom out">−</button>
-                    <button id="master-brand-preview-zoom-in" type="button" aria-label="Zoom in">+</button>
-                    <button id="master-brand-preview-close" type="button" aria-label="Close image preview">&times;</button>
-                </div>
-                <div class="master-brand-preview-stage">
-                    <img id="master-brand-preview-image" class="master-brand-preview-image" alt="">
-                </div>
-            </div>
-            <script>
-                (() => {
-                    const section = document.getElementById('tab-master-brands');
-                    const results = document.getElementById('master-brand-results');
-                    const preview = document.getElementById('master-brand-preview');
-                    const previewImage = document.getElementById('master-brand-preview-image');
-                    const previewStage = section.querySelector('.master-brand-preview-stage');
-                    let zoom = 1;
-
-                    function enhanceResults() {
-                        results.querySelectorAll('.master-brand-result-card').forEach(card => {
-                            let media = card.querySelector(':scope > .master-brand-result-media');
-                            if (!media) {
-                                media = document.createElement('div');
-                                media.className = 'master-brand-result-media';
-                            }
-                            const details = Array.from(card.children).find(child => child !== media);
-                            if (details) details.classList.add('master-brand-result-details');
-                            if (!media.querySelector('img') && !media.querySelector('.master-brand-image-placeholder')) {
-                                const placeholder = document.createElement('div');
-                                placeholder.className = 'master-brand-image-placeholder';
-                                placeholder.setAttribute('role', 'img');
-                                placeholder.setAttribute('aria-label', 'Brand image unavailable');
-                                placeholder.innerHTML = '<span aria-hidden="true">▧</span><span>Image unavailable</span>';
-                                media.appendChild(placeholder);
-                            }
-                            if (card.lastElementChild !== media) card.appendChild(media);
-                        });
-                    }
-
-                    function closePreview() {
-                        preview.hidden = true;
-                        previewImage.removeAttribute('src');
-                        previewImage.alt = '';
-                        previewImage.classList.remove('is-zoomed');
-                        previewImage.style.transform = '';
-                        zoom = 1;
-                    }
-
-                    function setZoom(nextZoom) {
-                        zoom = Math.max(1, Math.min(3, nextZoom));
-                        previewImage.style.transform = `scale(${zoom})`;
-                        previewImage.classList.toggle('is-zoomed', zoom > 1);
-                        previewImage.style.cursor = zoom > 1 ? 'zoom-out' : 'zoom-in';
-                    }
-
-                    results.addEventListener('click', event => {
-                        const image = event.target.closest('.master-brand-result-media img');
-                        if (!image) return;
-                        event.preventDefault();
-                        event.stopImmediatePropagation();
-                        previewImage.src = image.currentSrc || image.src;
-                        previewImage.alt = image.alt;
-                        preview.hidden = false;
-                        setZoom(1);
-                    }, true);
-
-                    results.addEventListener('error', event => {
-                        if (event.target.matches('.master-brand-result-media img')) enhanceResults();
-                    }, true);
-                    preview.addEventListener('click', event => {
-                        if (event.target === preview) closePreview();
-                    });
-                    previewImage.addEventListener('click', () => setZoom(zoom > 1 ? 1 : 2));
-                    previewStage.addEventListener('wheel', event => {
-                        if (preview.hidden) return;
-                        event.preventDefault();
-                        setZoom(zoom + (event.deltaY < 0 ? .25 : -.25));
-                    }, { passive: false });
-                    section.querySelector('#master-brand-preview-zoom-in').addEventListener('click', () => setZoom(zoom + .25));
-                    section.querySelector('#master-brand-preview-zoom-out').addEventListener('click', () => setZoom(zoom - .25));
-                    section.querySelector('#master-brand-preview-close').addEventListener('click', closePreview);
-                    document.addEventListener('keydown', event => {
-                        if (event.key === 'Escape' && !preview.hidden) closePreview();
-                    });
-
-                    new MutationObserver(enhanceResults).observe(results, { childList: true, subtree: true });
-                    enhanceResults();
-                })();
-            </script>
         </div>
 
         <div id="master-brand-image-lightbox" class="master-brand-image-lightbox" hidden role="dialog" aria-modal="true" aria-label="Enlarged Master Brand image" onclick="closeMasterBrandImage(event)">
             <button class="master-brand-image-lightbox-close" type="button" aria-label="Close enlarged image" onclick="closeMasterBrandImage(event)">&times;</button>
             <img id="master-brand-image-lightbox-preview" alt="" onclick="event.stopPropagation()">
+        </div>
+
+        <!-- TAB: TRAINED DATASET -->
+        <div id="tab-trained-dataset" class="tab-panel">
+            <div class="studio-title">Trained Dataset</div>
+            <div class="studio-subtitle">Training coverage, models, suppliers, and brand images from the live TrainedBrandsData sheet.</div>
+            <div class="trained-summary-grid">
+                <div class="trained-summary-card"><strong id="trained-total-brands">—</strong><span>Total Brands</span></div>
+                <div class="trained-summary-card"><strong id="trained-total-suppliers">—</strong><span>Total Suppliers</span></div>
+                <div class="trained-summary-card"><strong id="trained-total-images">—</strong><span>Total Trained Images</span></div>
+                <div class="trained-summary-card"><strong id="trained-active-brands">—</strong><span>Active Brands</span></div>
+                <div class="trained-summary-card"><strong id="trained-inactive-brands">—</strong><span>Inactive Brands</span></div>
+                <div class="trained-summary-card"><strong id="trained-total-models">—</strong><span>Unique Models</span></div>
+                <div class="trained-summary-card"><strong id="trained-total-categories">—</strong><span>Categories</span></div>
+                <div class="trained-summary-card"><strong id="trained-missing-records">—</strong><span>Missing Data Records</span></div>
+            </div>
+            <div class="dashboard-card">
+                <div class="trained-filter-grid">
+                    <input class="text-input-field" id="trained-global-search" placeholder="Search ID, Class ID, supplier, brand, SKU, model..." oninput="queueTrainedDatasetLoad()">
+                    <select class="search-filter-input" id="trained-category-filter" onchange="loadTrainedDataset()"><option value="">All categories</option><option>Beer</option><option>Wine</option><option>Spirits</option><option>Non Alcoholic</option></select>
+                    <input class="text-input-field" id="trained-supplier-filter" placeholder="Supplier name/code" oninput="queueTrainedDatasetLoad()">
+                    <input class="text-input-field" id="trained-brand-filter" placeholder="Brand name/code" oninput="queueTrainedDatasetLoad()">
+                    <select class="search-filter-input" id="trained-status-filter" onchange="loadTrainedDataset()"><option value="">Active and inactive</option><option value="active">Active</option><option value="inactive">Inactive</option></select>
+                    <input class="text-input-field" id="trained-model-filter" placeholder="Model name or ID" oninput="queueTrainedDatasetLoad()">
+                    <input class="text-input-field" id="trained-image-count-filter" type="number" min="0" placeholder="Minimum image count" oninput="queueTrainedDatasetLoad()">
+                    <div class="trained-filter-checks"><label><input type="checkbox" id="trained-missing-sku" onchange="loadTrainedDataset()"> Missing SKU</label><label><input type="checkbox" id="trained-missing-images" onchange="loadTrainedDataset()"> Missing images</label><label><input type="checkbox" id="trained-missing-model" onchange="loadTrainedDataset()"> Missing model ID</label></div>
+                </div>
+                <div class="trained-chart-grid">
+                    <div class="dashboard-card trained-chart-card"><h3>Category-wise Brand Distribution</h3><div id="trained-category-chart"></div></div>
+                    <div class="dashboard-card trained-chart-card"><h3>Active vs Inactive Brands</h3><div id="trained-status-chart"></div></div>
+                    <div class="dashboard-card trained-chart-card"><h3>Top 10 Suppliers by Brand Count</h3><div id="trained-supplier-chart"></div></div>
+                    <div class="dashboard-card trained-chart-card"><h3>Top 10 Brands by Image Count</h3><div id="trained-brand-chart"></div></div>
+                    <div class="dashboard-card trained-chart-card"><h3>Model-wise Brand Distribution</h3><div id="trained-model-chart"></div></div>
+                    <div class="dashboard-card trained-chart-card"><h3>Category-wise Trained Image Count</h3><div id="trained-category-image-chart"></div></div>
+                </div>
+                <div class="trained-table-controls">
+                    <div><span id="trained-record-count" class="dashboard-subtle">Open Trained Dataset to load records.</span></div>
+                    <div style="display:flex;flex-wrap:wrap;gap:.45rem;align-items:center;"><select class="search-filter-input" id="trained-page-size" onchange="loadTrainedDataset()"><option value="50">50 rows</option><option value="100">100 rows</option><option value="200">200 rows</option></select><select class="search-filter-input" id="trained-sort" onchange="loadTrainedDataset()"><option value="BrandName|asc">Sort: Brand</option><option value="ImageCounts|desc">Images: high to low</option><option value="ImageCounts|asc">Images: low to high</option><option value="SupplierName|asc">Supplier</option><option value="Status|asc">Status</option></select><button class="btn-download-csv" type="button" onclick="exportTrainedDataset()">Export CSV</button></div>
+                </div>
+                <details><summary class="dashboard-subtle" style="cursor:pointer;">Column visibility</summary><div class="trained-column-menu" id="trained-column-menu"></div></details>
+                <div class="trained-table-scroll"><table class="dashboard-table trained-data-table" id="trained-records-table"><thead><tr><th data-trained-column="id">ID</th><th data-trained-column="class_id">Class ID</th><th data-trained-column="supplier_name">Supplier</th><th data-trained-column="brand_name">Brand</th><th data-trained-column="category">Category</th><th data-trained-column="image_count">Images</th><th data-trained-column="avg_trained_photos">Avg Photos</th><th data-trained-column="sku">SKU</th><th data-trained-column="status">Status</th><th data-trained-column="model">Model</th><th data-trained-column="model_id">Model ID</th><th>Action</th></tr></thead><tbody><tr><td colspan="12">Open Trained Dataset to load records.</td></tr></tbody></table></div>
+                <div style="display:flex;justify-content:center;gap:.75rem;align-items:center;margin-top:.75rem;"><button class="btn-download-csv" type="button" onclick="changeTrainedPage(-1)">Previous</button><span id="trained-page-label" class="dashboard-subtle">Page 1</span><button class="btn-download-csv" type="button" onclick="changeTrainedPage(1)">Next</button></div>
+            </div>
+        </div>
+
+        <aside id="trained-detail-panel" class="trained-detail-panel" hidden></aside>
+
+        <!-- TAB: UNTRAINED DATASET -->
+        <div id="tab-untrained-dataset" class="tab-panel">
+            <div class="studio-title">Untrained Dataset</div>
+            <div class="studio-subtitle">Beer, Wine, Spirits aur RTD sheets me Dataset = New ya NeedToVerify wale brands.</div>
+            <div class="untrained-summary-strip" aria-label="Untrained dataset summary" hidden>
+                <div class="untrained-summary-item"><strong id="untrained-total-records">—</strong><span>Dataset Records</span></div>
+                <div class="untrained-summary-item"><strong id="untrained-total-missing-upcs">—</strong><span>Missing UPCs</span></div>
+                <div class="untrained-summary-item"><strong id="untrained-total-brands">—</strong><span>Unique Brands</span></div>
+                <div class="untrained-summary-item"><strong id="untrained-reference-upcs">—</strong><span>Reference UPCs</span></div>
+                <div class="untrained-summary-item"><strong id="untrained-trained-upcs">—</strong><span>Trained UPCs</span></div>
+            </div>
+            <div class="dashboard-card trained-data-shell">
+                <div class="trained-table-controls">
+                    <input class="text-input-field" id="untrained-brand-search" placeholder="Search new brand..." oninput="queueUntrainedDatasetLoad()">
+                    <span id="untrained-record-count" class="dashboard-subtle">Dataset = New brands</span>
+                </div>
+                <div class="trained-table-scroll"><table class="dashboard-table trained-data-table" id="untrained-brands-table"><thead><tr><th>Brand Name</th><th>Category</th><th>Source Dataset</th></tr></thead><tbody><tr><td colspan="3">Open Untrained Dataset to load records.</td></tr></tbody></table></div>
+            </div>
         </div>
 
         <!-- TAB 3: COMPARISON STUDIO -->
@@ -1805,6 +1590,9 @@
                     </button>
                     <button class="preset-btn" onclick="executeComparison('duplicate_upcs', this)">
                         📑 Duplicate UPC Audit
+                    </button>
+                    <button class="preset-btn" onclick="executeComparison('untrained_brands', this)">
+                        🧭 Untrained Brands
                     </button>
                 </div>
 
@@ -1963,10 +1751,14 @@
 
     </div>
 
+    <!-- Persistent floating shortcut to the existing AI Assistant -->
+    <button id="dashboard-floating-assistant" class="dashboard-floating-assistant" type="button" onclick="openDashboardAssistant()" aria-label="Open AI Assistant" title="Open AI Assistant">💬 AI Assistant</button>
+
     <!-- Client Script (100% Offline & Pure JS) -->
     <script>
         const savedTheme = localStorage.getItem('beviq_theme') || 'dark';
         document.documentElement.dataset.theme = savedTheme;
+        document.getElementById('dashboard-floating-assistant')?.setAttribute('hidden', '');
 
         function applyTheme(theme) {
             const normalized = theme === 'light' ? 'light' : 'dark';
@@ -1992,6 +1784,11 @@
         let studioLoaded = false;
         let dashboardLoaded = false;
         let supplierDirectoryData = [];
+        let trainedDatasetLoaded = false;
+        let trainedDatasetTimer = null;
+        const trainedDatasetState = { page: 1, records: [], total: 0, analytics: null, filters: {} };
+        let untrainedDatasetLoaded = false;
+        let untrainedDatasetTimer = null;
         const dashboardVisualizationState = {
             chartType: 'overview',
             displayMode: 'count',
@@ -2053,15 +1850,29 @@
             document.querySelectorAll('.nav-tab-btn').forEach(b => b.classList.remove('active'));
             document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
 
+            const assistantShortcut = document.getElementById('dashboard-floating-assistant');
+            if (assistantShortcut) assistantShortcut.hidden = tabId !== 'dashboard';
+
             btn.classList.add('active');
             document.getElementById('tab-' + tabId).classList.add('active');
             if (tabId === 'dashboard' && !dashboardLoaded) {
                 dashboardLoaded = true;
                 loadDashboard();
             }
+            if (tabId === 'supplier-overview') {
+                loadSupplierDirectory();
+            }
             if (tabId === 'comparison' && !studioLoaded) {
                 studioLoaded = true;
                 executeComparison('all_missing');
+            }
+            if (tabId === 'trained-dataset' && !trainedDatasetLoaded) {
+                trainedDatasetLoaded = true;
+                loadTrainedDataset();
+            }
+            if (tabId === 'untrained-dataset' && !untrainedDatasetLoaded) {
+                untrainedDatasetLoaded = true;
+                loadUntrainedDataset();
             }
         }
 
@@ -2091,21 +1902,15 @@
 
         function setDashboardChart(chartType, button) {
             dashboardVisualizationState.chartType = chartType;
-            document.querySelectorAll('#dashboard-chart-controls .dashboard-chart-btn').forEach(item => {
-                const active = item === button;
-                item.classList.toggle('active', active);
-                item.setAttribute('aria-pressed', String(active));
-            });
+            document.querySelectorAll('#dashboard-chart-controls .dashboard-chart-btn').forEach(item => item.classList.remove('active'));
+            button?.classList.add('active');
             renderDashboardVisualization();
         }
 
         function setDashboardDisplayMode(displayMode, button) {
             dashboardVisualizationState.displayMode = displayMode;
-            document.querySelectorAll('.dashboard-display-btn').forEach(item => {
-                const active = item === button;
-                item.classList.toggle('active', active);
-                item.setAttribute('aria-pressed', String(active));
-            });
+            document.querySelectorAll('.dashboard-display-btn').forEach(item => item.classList.remove('active'));
+            button?.classList.add('active');
             renderDashboardVisualization();
         }
 
@@ -2198,22 +2003,30 @@
         function renderSupplierCards(suppliers = supplierDirectoryData) {
             const target = document.getElementById('dashboard-supplier-directory');
             if (!target) return;
+            const visibleTotal = document.getElementById('dashboard-supplier-visible-total');
+            if (visibleTotal) visibleTotal.textContent = `${suppliers.length.toLocaleString()} supplier(s) shown`;
             if (!suppliers.length) {
                 target.innerHTML = '<div class="dashboard-subtle">No suppliers match this search.</div>';
                 return;
             }
+            const autoOpen = suppliers.length === 1;
             target.innerHTML = suppliers.map((supplier, index) => {
-                const brands = (supplier.brand_names || []).map(name => `<span class="supplier-brand-pill">${escapeHtml(name)}</span>`).join('') || '<small>No brand names available</small>';
+                const sourceIndex = supplierDirectoryData.indexOf(supplier);
+                const brands = (supplier.brand_details || []).map((detail, brandIndex) => `
+                    <button class="supplier-brand-button" type="button" onclick="loadSupplierBrandDetails(${sourceIndex}, ${brandIndex})"><strong>${escapeHtml(detail.brand_name || 'NA')}<small>${escapeHtml((detail.categories || []).join(', ') || 'Category unavailable')}</small></strong><span>${Number(detail.record_count || 0).toLocaleString()} record(s)</span></button>`).join('') || '<small>No brand names available</small>';
                 const records = (supplier.records || []).slice(0, 25).map(record => `
                     <div class="supplier-record"><strong>${escapeHtml(record.BrandName || 'NA')}</strong> · ${escapeHtml(record.ProductName || 'Product unavailable')}<br><small>UPC: ${escapeHtml(record.clean_upc || 'NA')}</small></div>`).join('') || '<small>No related product details available</small>';
-                return `<article class="supplier-card" data-supplier-name="${escapeHtml(supplier.supplier || 'NA').toLowerCase()}" id="supplier-card-${index}">
-                    <button class="supplier-card__toggle" type="button" aria-expanded="false" aria-controls="supplier-body-${index}" onclick="toggleSupplierCard(${index})">
-                        <span><span class="supplier-card__name">${escapeHtml(supplier.supplier || 'NA')}</span><span class="supplier-card__meta">${Number(supplier.record_count || 0).toLocaleString()} Master Brand record(s)</span></span><span class="supplier-card__chevron">⌄</span>
+                const categories = (supplier.categories || []).join(', ') || 'N/A';
+                const categoryBadges = (supplier.categories || []).map(category => `<span class="supplier-category-badge">${escapeHtml(category)}</span>`).join('') || '<span class="supplier-category-badge">Category unavailable</span>';
+                return `<article class="supplier-card${autoOpen ? ' is-open' : ''}" data-supplier-name="${escapeHtml(supplier.supplier || 'NA').toLowerCase()}" id="supplier-card-${index}">
+                    <button class="supplier-card__toggle" type="button" aria-expanded="${autoOpen}" aria-controls="supplier-body-${index}" onclick="toggleSupplierCard(${index})">
+                        <span class="supplier-card__header-content"><span class="supplier-card__name">${escapeHtml(supplier.supplier || 'NA')}</span><span class="supplier-card__meta">Supplier code: ${escapeHtml(supplier.supplier_code || 'N/A')}</span><span class="supplier-card__badges"><span class="supplier-card__brand-count">${Number(supplier.brand_count || 0).toLocaleString()} unique brands</span><span class="supplier-card__record-count">${Number(supplier.record_count || 0).toLocaleString()} records</span></span></span><span class="supplier-card__chevron">⌄</span>
                     </button>
                     <div class="supplier-card__body" id="supplier-body-${index}">
-                        <div class="supplier-card__stats"><div class="supplier-card__stat"><strong>${Number(supplier.record_count || 0).toLocaleString()}</strong><span>Records</span></div><div class="supplier-card__stat"><strong>${Number(supplier.brand_count || 0).toLocaleString()}</strong><span>Brands</span></div><div class="supplier-card__stat"><strong>${Number(supplier.upc_count || 0).toLocaleString()}</strong><span>UPCs</span></div></div>
-                        <small>Brand names</small><div class="supplier-brand-list">${brands}</div>
-                        <small>Related products</small><div class="supplier-record-list">${records}</div>
+                        <div class="supplier-card__stats"><div class="supplier-card__stat"><strong>${Number(supplier.record_count || 0).toLocaleString()}</strong><span>Master records</span></div><div class="supplier-card__stat"><strong>${Number(supplier.brand_count || 0).toLocaleString()}</strong><span>Unique brands</span></div><div class="supplier-card__stat"><strong>${escapeHtml(categories)}</strong><span>Categories</span></div></div>
+                        <div class="supplier-card__section"><div class="supplier-card__section-title"><span>Brand portfolio</span><span>${Number(supplier.brand_count || 0).toLocaleString()} brands · Records by brand</span></div><div class="supplier-card__category-list">${categoryBadges}</div><div class="supplier-brand-detail-list">${brands}</div></div>
+                        <div class="supplier-brand-panel" id="supplier-brand-panel-${sourceIndex}" hidden></div>
+                        <div class="supplier-card__section"><div class="supplier-card__section-title"><span>Related products</span><span>Showing up to 25 records</span></div><div class="supplier-record-list">${records}</div></div>
                     </div>
                 </article>`;
             }).join('');
@@ -2229,15 +2042,95 @@
 
         function filterSupplierCards(query) {
             const term = String(query || '').trim().toLowerCase();
-            renderSupplierCards(supplierDirectoryData.filter(item => String(item.supplier || 'NA').toLowerCase().includes(term)));
+            filterSupplierDirectory(term);
+        }
+
+        function filterSupplierDirectory(searchTerm = null) {
+            const term = searchTerm === null
+                ? String(document.getElementById('dashboard-supplier-search')?.value || '').trim().toLowerCase()
+                : String(searchTerm || '').trim().toLowerCase();
+            const category = String(document.getElementById('dashboard-supplier-category-filter')?.value || '').toLowerCase();
+            const supplierFilter = String(document.getElementById('dashboard-supplier-filter')?.value || '').toLowerCase();
+            const status = String(document.getElementById('dashboard-supplier-status-filter')?.value || '').toLowerCase();
+            const sort = document.getElementById('dashboard-supplier-sort')?.value || '';
+            const filtered = supplierDirectoryData.filter(item => {
+                const brandDetails = item.brand_details || [];
+                const brandNames = (item.brand_names || []).map(name => String(name).toLowerCase());
+                const searchable = [item.supplier, item.supplier_code, ...brandNames, ...brandDetails.flatMap(detail => [detail.brand_name, detail.brand_code, detail.brand_id])]
+                    .filter(Boolean).join(' ').toLowerCase();
+                const matchesBrand = brandNames.some(name => name.includes(term));
+                const matchesCategory = !category || (item.categories || []).some(value => String(value).toLowerCase().includes(category));
+                const matchesSupplier = !supplierFilter || String(item.supplier || '').toLowerCase() === supplierFilter;
+                const matchesStatus = !status || (item.statuses || []).some(value => String(value).toLowerCase() === status);
+                return (!term || searchable.includes(term) || matchesBrand) && matchesCategory && matchesSupplier && matchesStatus;
+            });
+            filtered.sort((a, b) => sort === 'brand_asc'
+                ? Number(a.brand_count || 0) - Number(b.brand_count || 0)
+                : sort === 'brand_desc'
+                    ? Number(b.brand_count || 0) - Number(a.brand_count || 0)
+                    : String(a.supplier || '').localeCompare(String(b.supplier || '')));
+            renderSupplierCards(filtered);
+        }
+
+        function populateSupplierFilters() {
+            const supplierFilter = document.getElementById('dashboard-supplier-filter');
+            const statusFilter = document.getElementById('dashboard-supplier-status-filter');
+            if (supplierFilter) {
+                supplierFilter.innerHTML = '<option value="">All suppliers</option>' + supplierDirectoryData.map(item => `<option value="${escapeHtml(String(item.supplier || '').toLowerCase())}">${escapeHtml(item.supplier || 'NA')}</option>`).join('');
+                supplierFilter.onchange = () => filterSupplierDirectory();
+            }
+            if (statusFilter) {
+                const statuses = [...new Set(supplierDirectoryData.flatMap(item => item.statuses || []))].sort();
+                statusFilter.innerHTML = '<option value="">All statuses</option>' + statuses.map(value => `<option value="${escapeHtml(String(value).toLowerCase())}">${escapeHtml(value)}</option>`).join('');
+            }
+        }
+
+        async function loadSupplierBrandDetails(supplierIndex, brandIndex) {
+            const supplier = supplierDirectoryData[supplierIndex];
+            const brand = supplier?.brand_details?.[brandIndex];
+            const panel = document.getElementById(`supplier-brand-panel-${supplierIndex}`);
+            if (!supplier || !brand || !panel) return;
+            panel.hidden = false;
+            panel.innerHTML = '<div class="dashboard-subtle">Loading complete brand details...</div>';
+            try {
+                const params = new URLSearchParams({ supplier: supplier.supplier || 'NA', brand: brand.brand_name || 'NA' });
+                const data = await getDashboardData(`/api/dashboard/supplier-brand-details?${params.toString()}`);
+                const records = data.records || [];
+                panel.innerHTML = `<div class="supplier-brand-panel__header"><div><small>Brand details</small><strong>${escapeHtml(brand.brand_name || 'NA')}</strong></div><span>${records.length.toLocaleString()} detailed record(s)</span></div>` + (records.length ? records.map(record => `
+                    <div class="supplier-brand-panel__grid" style="margin-top:.55rem;">
+                        ${[['Brand Name', record.brand_name], ['Brand ID / Class ID', `${record.brand_id || 'N/A'} / ${record.class_id || 'N/A'}`], ['Brand Code', record.brand_code], ['Category', record.category], ['Category Image', record.category_image_url || 'N/A'], ['Supplier Name', record.supplier_name], ['Supplier Code', record.supplier_code], ['SKU', record.sku], ['Image Count', record.image_count], ['Model Name', record.model_name], ['Model ID', record.model_id], ['Status', record.status]].map(([label, value]) => `<div class="supplier-brand-panel__item"><small>${label}</small><strong>${escapeHtml(value ?? 'N/A')}</strong></div>`).join('')}
+                    </div><div class="supplier-brand-images">${(record.available_images || []).map(url => `<a href="${escapeHtml(url)}" target="_blank" rel="noopener"><img src="${escapeHtml(url)}" alt="${escapeHtml(record.brand_name || 'Brand')} product image" onerror="this.remove()"></a>`).join('') || '<span class="dashboard-subtle">No product images available</span>'}</div>`).join('') : '<div class="dashboard-subtle" style="margin-top:.55rem;">No detailed records found.</div>');
+            } catch (err) {
+                panel.innerHTML = `<div class="dashboard-subtle">${escapeHtml(err.message)}</div>`;
+            }
+        }
+
+        function renderSupplierClusteredChart(suppliers = supplierDirectoryData) {
+            const target = document.getElementById('supplier-overview-clustered-chart-body');
+            if (!target) return;
+            const topSuppliers = [...suppliers].sort((a, b) => Number(b.record_count || 0) - Number(a.record_count || 0)).slice(0, 15);
+            if (!topSuppliers.length) {
+                target.textContent = 'No supplier data available for chart.';
+                return;
+            }
+            const maxValue = Math.max(...topSuppliers.map(item => Math.max(Number(item.record_count || 0), Number(item.brand_count || 0))), 1);
+            target.innerHTML = topSuppliers.map(item => {
+                const brandCount = Number(item.brand_count || 0);
+                const recordCount = Number(item.record_count || 0);
+                return `<div class="supplier-chart-row"><strong title="${escapeHtml(item.supplier || 'NA')}">${escapeHtml(item.supplier || 'NA')}</strong><div class="supplier-chart-bars"><div class="supplier-chart-bar" style="--chart-color:var(--accent-blue);width:${Math.max(2, brandCount / maxValue * 100)}%" title="Unique Brands: ${brandCount.toLocaleString()}"></div><div class="supplier-chart-bar" style="--chart-color:var(--accent-purple);width:${Math.max(2, recordCount / maxValue * 100)}%" title="Master Brand Records: ${recordCount.toLocaleString()}"></div></div><span class="supplier-chart-values">${brandCount.toLocaleString()} / ${recordCount.toLocaleString()}</span></div>`;
+            }).join('');
         }
 
         async function loadSupplierDirectory() {
             const target = document.getElementById('dashboard-supplier-directory');
             try {
-                const data = await getDashboardData('/api/dashboard/suppliers');
+                const data = await getDashboardData('/api/dashboard/suppliers?limit=500&include_records=0');
                 supplierDirectoryData = data.suppliers || [];
-                document.getElementById('dashboard-supplier-total').textContent = Number(data.total_suppliers || 0).toLocaleString();
+                const totalSuppliers = Number(data.total_suppliers || 0).toLocaleString();
+                document.getElementById('dashboard-supplier-total').textContent = totalSuppliers;
+                document.getElementById('supplier-overview-total-suppliers').textContent = totalSuppliers;
+                populateSupplierFilters();
+                renderSupplierClusteredChart(supplierDirectoryData);
                 renderSupplierCards(supplierDirectoryData);
             } catch (err) {
                 if (target) target.innerHTML = `<div class="dashboard-subtle">${escapeHtml(err.message)}</div>`;
@@ -2281,7 +2174,6 @@
                 error.style.display = 'none';
                 loadDashboardMetrics();
                 loadDashboardMissing();
-                loadSupplierDirectory();
             } catch (err) {
                 error.textContent = err.message;
                 error.style.display = 'block';
@@ -2369,6 +2261,161 @@
             executeComparison(preset);
         }
 
+        function trainedCategoryVisual(category) {
+            const value = String(category || '').toLowerCase();
+            if (value.includes('beer')) return '<span class="trained-category-visual" title="Beer">🍺</span>';
+            if (value.includes('wine')) return '<span class="trained-category-visual" title="Wine">🍷</span>';
+            if (value.includes('spirit')) return '<span class="trained-category-visual" title="Spirits">🥃</span>';
+            return '<span class="trained-category-visual" title="Non Alcoholic">🥤</span>';
+        }
+
+        function trainedFilterParams() {
+            const params = new URLSearchParams();
+            const fields = { q:'trained-global-search', category:'trained-category-filter', supplier:'trained-supplier-filter', brand:'trained-brand-filter', status:'trained-status-filter', model:'trained-model-filter', min_images:'trained-image-count-filter' };
+            Object.entries(fields).forEach(([key, id]) => { const value = document.getElementById(id)?.value?.trim(); if (value) params.set(key, value); });
+            [['missing_sku','trained-missing-sku'], ['missing_images','trained-missing-images'], ['missing_model_id','trained-missing-model']].forEach(([key, id]) => { if (document.getElementById(id)?.checked) params.set(key, 'true'); });
+            return params;
+        }
+
+        function queueTrainedDatasetLoad() {
+            clearTimeout(trainedDatasetTimer);
+            trainedDatasetTimer = setTimeout(() => loadTrainedDataset(), 300);
+        }
+
+        async function loadTrainedDataset() {
+            try {
+                const base = trainedFilterParams();
+                const [sortBy, sortDir] = String(document.getElementById('trained-sort')?.value || 'BrandName|asc').split('|');
+                const pageSize = Number(document.getElementById('trained-page-size')?.value || 50);
+                base.set('page', trainedDatasetState.page);
+                base.set('page_size', pageSize);
+                base.set('sort_by', sortBy);
+                base.set('sort_dir', sortDir);
+                trainedDatasetState.filters = Object.fromEntries(base.entries());
+                const filterQuery = new URLSearchParams(Object.fromEntries([...base].filter(([key]) => !['page','page_size','sort_by','sort_dir'].includes(key))));
+                const recordsQuery = base.toString();
+                const [summary, analytics, records] = await Promise.all([
+                    getDashboardData(`/api/trained-dataset/summary?${filterQuery}`),
+                    getDashboardData(`/api/trained-dataset/analytics?${filterQuery}`),
+                    getDashboardData(`/api/trained-dataset/records?${recordsQuery}`),
+                ]);
+                trainedDatasetState.records = records.records || [];
+                trainedDatasetState.total = Number(records.total_matches || 0);
+                trainedDatasetState.analytics = analytics;
+                renderTrainedSummary(summary);
+                renderTrainedAnalytics(analytics);
+                renderTrainedTable();
+                renderTrainedColumnMenu();
+            } catch (error) {
+                // Allow the next tab visit to retry after a transient backend failure.
+                trainedDatasetLoaded = false;
+                const message = error?.message || 'Unable to load trained dataset.';
+                const count = document.getElementById('trained-record-count');
+                if (count) count.textContent = message;
+                const body = document.querySelector('#trained-records-table tbody');
+                if (body) body.innerHTML = `<tr><td colspan="12">${escapeHtml(message)}</td></tr>`;
+                ['trained-category-chart', 'trained-status-chart', 'trained-supplier-chart', 'trained-brand-chart', 'trained-model-chart', 'trained-category-image-chart'].forEach(id => {
+                    const node = document.getElementById(id);
+                    if (node) node.innerHTML = `<div class="dashboard-subtle">${escapeHtml(message)}</div>`;
+                });
+                console.error('Trained dataset load failed:', error);
+            }
+        }
+
+        function renderTrainedSummary(summary) {
+            const values = { 'trained-total-brands':summary.total_brands, 'trained-total-suppliers':summary.total_suppliers, 'trained-total-images':summary.total_trained_images, 'trained-active-brands':summary.active_brands, 'trained-inactive-brands':summary.inactive_brands, 'trained-total-models':summary.total_unique_models, 'trained-total-categories':summary.total_categories, 'trained-missing-records':summary.missing_data_records };
+            Object.entries(values).forEach(([id, value]) => { const node = document.getElementById(id); if (node) node.textContent = Number(value || 0).toLocaleString(); });
+        }
+
+        function renderTrainedDonut(targetId, rows, labelKey, valueKey) {
+            const target = document.getElementById(targetId);
+            if (!target) return;
+            const values = (rows || []).map(row => ({ label:String(row[labelKey] || 'Unknown'), value:Number(row[valueKey] || 0) })).filter(row => row.value > 0);
+            const total = values.reduce((sum, row) => sum + row.value, 0);
+            if (!total) { target.innerHTML = '<div class="dashboard-subtle">No data for the current filters.</div>'; return; }
+            let cursor = 0;
+            const colors = ['#38bdf8','#a78bfa','#10b981','#f59e0b','#f472b6','#fb923c','#22d3ee','#818cf8'];
+            const stops = values.map((row, index) => { const start = cursor; cursor += (row.value / total) * 360; return `${colors[index % colors.length]} ${start}deg ${cursor}deg`; }).join(',');
+            target.innerHTML = `<div class="trained-donut-layout"><div class="trained-donut" style="background:conic-gradient(${stops})"><div class="trained-donut-label">${total.toLocaleString()}<br><small>Total</small></div></div><div class="trained-chart-legend">${values.map((row,index) => `<div><span><i class="legend-dot" style="background:${colors[index % colors.length]}"></i>${escapeHtml(row.label)}</span><strong>${row.value.toLocaleString()}</strong></div>`).join('')}</div></div>`;
+        }
+
+        function renderTrainedBars(targetId, rows, labelKey, valueKey) {
+            const target = document.getElementById(targetId);
+            if (!target) return;
+            const values = (rows || []).map(row => ({ label:String(row[labelKey] || 'Unknown'), value:Number(row[valueKey] || 0) })).filter(row => row.value > 0).slice(0, 10);
+            const max = Math.max(...values.map(row => row.value), 1);
+            target.innerHTML = values.length ? `<div class="trained-bar-list">${values.map(row => `<div class="trained-bar-row"><span title="${escapeHtml(row.label)}">${escapeHtml(row.label)}</span><div class="trained-bar-track"><div class="trained-bar-fill" style="width:${Math.max(3, row.value / max * 100)}%"></div></div><strong>${row.value.toLocaleString()}</strong></div>`).join('')}</div>` : '<div class="dashboard-subtle">No data for the current filters.</div>';
+        }
+
+        function renderTrainedAnalytics(analytics) {
+            renderTrainedDonut('trained-category-chart', analytics.category_brands, 'category', 'brand_count');
+            renderTrainedDonut('trained-status-chart', analytics.active_inactive, 'status', 'brand_count');
+            renderTrainedBars('trained-supplier-chart', analytics.top_suppliers, 'supplier', 'brand_count');
+            renderTrainedBars('trained-brand-chart', analytics.top_brands, 'brand', 'image_count');
+            renderTrainedBars('trained-model-chart', analytics.model_brands, 'model', 'brand_count');
+            renderTrainedBars('trained-category-image-chart', analytics.category_images, 'category', 'image_count');
+        }
+
+        function renderTrainedTable() {
+            const body = document.querySelector('#trained-records-table tbody');
+            if (!body) return;
+            const columns = ['id','class_id','supplier_name','brand_name','category','image_count','avg_trained_photos','sku','status','model','model_id'];
+            body.innerHTML = trainedDatasetState.records.length ? trainedDatasetState.records.map(record => `<tr>${columns.map(column => {
+                let value = record[column] ?? '—';
+                if (column === 'category') value = `${trainedCategoryVisual(record.category)}${escapeHtml(record.category || 'Unknown')}`;
+                else if (column === 'brand_name') { const thumb = record.image_urls?.[0] ? `<img class="trained-row-thumb" loading="lazy" src="${escapeHtml(record.image_urls[0])}" alt="" onerror="this.style.display='none'">` : ''; value = `<button type="button" class="btn-download-csv" onclick="openTrainedDetail('${escapeHtml(record.id)}')">${thumb}${escapeHtml(record.brand_name || 'Unnamed')}</button>`; }
+                else if (column === 'image_count' || column === 'avg_trained_photos') value = Number(value || 0).toLocaleString();
+                return `<td data-trained-column="${column}">${value}</td>`;
+            }).join('')}<td><button type="button" class="btn-download-csv" onclick="openTrainedDetail('${escapeHtml(record.id)}')">View Details</button></td></tr>`).join('') : '<tr><td colspan="12">No trained records match the current filters.</td></tr>';
+            document.getElementById('trained-record-count').textContent = `${trainedDatasetState.total.toLocaleString()} matching trained record(s)`;
+            document.getElementById('trained-page-label').textContent = `Page ${trainedDatasetState.page}`;
+        }
+
+        function renderTrainedColumnMenu() {
+            const menu = document.getElementById('trained-column-menu');
+            if (!menu || menu.children.length) return;
+            ['id','class_id','supplier_name','brand_name','category','image_count','avg_trained_photos','sku','status','model','model_id'].forEach(column => { const label = column.replaceAll('_',' '); menu.insertAdjacentHTML('beforeend', `<label><input type="checkbox" checked onchange="toggleTrainedColumn('${column}', this.checked)"> ${label}</label>`); });
+        }
+
+        function toggleTrainedColumn(column, visible) {
+            document.querySelectorAll(`[data-trained-column="${column}"]`).forEach(node => node.style.display = visible ? '' : 'none');
+            const header = document.querySelector(`#trained-records-table th[data-trained-column="${column}"]`); if (header) header.style.display = visible ? '' : 'none';
+        }
+
+        function changeTrainedPage(delta) { if (trainedDatasetState.page + delta < 1) return; trainedDatasetState.page += delta; loadTrainedDataset(); }
+
+        function queueUntrainedDatasetLoad() {
+            clearTimeout(untrainedDatasetTimer);
+            untrainedDatasetTimer = setTimeout(() => loadUntrainedDataset(), 300);
+        }
+
+        async function loadUntrainedDataset() {
+            const search = document.getElementById('untrained-brand-search')?.value?.trim() || '';
+            const query = new URLSearchParams({ limit: '250' });
+            if (search) query.set('search', search);
+            const data = await getDashboardData(`/api/untrained-dataset?${query}`);
+            const records = data.records || [];
+            document.querySelector('#untrained-brands-table tbody').innerHTML = records.length ? records.map(record => `<tr><td><strong>${escapeHtml(record.brand_name || 'Unnamed')}</strong></td><td>${escapeHtml(record.category || 'N/A')}</td><td>${escapeHtml(record.source || 'N/A')}</td></tr>`).join('') : '<tr><td colspan="3">No new brands found.</td></tr>';
+        }
+
+        async function openTrainedDetail(recordId) {
+            const panel = document.getElementById('trained-detail-panel');
+            if (!panel) return;
+            panel.hidden = false;
+            panel.innerHTML = '<div class="dashboard-subtle">Loading trained brand details...</div>';
+            const response = await getDashboardData(`/api/trained-dataset/detail/${encodeURIComponent(recordId)}`);
+            const record = response.record;
+            panel.innerHTML = `<button class="trained-detail-close" type="button" onclick="document.getElementById('trained-detail-panel').hidden=true">×</button><h2>${escapeHtml(record.brand_name || 'Trained Brand')}</h2><div class="dashboard-subtle">${trainedCategoryVisual(record.category)}${escapeHtml(record.category || 'Category unavailable')}</div><div class="trained-detail-grid">${[['ID',record.id],['Class ID',record.class_id],['Supplier Code',record.supplier_code],['Supplier Name',record.supplier_name],['Brand Code',record.brand_code],['Brand Name',record.brand_name],['Image Counts',record.image_count],['Average Trained Photos',record.avg_trained_photos],['SKU',record.sku],['Status',record.status],['Record Status',record.record_status],['Model Name',record.model],['Model ID',record.model_id],['Training Accuracy','Not available in source']].map(([label,value]) => `<div class="trained-detail-item"><small>${label}</small><strong>${escapeHtml(value ?? 'N/A')}</strong></div>`).join('')}</div><h3 style="margin-top:1rem;">Brand/Product Images</h3><div class="trained-gallery">${(record.image_urls || []).map(url => `<a href="${escapeHtml(url)}" target="_blank" rel="noopener"><img loading="lazy" src="${escapeHtml(url)}" alt="${escapeHtml(record.brand_name || 'Brand')} image" onerror="this.remove()"></a>`).join('') || '<div class="dashboard-subtle">No image URLs available.</div>'}</div>`;
+        }
+
+        async function exportTrainedDataset() {
+            const query = trainedFilterParams();
+            const response = await fetch(`/api/trained-dataset/export?${query}`);
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error || 'Trained dataset export failed');
+            window.location.href = `/api/export-csv/${encodeURIComponent(data.download_token)}`;
+        }
+
         function getMasterBrandImageUrl(row, columns) {
             const imageColumnNames = new Set([
                 'imageurl', 'image_url', 'image', 'productimage', 'productimageurl',
@@ -2393,12 +2440,18 @@
             const columns = data.columns || Object.keys(data.records?.[0] || {});
             return (data.records || []).map(row => {
                 const imageUrl = getMasterBrandImageUrl(row, columns);
-                const media = imageUrl
-                    ? `<div class="master-brand-result-media"><img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(row.BrandName || row.ProductName || 'Master Brand')}" loading="lazy" onclick="openMasterBrandImage(this.src, this.alt)" onerror="this.remove()"></div>`
-                    : '';
+                const placeholder = '<div class="master-brand-image-placeholder" role="img" aria-label="Image unavailable">Image unavailable</div>';
+                const media = `<div class="master-brand-result-media">${imageUrl
+                    ? `<img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(row.BrandName || row.ProductName || 'Master Brand')}" loading="lazy" onclick="openMasterBrandImage(this.src, this.alt)" onerror="handleMasterBrandImageError(this)">`
+                    : placeholder}</div>`;
                 const table = `<div style="overflow:auto"><table class="dashboard-table"><thead><tr>${columns.map(column => `<th>${escapeHtml(column)}</th>`).join('')}</tr></thead><tbody><tr>${columns.map(column => `<td>${escapeHtml(row[column])}</td>`).join('')}</tr></tbody></table></div>`;
                 return `<div class="master-brand-result-card">${media}${table}</div>`;
             }).join('');
+        }
+
+        function handleMasterBrandImageError(image) {
+            const media = image?.closest('.master-brand-result-media');
+            if (media) media.innerHTML = '<div class="master-brand-image-placeholder" role="img" aria-label="Image unavailable">Image unavailable</div>';
         }
 
         function openMasterBrandImage(src, alt) {
@@ -2733,10 +2786,17 @@
 
                 // Summary Stats
                 const sm = data.summary || {};
-                document.getElementById('card-total').textContent = (sm.total_categorization_upcs || sm.master_total_records || sm.records_analyzed || data.records.length || 0).toLocaleString();
-                document.getElementById('card-matched').textContent = (sm.total_matched_in_master || sm.exact_matches || sm.verified_non_rtd || sm.matching_upcs_in_both || 0).toLocaleString();
-                document.getElementById('card-missing').textContent = (sm.total_missing_from_master || sm.missing_from_master_total || sm.missing_in_supplier_sheet || 0).toLocaleString();
-                document.getElementById('card-ratio').textContent = sm.overall_missing_pct ? `${sm.overall_missing_pct}%` : (sm.match_rate_pct ? `${sm.match_rate_pct}% Match` : 'N/A');
+                if (presetType === 'untrained_brands') {
+                    document.getElementById('card-total').textContent = Number(sm.initial_missing_upcs || 0).toLocaleString();
+                    document.getElementById('card-matched').textContent = Number(sm.verified_in_client_sheets || 0).toLocaleString();
+                    document.getElementById('card-missing').textContent = Number(sm.final_missing_upcs || 0).toLocaleString();
+                    document.getElementById('card-ratio').textContent = Number(sm.unique_untrained_brands || 0).toLocaleString();
+                } else {
+                    document.getElementById('card-total').textContent = (sm.total_categorization_upcs || sm.master_total_records || sm.records_analyzed || data.records.length || 0).toLocaleString();
+                    document.getElementById('card-matched').textContent = (sm.total_matched_in_master || sm.exact_matches || sm.verified_non_rtd || sm.matching_upcs_in_both || 0).toLocaleString();
+                    document.getElementById('card-missing').textContent = (sm.total_missing_from_master || sm.missing_from_master_total || sm.missing_in_supplier_sheet || 0).toLocaleString();
+                    document.getElementById('card-ratio').textContent = sm.overall_missing_pct ? `${sm.overall_missing_pct}%` : (sm.match_rate_pct ? `${sm.match_rate_pct}% Match` : 'N/A');
+                }
 
                 currentStudioRecords = data.records || [];
                 renderStudioTable(currentStudioRecords);
@@ -2757,6 +2817,18 @@
 
             records.forEach(r => {
                 const tr = document.createElement('tr');
+                if (currentStudioPreset === 'untrained_brands') {
+                    tr.innerHTML = `
+                        <td><strong>Untrained Brand</strong></td>
+                        <td><code>${(r.upcs || []).join(', ') || 'N/A'}</code></td>
+                        <td>${renderBadgeHtml('Final UPC Missing')}</td>
+                        <td>${r.brand_name || 'N/A'}</td>
+                        <td>${Number(r.record_count || 0).toLocaleString()} Master record(s)</td>
+                        <td style="font-size: 0.78rem; color: var(--text-secondary);">${(r.suppliers || []).join(', ') || 'Supplier unavailable'}</td>
+                    `;
+                    tbody.appendChild(tr);
+                    return;
+                }
                 tr.innerHTML = `
                     <td><strong>${r.category || (r.source_file ? r.source_file.replace('.csv', '') : 'Item')}</strong></td>
                     <td><code>${r.upc || r.clean_upc || r.supplier_code || 'N/A'}</code></td>
@@ -2796,11 +2868,6 @@
             });
 
             renderStudioTable(filtered);
-        }
-
-        if (document.getElementById('tab-dashboard')?.classList.contains('active')) {
-            dashboardLoaded = true;
-            loadDashboard();
         }
     </script>
     </div>

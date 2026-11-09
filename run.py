@@ -1,8 +1,9 @@
 import os
 import sys
 from pathlib import Path
-from config import INDEX_DIR, MYSQL_HOST, MYSQL_PORT, MYSQL_DB, SQLITE_PATH
-from data_ingestion.loader import ingest_all_to_sqlite
+from config import INDEX_DIR, MYSQL_HOST, MYSQL_PORT, MYSQL_DB, SQLITE_PATH, CSV_FILES
+from data_ingestion.loader import ingest_all_to_sqlite, ingest_csv_to_sqlite
+import sqlite3
 from engines.vector_engine import vector_engine
 
 def setup_environment():
@@ -14,12 +15,20 @@ def setup_environment():
     db_needs_init = not SQLITE_PATH.exists() or SQLITE_PATH.stat().st_size < 1000000
 
     if db_needs_init:
-        print("[*] Local database not found or incomplete. Ingesting 7 CSV files...")
+        print("[*] Local database not found or incomplete. Ingesting configured CSV files...")
         print("[*] Performing UPC recovery, leading zero preservation, and schema indexing...")
         stats = ingest_all_to_sqlite()
         print("[+] Ingestion complete:", stats)
     else:
         print(f"[+] Local SQLite database verified: {SQLITE_PATH} ({SQLITE_PATH.stat().st_size / (1024*1024):.2f} MB)")
+        with sqlite3.connect(str(SQLITE_PATH)) as conn:
+            trained_table_exists = conn.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?",
+                (CSV_FILES['trained_brands']['table'],),
+            ).fetchone()
+        if not trained_table_exists:
+            print("[*] TrainedBrandsData table missing; ingesting the existing trained sheet...")
+            ingest_csv_to_sqlite('trained_brands', CSV_FILES['trained_brands'])
 
     # 2. Check if vector index exists
     index_file = INDEX_DIR / "beverage_vector_index.pkl"

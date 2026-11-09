@@ -77,3 +77,43 @@ def test_existing_tables_are_not_replaced_without_explicit_opt_in(tmp_path, monk
     assert "already exist" in message
     assert not any("DROP TABLE" in query for query in executed_sql)
     assert not any("CREATE TABLE" in query for query in executed_sql)
+
+
+def test_prepare_sources_can_select_only_trained_dataset(tmp_path, monkeypatch):
+    (tmp_path / "trained.csv").write_text(
+        "Id|BrandName|ImageUrls\n1|Example|https://example.test/image.png\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(migrator, "DATA_DIR", tmp_path)
+    monkeypatch.setattr(
+        migrator,
+        "CSV_FILES",
+        {
+            "trained_brands": {
+                "file": "trained.csv",
+                "delimiter": "|",
+                "table": "trained_brands",
+                "upc_col": None,
+                "alt_upc_col": None,
+                "brand_col": "BrandName",
+                "supplier_col": None,
+            },
+            "other": _source_config()["brands"],
+        },
+    )
+
+    sources = migrator._prepare_sources(["trained_brands"])
+
+    assert list(sources) == ["trained_brands"]
+    assert sources["trained_brands"]["path"].name == "trained.csv"
+
+
+def test_prepare_sources_rejects_unknown_dataset_selection(monkeypatch):
+    monkeypatch.setattr(migrator, "CSV_FILES", _source_config())
+
+    try:
+        migrator._prepare_sources(["trained_brands"])
+    except ValueError as error:
+        assert "unknown dataset key" in str(error)
+    else:
+        raise AssertionError("unknown dataset key should fail preflight")

@@ -1,6 +1,7 @@
 import pandas as pd
 import json
 import logging
+import re
 from config import CSV_FILES, REPORTS_DIR
 from database.db_manager import db_manager
 
@@ -423,6 +424,61 @@ class ComparisonEngine:
                 "sample_missing_records": len(all_missing_records)
             },
             "records": all_missing_records
+        }
+
+    def find_untrained_brands(self, limit=None, search=None):
+        """Return brands marked as ``New`` or ``NeedToVerify`` in category datasets.
+
+        This intentionally does not compare UPCs or trained records. The
+        category sheet's Dataset column is the source of truth for whether a
+        brand belongs in the untrained dataset.
+        """
+        category_sheets = [
+            ('Beer', CSV_FILES['cat_beer']['table'], 'Beer_Brands_Value'),
+            ('Wine', CSV_FILES['cat_wine']['table'], 'Brands_Value'),
+            ('Spirits', CSV_FILES['cat_spirits']['table'], 'Spirits_Brands_Value'),
+            ('RTD', CSV_FILES['cat_rtd']['table'], 'Brands_Value'),
+        ]
+
+        records = []
+        for category, table, brand_column in category_sheets:
+            rows = self.db.query(f"""
+                SELECT COALESCE({brand_column}, '') AS brand_name,
+                       source_file,
+                       original_row
+                FROM `{table}`
+                WHERE LOWER(REPLACE(TRIM(COALESCE(Dataset, '')), ' ', ''))
+                      IN ('new', 'needtoverify')
+            """)
+            for row in rows:
+                brand_name = str(row.get('brand_name') or '').strip()
+                if not brand_name:
+                    continue
+                records.append({
+                    'brand_name': brand_name,
+                    'category': category,
+                    'source': str(row.get('source_file') or '').strip(),
+                })
+
+        records.sort(key=lambda item: item['brand_name'].lower())
+        if search:
+            needle = str(search).strip().lower()
+            records = [item for item in records if needle in item['brand_name'].lower()]
+        export_records = records[:]
+        if limit is not None:
+            records = records[:max(1, min(int(limit), 50000))]
+
+        return {
+            'comparison_type': 'Untrained Brands: New/NeedToVerify rows from Beer, Wine, Spirits & RTD datasets',
+            'process': [
+                'Beer Dataset = New or NeedToVerify',
+                'Wine Dataset = New or NeedToVerify',
+                'Spirits Dataset = New or NeedToVerify',
+                'RTD Dataset = New or NeedToVerify',
+                'Keep every New or NeedToVerify brand row; no deduplication',
+            ],
+            'records': records,
+            'export_records': export_records,
         }
 
 comparison_engine = ComparisonEngine()

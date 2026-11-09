@@ -155,6 +155,17 @@ CSV_FILES = {
         "category_col": "ProductCategory"
     },
 
+    "trained_brands": {
+        "file": "TrainedBrandsData.csv",
+        "delimiter": "|",
+        "table": "trained_brands",
+        "upc_col": "SKU",
+        "alt_upc_col": None,
+        "brand_col": "BrandName",
+        "supplier_col": "SupplierName",
+        "category_col": "Category (Wine/Spirits/Beer/Non Alcoholic)"
+    },
+
     "cat_beer": {
         "file": "Categorization 2026 - Beer.csv",
         "delimiter": ",",

@@ -45,12 +45,23 @@ def _quote_identifier(identifier):
     return f"`{identifier.replace('`', '``')}`"
 
 
-def _prepare_sources():
-    """Resolve and validate all configured CSVs before changing the database."""
+def _prepare_sources(dataset_keys=None):
+    """Resolve and validate selected configured CSVs before changing the database."""
     sources = {}
     errors = []
 
-    for key, entry in CSV_FILES.items():
+    if dataset_keys is None:
+        selected_keys = list(CSV_FILES)
+    else:
+        selected_keys = list(dataset_keys)
+        unknown_keys = [key for key in selected_keys if key not in CSV_FILES]
+        if unknown_keys:
+            raise ValueError(
+                "unknown dataset key(s): " + ", ".join(map(str, unknown_keys))
+            )
+
+    for key in selected_keys:
+        entry = CSV_FILES[key]
         file_path = DATA_DIR / entry["file"]
         try:
             table_sql = _quote_identifier(entry["table"])
@@ -114,6 +125,7 @@ def migrate_data_to_mysql(
     db_name=None,
     progress_callback=None,
     replace_existing=False,
+    dataset_keys=None,
 ):
     """Migrate all configured beverage CSV files into the configured MySQL database.
 
@@ -127,7 +139,7 @@ def migrate_data_to_mysql(
 
     try:
         db_sql = _quote_identifier(db_name)
-        sources = _prepare_sources()
+        sources = _prepare_sources(dataset_keys)
     except (TypeError, ValueError) as error:
         return False, str(error)
 
@@ -343,9 +355,19 @@ if __name__ == "__main__":
         action="store_true",
         help="Drop and recreate matching MySQL tables (back up important data first).",
     )
+    parser.add_argument(
+        "--dataset",
+        action="append",
+        dest="dataset_keys",
+        choices=sorted(CSV_FILES),
+        help="Migrate only this configured dataset; may be repeated.",
+    )
     args = parser.parse_args()
 
     print(f"Connecting to MySQL on {MYSQL_HOST}:{MYSQL_PORT} as {MYSQL_USER}...")
-    success, message = migrate_data_to_mysql(replace_existing=args.replace_existing)
+    success, message = migrate_data_to_mysql(
+        replace_existing=args.replace_existing,
+        dataset_keys=args.dataset_keys,
+    )
     print(message)
     raise SystemExit(0 if success else 1)
