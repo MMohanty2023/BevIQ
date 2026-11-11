@@ -42,9 +42,9 @@ def test_dashboard_has_native_visualization_and_floating_assistant_hooks():
     assert "dashboard-floating-assistant" in HTML
 
 
-def test_floating_assistant_shortcut_is_dashboard_only():
+def test_floating_assistant_shortcut_is_available_outside_chat():
     assert "getElementById('dashboard-floating-assistant')?.setAttribute('hidden', '')" in HTML
-    assert "assistantShortcut.hidden = tabId !== 'dashboard'" in HTML
+    assert "assistantShortcut.hidden = tabId === 'chat'" in HTML
 
 
 def test_frontend_contains_upload_preview_and_clear_loading_states():
