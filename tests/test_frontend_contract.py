@@ -42,9 +42,16 @@ def test_dashboard_has_native_visualization_and_floating_assistant_hooks():
     assert "dashboard-floating-assistant" in HTML
 
 
-def test_floating_assistant_shortcut_is_available_outside_chat():
-    assert "getElementById('dashboard-floating-assistant')?.setAttribute('hidden', '')" in HTML
-    assert "assistantShortcut.hidden = tabId === 'chat'" in HTML
+def test_floating_assistant_is_an_accessible_panel_toggle():
+    assert 'onclick="toggleDashboardAssistant(event)"' in HTML
+    assert 'aria-controls="tab-chat"' in HTML
+    assert 'id="assistant-panel-close"' not in HTML
+    assert 'id="assistant-panel-minimize"' not in HTML
+    assert 'id="assistant-panel-maximize"' not in HTML
+    assert 'id="assistant-panel-resize"' in HTML
+    assert 'id="tab-chat" class="assistant-panel"' in HTML
+    assert 'role="dialog"' in HTML
+    assert "assistantShortcut.hidden = tabId === 'chat'" not in HTML
 
 
 def test_frontend_contains_upload_preview_and_clear_loading_states():
@@ -298,7 +305,7 @@ def test_untrained_dataset_has_separate_navigation_page_and_unique_brand_hooks()
     for hook in (
         "switchTab('untrained-dataset'",
         'id="tab-untrained-dataset"',
-        'id="untrained-total-missing-upcs"',
+        'id="untrained-total-records"',
         'id="untrained-total-brands"',
         'id="untrained-brand-search"',
         'id="untrained-brands-table"',

@@ -431,7 +431,8 @@ class ComparisonEngine:
 
         This intentionally does not compare UPCs or trained records. The
         category sheet's Dataset column is the source of truth for whether a
-        brand belongs in the untrained dataset.
+        brand belongs in the untrained dataset. Return each brand/category pair
+        once, preserving the same brand when it occurs in another category.
         """
         category_sheets = [
             ('Beer', CSV_FILES['cat_beer']['table'], 'Beer_Brands_Value'),
@@ -441,6 +442,7 @@ class ComparisonEngine:
         ]
 
         records = []
+        seen_brand_categories = set()
         for category, table, brand_column in category_sheets:
             rows = self.db.query(f"""
                 SELECT COALESCE({brand_column}, '') AS brand_name,
@@ -454,6 +456,10 @@ class ComparisonEngine:
                 brand_name = str(row.get('brand_name') or '').strip()
                 if not brand_name:
                     continue
+                brand_category = (brand_name.casefold(), category.casefold())
+                if brand_category in seen_brand_categories:
+                    continue
+                seen_brand_categories.add(brand_category)
                 records.append({
                     'brand_name': brand_name,
                     'category': category,
@@ -475,8 +481,12 @@ class ComparisonEngine:
                 'Wine Dataset = New or NeedToVerify',
                 'Spirits Dataset = New or NeedToVerify',
                 'RTD Dataset = New or NeedToVerify',
-                'Keep every New or NeedToVerify brand row; no deduplication',
+                'Keep one row per brand name and category; the same brand may appear in different categories',
             ],
+            'summary': {
+                'total_records': len(export_records),
+                'unique_untrained_brands': len({item['brand_name'].casefold() for item in export_records}),
+            },
             'records': records,
             'export_records': export_records,
         }

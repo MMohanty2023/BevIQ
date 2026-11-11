@@ -14,8 +14,10 @@ from engines.rag_orchestrator import rag_orchestrator
 from data_ingestion.loader import ingest_all_to_sqlite
 from document_rag import ingest as ingest_document, list_documents
 from engines.upc_match_engine import upc_match_engine
+from engines.image_chat import image_chat, IMAGE_EXTENSIONS, VisionUnavailableError
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
+app.config['TEMPLATES_AUTO_RELOAD'] = True
 app.config['SECRET_KEY'] = 'beverage-data-assistant-secret-key-2026'
 
 @app.route('/')
@@ -33,13 +35,26 @@ def api_chat():
     try:
         uploaded = None
         if 'file' in request.files and request.files['file'].filename:
-            uploaded = ingest_document(request.files['file'], session_id)
-        response = rag_orchestrator.route_and_execute(message, session_id=session_id)
+            upload = request.files['file']
+            if Path(upload.filename).suffix.lower() in IMAGE_EXTENSIONS:
+                uploaded = image_chat.ingest(upload, session_id)
+            else:
+                uploaded = ingest_document(upload, session_id)
+        if uploaded and uploaded.get('type') == 'image':
+            response = rag_orchestrator.route_and_execute(
+                message, session_id=session_id, uploaded_image=uploaded)
+        elif uploaded:
+            response = rag_orchestrator.route_and_execute(
+                message, session_id=session_id, uploaded_document=uploaded)
+        else:
+            response = rag_orchestrator.route_and_execute(message, session_id=session_id)
         if uploaded:
             response['uploaded_document'] = uploaded
         return jsonify(response)
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
+    except VisionUnavailableError as e:
+        return jsonify({'error': str(e)}), 503
     except Exception as e:
         return jsonify({
             'answer': f"### ⚠️ Error processing query\n\n`{str(e)}`",

@@ -116,6 +116,12 @@ OLLAMA_MODEL = os.getenv(
     "llama3.2"
 )
 
+# CPU-only image conversations; models are downloaded explicitly during setup.
+OLLAMA_VISION_MODEL = os.getenv("OLLAMA_VISION_MODEL", "qwen3-vl:2b-instruct")
+OLLAMA_VISION_TIMEOUT = int(os.getenv("OLLAMA_VISION_TIMEOUT", "300"))
+OLLAMA_VISION_MAX_TOKENS = int(os.getenv("OLLAMA_VISION_MAX_TOKENS", "512"))
+OLLAMA_VISION_IMAGE_SIZE = int(os.getenv("OLLAMA_VISION_IMAGE_SIZE", "512"))
+
 # ==========================================================
 # 7. CSV FILE CONFIGURATION
 # ==========================================================

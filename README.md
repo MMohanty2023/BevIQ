@@ -74,7 +74,9 @@ Uses **MySQL as the primary database** (default `127.0.0.1:3306`) with SQLite as
 7. **Conversation-scoped Document RAG**:
    - Attach PDF, DOCX, TXT/MD, CSV, XLSX, or image files directly in chat.
    - Ask follow-up questions against uploaded documents with page/sheet source references.
-   - Image OCR uses local Tesseract when installed; files stay under `generated_reports/uploads/`.
+   - Image chat uses the local CPU-only vision model, so photos do not need to contain text.
+   - Ask for a detailed description, a caption, or a poem inspired by the image. Follow-ups such as "Make it shorter" reuse the image while that image is the conversation topic.
+   - Image uploads stay under `generated_reports/uploads/images/` and are scoped to their chat session. PDF/DOCX/text extraction keeps its existing document flow.
 
 8. **Conservative Missing-UPC Product Matching**:
    - Checks AllBrand against Beer, RTD, Spirits, and Wine using brand/product/size similarity after exact and alternate UPC checks.
@@ -236,3 +238,62 @@ beverage_db/
 │   └── index.html              # Responsive HTML5 / Bootstrap 5 / Marked.js UI
 └── static/                     # Custom styles and scripts
 ```
+
+## Offline image chat and CPU deployment
+
+Install Ollama on the machine that will run inference. While internet is available, download both models once:
+
+```sh
+ollama pull llama3.2
+ollama pull qwen3-vl:2b-instruct
+```
+
+Start Ollama and this application normally. After the weights are present, ordinary chat and image inference use local Ollama without internet or an API key. Requests explicitly set `num_gpu=0`; no GPU is required. Attaching a photo no longer depends on Tesseract or readable text.
+
+Example: attach a landscape, animal photo, or artwork and ask, "Describe this picture in detail and add a four-line poem inspired by it." Ask "Make it shorter" to refine that response, or explicitly refer to the picture later. Starting an unrelated topic stops implicit image follow-ups from using an old picture.
+
+Settings in `.env` / environment variables:
+
+| Setting | Default | Purpose |
+| --- | --- | --- |
+| `OLLAMA_HOST` | `http://localhost:11434` | Ollama address reachable by the Flask backend |
+| `OLLAMA_MODEL` | `llama3.2` | Ordinary conversation model |
+| `OLLAMA_VISION_MODEL` | `qwen3-vl:2b-instruct` | Local vision model |
+| `OLLAMA_VISION_TIMEOUT` | `300` | CPU generation timeout in seconds |
+| `OLLAMA_VISION_MAX_TOKENS` | `512` | Maximum image-answer length; larger values take longer |
+| `OLLAMA_VISION_IMAGE_SIZE` | `512` | Maximum image edge sent to vision; larger values retain more detail but take longer |
+
+For future deployment:
+- Run Ollama on the CPU host, or in a separate CPU service reachable through `OLLAMA_HOST`. Inside a container, `localhost` refers to that container; use the Ollama service name when they are separate.
+- Preload models during connected setup and retain Ollama's model directory on persistent storage. Chat requests never download models automatically.
+- Persist `db_storage/`, `generated_reports/uploads/`, and the existing catalog/index storage across app restarts. This keeps image ownership and conversation history together.
+- Use a production WSGI server and reverse proxy with a request timeout longer than `OLLAMA_VISION_TIMEOUT` (for example 360 seconds). Start with one app worker and bounded concurrency on a small CPU host; the image engine accepts one image-generation request per process at a time.
+- Allow RAM for Python, the catalog database and the loaded model, not just the model download size. Validate resources on the target CPU host; low-memory free hosting may not fit. Cold starts and longer answers take more time.
+- Offline operation applies to local chat, document/catalog retrieval and image inference. Existing integrations that access internet resources still need their own network connection.
+
+If the image model is missing, the app gives a setup instruction. If Ollama is stopped, times out, or returns an empty reply, the app reports a service error instead of rejecting the photo for having no text.
+
+Local validation on this 8 GB laptop: a real photo request asking for a detailed description plus a four-line poem completed in about 90 seconds, with zero GPU memory used. This is one observed cold-request timing, not a latency guarantee; CPU, available RAM, photo size and answer length change it. The default explicitly uses the instruct variant to avoid spending the answer budget on a thinking-only response.
+
+## General conversation and project-aware answers
+
+The same AI Assistant handles ordinary questions, coding explanations, writing and conversation as well as beverage records and uploaded content. It uses the installed local text model, recent session history and the latest requested English/Hindi/Hinglish style.
+
+Examples:
+- General: "Explain why rainbows form" or "Write a Python example for sorting a list".
+- Project: "Explain my project architecture", "How does PD Comparison Studio work?" or "mere project ki working batao".
+- Follow-up: "What database does it use?" after discussing the project.
+- Data: "Find UPC 0852955008021", "Show Master Brand Kingfisher" or a missing-UPC comparison.
+- Content: attach a PDF for document questions, or a photo for description/poetry.
+
+Project explanations use the allowlisted `docs/assistant-project-guide.md` plus safe configuration facts and display those source filenames. Update the guide when project architecture changes. The assistant does not recursively index code, read credentials or include `.env` values in project context. Actual record/count requests retain database retrieval; uploaded-document questions retain their document source. A factual local project summary remains available if Ollama is stopped.
+
+This is a local assistant with conversational behavior, not the ChatGPT service or a guarantee of equal capability. Offline models can make mistakes and do not have live internet knowledge. They should say when facts are unavailable rather than claim unperformed browsing, code execution or database access.
+
+## Floating AI Assistant
+
+The top navigation AI Assistant tab opens the full chat page. The floating AI Assistant toggle opens a smaller chat window over the current page. While that window is open, the same toggle docks in its header as Close Assistant without covering chat content. Close it with that toggle or Escape; chat history, draft and selected upload stay in place. There are no separate minimize, maximize or close buttons.
+
+Move the floating window by dragging its header, and resize it from any edge or corner with the mouse or touch. Its size and position are retained while moving between pages or closing and reopening chat, and stay within the viewport after browser resizing. Keyboard users can focus the header and use arrow keys to move it, or focus the bottom-right resize handle and use arrow keys to resize; Shift uses larger steps.
+
+When chat is closed, its floating launcher is also draggable. That launcher's position is saved in browser localStorage across refresh; dragging does not trigger chat open/close. The Dashboard is the initial page. Both themes use a compact header, a readable theme-aware logo, scrollable tables with fixed headings, and responsive desktop/mobile layouts.

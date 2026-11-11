@@ -914,7 +914,7 @@
         .dashboard-heatmap { width:100%; display:grid; grid-template-columns:repeat(5, minmax(90px,1fr)); gap:.5rem; }
         .dashboard-heatmap-cell { min-height:88px; display:flex; flex-direction:column; justify-content:space-between; padding:.65rem; border:1px solid var(--border-color); border-radius:10px; color:#fff; }
         .dashboard-heatmap-cell strong { font-size:1.15rem; }
-        .dashboard-floating-assistant { position:fixed; right:1.25rem; bottom:1.25rem; z-index:80; border:1px solid rgba(147,197,253,.45); border-radius:999px; padding:.8rem 1rem; color:#fff; background:linear-gradient(135deg,#2563eb,#0ea5e9); box-shadow:0 12px 30px rgba(14,165,233,.3); cursor:pointer; animation:dashboard-assistant-float 2.4s ease-in-out infinite; }
+        .dashboard-floating-assistant { position:fixed; right:1.25rem; bottom:1.25rem; z-index:201; border:1px solid rgba(147,197,253,.45); border-radius:999px; padding:.8rem 1rem; color:#fff; background:linear-gradient(135deg,#2563eb,#0ea5e9); box-shadow:0 12px 30px rgba(14,165,233,.3); cursor:grab; touch-action:none; user-select:none; }
         @keyframes dashboard-assistant-float { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-7px); } }
         @media (prefers-reduced-motion: reduce) { .dashboard-floating-assistant { animation:none; } }
         .dashboard-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 10px; padding: 1rem; }
@@ -1247,6 +1247,172 @@
             .brand-wordmark { font-size: 1.25rem; }
             .brand-tagline { font-size: .58rem; }
         }
+
+        /* Floating assistant panel: the original chat stays mounted. */
+        .assistant-panel {
+            position: fixed; right: 1.25rem; bottom: 5.5rem; z-index: 200;
+            width: min(560px, calc(100vw - 2rem));
+            height: min(740px, calc(100vh - 7rem));
+            height: min(740px, calc(100dvh - 7rem));
+            display: flex; flex-direction: column; overflow: hidden;
+            background: var(--bg-card); border: 1px solid var(--border-color);
+            border-radius: 16px; box-shadow: 0 16px 60px rgba(0,0,0,.35);
+        }
+        .assistant-panel[hidden] { display: none; }
+        .assistant-panel-compact .quick-prompts-bar { display: none; }
+        .dashboard-floating-assistant:active { cursor: grabbing; }
+        .assistant-panel-header {
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 1rem; padding: .8rem 1rem; flex-shrink: 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .assistant-panel-title { margin: 0; font-size: 1rem; color: var(--text-main); }
+        .dashboard-floating-assistant:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 3px; }
+        .assistant-panel .quick-prompts-bar { flex-shrink: 0; max-height: 88px; overflow-y: auto; margin: .5rem; }
+        .assistant-panel .chat-layout { flex: 1; height: auto; min-height: 0; border: 0; border-radius: 0; box-shadow: none; }
+        .assistant-panel .chat-history { min-height: 0; padding: .8rem; }
+        .assistant-panel .chat-bubble { overflow-wrap: anywhere; }
+        .assistant-panel .chat-input-bar { flex-shrink: 0; }
+        .assistant-panel .chat-input-bar > div { flex-wrap: wrap; }
+        .assistant-panel .text-input-field { min-width: 0; }
+        .assistant-panel #selected-document { max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        @media (max-width: 600px) {
+            .assistant-panel { right: .75rem; bottom: 5.25rem; width: calc(100vw - 1.5rem); height: calc(100vh - 6.25rem); height: calc(100dvh - 6.25rem); }
+            .dashboard-floating-assistant { right: .75rem; bottom: 1rem; }
+            .assistant-panel .quick-prompts-bar { max-height: 72px; }
+        }
+        .brand-logo.brand-logo-full {
+            width: 210px; height: 70px; flex: 0 1 210px;
+            max-width: 60vw; object-fit: contain; border-radius: 6px;
+            transform: scale(1); transform-origin: left center;
+            transition: transform 250ms ease;
+        }
+        html[data-theme="light"] .brand-logo.brand-logo-full {
+            filter: invert(1) hue-rotate(180deg);
+        }
+        @media (hover: hover) and (pointer: fine) {
+            .brand-logo.brand-logo-full:hover { transform: scale(1.08); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .brand-logo.brand-logo-full { transition: none; }
+        }
+        .assistant-panel.assistant-page {
+            position: relative; inset: auto; z-index: auto;
+            width: 100%; height: calc(100vh - 240px); height: calc(100dvh - 240px);
+            min-height: 400px; margin: 0; box-sizing: border-box;
+        }
+        .main-content:has(> .assistant-page:not([hidden])) > .tab-panel { display: none; }
+        body:has(.assistant-page:not([hidden])) .nav-tab-btn.active { color: var(--text-secondary); border-bottom-color: transparent; }
+        body:has(.assistant-page:not([hidden])) #assistant-nav-toggle { color: var(--accent-blue); border-bottom: 3px solid var(--accent-blue); }
+        body:has(.assistant-page:not([hidden])) .dashboard-floating-assistant { display: none; }
+        @media (max-width: 600px) {
+            .brand-logo.brand-logo-full { width: 168px; height: 56px; flex-basis: 168px; }
+            .assistant-panel.assistant-page { min-height: 320px; }
+        }
+        .assistant-resize-handle[hidden] { display: none; }
+        .assistant-panel.assistant-page .assistant-resize-handle { display: none; }
+        .assistant-panel:not(.assistant-page) .assistant-panel-header {
+            cursor: move; touch-action: none; user-select: none;
+        }
+        .assistant-panel-header:focus-visible, .assistant-resize-handle:focus-visible {
+            outline: 2px solid var(--accent-blue); outline-offset: -3px;
+        }
+        .assistant-resize-handle {
+            position: absolute; bottom: 2px; right: 2px; width: 22px; height: 22px;
+            display: grid; place-items: center; padding: 0; border: 0;
+            color: var(--text-secondary); background: transparent;
+            cursor: nwse-resize; touch-action: none; font-size: 18px;
+        }
+        .assistant-panel { box-sizing: border-box; }
+        .main-content:has(> .assistant-page:not([hidden])) { max-width: none; width: 100%; box-sizing: border-box; }
+        .assistant-resize-edge { position: absolute; z-index: 20; touch-action: none; }
+        .assistant-panel.assistant-page .assistant-resize-edge { display: none; }
+        .assistant-resize-n, .assistant-resize-s { left: 18px; right: 18px; height: 9px; cursor: ns-resize; }
+        .assistant-resize-n { top: 0; }
+        .assistant-resize-s { bottom: 0; }
+        .assistant-resize-e, .assistant-resize-w { top: 18px; bottom: 18px; width: 9px; cursor: ew-resize; }
+        .assistant-resize-e { right: 0; }
+        .assistant-resize-w { left: 0; }
+        .assistant-resize-nw, .assistant-resize-ne, .assistant-resize-sw { width: 18px; height: 18px; }
+        .assistant-resize-nw { top: 0; left: 0; cursor: nwse-resize; }
+        .assistant-resize-ne { top: 0; right: 0; cursor: nesw-resize; }
+        .assistant-resize-sw { bottom: 0; left: 0; cursor: nesw-resize; }
+        .assistant-resize-handle { z-index: 21; }
+        .studio-grid { grid-template-columns: 260px minmax(0,1fr); }
+        .studio-header { flex-wrap: wrap; gap: .75rem; }
+        .studio-header > div { flex: 1 1 240px; min-width: 0; }
+        .studio-header .btn-download-csv { flex: 0 0 auto; }
+        .studio-main .markdown-table-wrapper { width: 100%; }
+        .metric-box { min-width: 0; overflow-wrap: anywhere; }
+        @media (max-width: 900px) {
+            .studio-grid { grid-template-columns: minmax(0,1fr); }
+            .studio-sidebar { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); }
+            .studio-sidebar .sidebar-heading { grid-column: 1 / -1; }
+            .studio-sidebar .preset-btn { min-width: 0; white-space: normal; text-align: left; }
+            .table-filter-bar { flex-wrap: wrap; }
+            .table-filter-bar .search-filter-input { flex: 1 1 200px; min-width: 0; }
+            .metric-cards-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+        }
+        .trained-chart-card, .trained-chart-legend { min-width: 0; max-width: 100%; }
+        .trained-bar-row { grid-template-columns: minmax(0,.9fr) minmax(0,1.5fr) auto; }
+        .trained-bar-row > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .trained-chart-legend div > span { min-width: 0; overflow-wrap: anywhere; }
+        .trained-chart-legend div > strong { flex-shrink: 0; }
+        /* Compact shell and scrollable data views. */
+        header { padding: .5rem 1.25rem; gap: 1rem; }
+        .brand-container { min-width: 0; }
+        .theme-toggle { flex-shrink: 0; }
+        .main-content, .tab-panel, .studio-main, .dashboard-card, .pane-card { min-width: 0; }
+        .trained-table-scroll { max-height: min(600px, 65dvh); border-radius: 8px; isolation: isolate; }
+        .trained-table-scroll table, .markdown-table-wrapper .styled-table {
+            border-collapse: separate; border-spacing: 0;
+        }
+        .trained-table-scroll thead th, .markdown-table-wrapper thead th {
+            position: sticky; top: 0; z-index: 2;
+            background: var(--bg-card); box-shadow: 0 1px 0 var(--border-color);
+        }
+        .trained-data-table th { cursor: default; }
+        .trained-data-table th[data-trained-column] { cursor: pointer; }
+        #untrained-brands-table { min-width: 0; table-layout: fixed; }
+        #untrained-brands-table th:first-child { width: 42%; }
+        #untrained-brands-table th:nth-child(2) { width: 18%; }
+        #untrained-brands-table td { overflow-wrap: anywhere; }
+        .dashboard-table tbody tr:hover { background: var(--bg-hover); }
+        .trained-table-controls .text-input-field { flex: 1 1 220px; min-width: 0; }
+        .assistant-panel-header { min-height: 58px; padding: .65rem 1rem; }
+        .assistant-panel-title { min-width: 0; }
+        .dashboard-floating-assistant.assistant-launcher-docked {
+            position: static !important; inset: auto !important; flex: 0 0 auto;
+            padding: .5rem .75rem; font-size: .8rem; line-height: 1.4;
+            box-shadow: none; cursor: pointer; touch-action: auto;
+        }
+        body:has(.assistant-page:not([hidden])) #beviq-app {
+            height: 100dvh; display: flex; flex-direction: column;
+        }
+        body:has(.assistant-page:not([hidden])) header,
+        body:has(.assistant-page:not([hidden])) .nav-tabs-wrapper { flex-shrink: 0; }
+        .main-content:has(> .assistant-page:not([hidden])) {
+            flex: 1; min-height: 0; display: flex; flex-direction: column;
+        }
+        .assistant-panel.assistant-page { flex: 1; height: auto; min-height: 0; }
+        @media (max-width: 760px) {
+            header { padding: .5rem .75rem; gap: .5rem; }
+            .untrained-summary-item { flex-basis: 120px; }
+            .trained-donut-layout { flex-wrap: wrap; }
+            .master-search-grid { grid-template-columns: minmax(0,1fr); }
+            .dashboard-heatmap { grid-template-columns: repeat(2,minmax(0,1fr)); }
+            .assistant-panel .chat-form { flex-wrap: wrap; }
+            .assistant-panel .chat-form .text-input-field { flex: 1 1 180px; }
+            .assistant-panel .btn-submit-send { min-height: 42px; justify-content: center; }
+            .assistant-panel .quick-prompts-bar { flex-wrap: nowrap; align-items: center; }
+        }
+        @media (max-width: 420px) {
+            .assistant-panel-header { gap: .5rem; padding: .6rem .75rem; }
+            .dashboard-floating-assistant.assistant-launcher-docked { padding: .45rem .55rem; font-size: .75rem; }
+            .assistant-panel .chat-form .btn-submit-send { flex: 1 0 100%; }
+            .trained-table-controls { align-items: stretch; }
+            #untrained-record-count { width: 100%; }
+        }
     </style>
 </head>
 <body>
@@ -1255,12 +1421,8 @@
     <!-- Header -->
     <header>
         <div class="brand-container">
-            <img class="brand-logo" src="{{ url_for('static', filename='images/beviq-mark.png') }}"
-                 alt="" width="40" height="40" fetchpriority="high">
-            <div class="brand-lockup">
-                <div class="brand-wordmark">Bev<span>IQ</span></div>
-                <div class="brand-tagline">Beverage Intelligence, Simplified</div>
-            </div>
+            <img class="brand-logo brand-logo-full" src="{{ url_for('static', filename='images/beviq-logo.png') }}"
+                 alt="BevIQ - Beverage Intelligence, Simplified" width="210" height="70" fetchpriority="high">
         </div>
         <div id="theme-toggle" class="theme-toggle" role="group" aria-label="Choose color theme" data-active-theme="dark">
             <button class="theme-choice theme-choice--light" type="button" title="Light mode" aria-label="Light mode" aria-pressed="false">&#9728;</button>
@@ -1271,13 +1433,13 @@
 
     <!-- Nav Tabs -->
     <div class="nav-tabs-wrapper">
-        <button class="nav-tab-btn" onclick="switchTab('dashboard', this)">
+        <button id="dashboard-nav-button" class="nav-tab-btn active" onclick="switchTab('dashboard', this)">
             Dashboard
         </button>
         <button class="nav-tab-btn" onclick="switchTab('supplier-overview', this)">
             Supplier Overview
         </button>
-        <button class="nav-tab-btn active" onclick="switchTab('chat', this)">
+        <button id="assistant-nav-toggle" class="nav-tab-btn" onclick="switchTab('chat', this)" aria-controls="tab-chat" aria-expanded="false">
             💬 AI Assistant
         </button>
         <button class="nav-tab-btn" onclick="switchTab('master-brands', this)">
@@ -1298,10 +1460,7 @@
             </div>
         </div>
         <button class="nav-tab-btn" onclick="switchTab('comparison', this)">
-            ⚖️ Comparison Studio
-        </button>
-        <button class="nav-tab-btn" onclick="switchTab('datasets', this)">
-            📊 Datasets & Schema
+            ⚖️ PD Comparison Studio
         </button>
     </div>
 
@@ -1309,7 +1468,10 @@
     <div class="main-content">
 
         <!-- TAB 1: AI CHAT ASSISTANT -->
-        <div id="tab-chat" class="tab-panel active">
+        <div id="tab-chat" class="assistant-panel" role="dialog" aria-modal="false" aria-labelledby="assistant-panel-title" hidden>
+            <div id="assistant-panel-header" class="assistant-panel-header" tabindex="0" aria-label="AI Assistant window header">
+                <h2 id="assistant-panel-title" class="assistant-panel-title" tabindex="-1">AI Assistant</h2>
+            </div>
             <!-- Quick Prompts Bar -->
             <div class="quick-prompts-bar">
                 <span class="prompt-label">⚡ Quick Queries:</span>
@@ -1321,9 +1483,6 @@
                 </span>
                 <span class="prompt-chip" onclick="triggerQuickPrompt('Compare AIMasterBrandData with Beer categorization')">
                     🍺 Master vs Beer Sheet
-                </span>
-                <span class="prompt-chip" onclick="triggerQuickPrompt('Compare All Brand Sheet with Supplier Sheet')">
-                    🏢 AllBrand vs Supplier Master
                 </span>
                 <span class="prompt-chip" onclick="triggerQuickPrompt('Compare Beer and RTD categorization')">
                     🔄 Beer vs RTD Validation
@@ -1355,6 +1514,7 @@
                         <div class="bot-markdown">
                             <p>👋 <strong>Welcome to BevIQ!</strong></p>
                             <p>I'm here to help you with beverage data and everyday questions.</p>
+                            <p>Ask about this project's setup and architecture, or upload a photo for a description and poetry.</p>
                             <p>You can chat with me in English or Hinglish, ask anything, find UPCs, compare products, check missing records, or create reports.</p>
                             <p>Just type your question and let's get started! 😊</p>
                         </div>
@@ -1377,10 +1537,18 @@
                     </form>
                 </div>
             </div>
+            <span id="assistant-resize-n" class="assistant-resize-edge assistant-resize-n" aria-hidden="true"></span>
+            <span id="assistant-resize-s" class="assistant-resize-edge assistant-resize-s" aria-hidden="true"></span>
+            <span id="assistant-resize-e" class="assistant-resize-edge assistant-resize-e" aria-hidden="true"></span>
+            <span id="assistant-resize-w" class="assistant-resize-edge assistant-resize-w" aria-hidden="true"></span>
+            <span id="assistant-resize-nw" class="assistant-resize-edge assistant-resize-nw" aria-hidden="true"></span>
+            <span id="assistant-resize-ne" class="assistant-resize-edge assistant-resize-ne" aria-hidden="true"></span>
+            <span id="assistant-resize-sw" class="assistant-resize-edge assistant-resize-sw" aria-hidden="true"></span>
+            <button id="assistant-panel-resize" class="assistant-resize-handle" type="button" aria-label="Resize AI Assistant" title="Drag to resize; arrow keys adjust size">&#9698;</button>
         </div>
 
         <!-- TAB 2: BUSINESS DASHBOARD -->
-        <div id="tab-dashboard" class="tab-panel">
+        <div id="tab-dashboard" class="tab-panel active">
             <div class="dashboard-grid">
                 <div>
                     <div class="studio-title">Beverage Dashboard</div>
@@ -1585,18 +1753,15 @@
         <!-- TAB: UNTRAINED DATASET -->
         <div id="tab-untrained-dataset" class="tab-panel">
             <div class="studio-title">Untrained Dataset</div>
-            <div class="studio-subtitle">Beer, Wine, Spirits aur RTD sheets me Dataset = New ya NeedToVerify wale brands.</div>
-            <div class="untrained-summary-strip" aria-label="Untrained dataset summary" hidden>
+            <div class="studio-subtitle">Brands marked New or NeedToVerify in Beer, Wine, Spirits and RTD datasets. Each brand appears once per category.</div>
+            <div class="untrained-summary-strip" aria-label="Untrained dataset summary">
                 <div class="untrained-summary-item"><strong id="untrained-total-records">—</strong><span>Dataset Records</span></div>
-                <div class="untrained-summary-item"><strong id="untrained-total-missing-upcs">—</strong><span>Missing UPCs</span></div>
                 <div class="untrained-summary-item"><strong id="untrained-total-brands">—</strong><span>Unique Brands</span></div>
-                <div class="untrained-summary-item"><strong id="untrained-reference-upcs">—</strong><span>Reference UPCs</span></div>
-                <div class="untrained-summary-item"><strong id="untrained-trained-upcs">—</strong><span>Trained UPCs</span></div>
             </div>
             <div class="dashboard-card trained-data-shell">
                 <div class="trained-table-controls">
-                    <input class="text-input-field" id="untrained-brand-search" placeholder="Search new brand..." oninput="queueUntrainedDatasetLoad()">
-                    <span id="untrained-record-count" class="dashboard-subtle">Dataset = New brands</span>
+                    <input class="text-input-field" id="untrained-brand-search" placeholder="Search brands..." aria-label="Search untrained brands" oninput="queueUntrainedDatasetLoad()">
+                    <span id="untrained-record-count" class="dashboard-subtle" role="status" aria-live="polite">New / NeedToVerify rows</span>
                 </div>
                 <div class="trained-table-scroll"><table class="dashboard-table trained-data-table" id="untrained-brands-table"><thead><tr><th>Brand Name</th><th>Category</th><th>Source Dataset</th></tr></thead><tbody><tr><td colspan="3">Open Untrained Dataset to load records.</td></tr></tbody></table></div>
             </div>
@@ -1623,17 +1788,8 @@
                     <button class="preset-btn" onclick="executeComparison('master_vs_wine', this)">
                         🍷 Master vs Wine
                     </button>
-                    <button class="preset-btn" onclick="executeComparison('allbrand_vs_supplier', this)">
-                        🏢 AllBrand vs Supplier
-                    </button>
                     <button class="preset-btn" onclick="executeComparison('beer_vs_rtd', this)">
                         🔄 Beer vs RTD Validation
-                    </button>
-                    <button class="preset-btn" onclick="executeComparison('duplicate_upcs', this)">
-                        📑 Duplicate UPC Audit
-                    </button>
-                    <button class="preset-btn" onclick="executeComparison('untrained_brands', this)">
-                        🧭 Untrained Brands
                     </button>
                 </div>
 
@@ -1792,14 +1948,15 @@
 
     </div>
 
-    <!-- Persistent floating shortcut to the existing AI Assistant -->
-    <button id="dashboard-floating-assistant" class="dashboard-floating-assistant" type="button" onclick="openDashboardAssistant()" aria-label="Open AI Assistant" title="Open AI Assistant">💬 AI Assistant</button>
+    <!-- Persistent floating chat toggle -->
+    <div id="assistant-launcher-home">
+    <button id="dashboard-floating-assistant" class="dashboard-floating-assistant" type="button" onclick="toggleDashboardAssistant(event)" aria-controls="tab-chat" aria-expanded="false" aria-haspopup="dialog" aria-label="Open AI Assistant" title="Open AI Assistant">💬 AI Assistant</button>
+    </div>
 
     <!-- Client Script (100% Offline & Pure JS) -->
     <script>
         const savedTheme = localStorage.getItem('beviq_theme') || 'dark';
         document.documentElement.dataset.theme = savedTheme;
-        document.getElementById('dashboard-floating-assistant')?.setAttribute('hidden', '');
 
         function applyTheme(theme) {
             const normalized = theme === 'light' ? 'light' : 'dark';
@@ -1923,11 +2080,13 @@
         document.querySelector('.nav-tabs-wrapper').addEventListener('scroll', () => datasetDropdown.hidePopover());
 
         function switchTab(tabId, btn) {
+            if (tabId === 'chat') {
+                openAssistantPage();
+                return;
+            }
+            if (document.getElementById('tab-chat').classList.contains('assistant-page')) closeDashboardAssistant();
             document.querySelectorAll('.nav-tab-btn').forEach(b => b.classList.remove('active'));
             document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-
-            const assistantShortcut = document.getElementById('dashboard-floating-assistant');
-            if (assistantShortcut) assistantShortcut.hidden = tabId === 'chat';
 
             btn.classList.add('active');
             if (tabId === 'trained-dataset' || tabId === 'untrained-dataset') {
@@ -2054,10 +2213,325 @@
             target.innerHTML = renderer(series);
         }
 
-        function openDashboardAssistant() {
-            const chatButton = Array.from(document.querySelectorAll('.nav-tab-btn')).find(button => button.getAttribute('onclick')?.includes("switchTab('chat'"));
-            if (chatButton) switchTab('chat', chatButton);
+        // Floating assistant controls
+        let assistantReturnFocus = null;
+        let assistantIgnoreClickUntil = 0;
+
+        function setAssistantOpen(open) {
+            const panel = document.getElementById('tab-chat');
+            const launcher = document.getElementById('dashboard-floating-assistant');
+            const navToggle = document.getElementById('assistant-nav-toggle');
+            const wasOpen = !panel.hidden;
+            const hadPanelFocus = panel.contains(document.activeElement);
+            if (open && !wasOpen) assistantReturnFocus = document.activeElement;
+            panel.hidden = !open;
+            launcher.setAttribute('aria-expanded', String(open));
+            launcher.setAttribute('aria-label', open ? 'Close AI Assistant' : 'Open AI Assistant');
+            launcher.title = open ? 'Close AI Assistant' : 'Open AI Assistant';
+            launcher.textContent = open ? '✕ Close Assistant' : '💬 AI Assistant';
+            navToggle.setAttribute('aria-expanded', String(open));
+            updateAssistantMode();
+            positionAssistantPanel();
+            dockAssistantLauncher();
+
+            if (open && !wasOpen) {
+                const input = document.getElementById('chat-input-box');
+                const target = input.disabled
+                    ? document.getElementById('assistant-panel-title') : input;
+                target.focus({ preventScroll: true });
+            } else if (!open && wasOpen && hadPanelFocus) {
+                const target = assistantReturnFocus?.isConnected && !panel.contains(assistantReturnFocus)
+                    ? assistantReturnFocus : launcher;
+                target.focus({ preventScroll: true });
+            }
         }
+
+        function dockAssistantLauncher() {
+            const panel = document.getElementById('tab-chat');
+            const launcher = document.getElementById('dashboard-floating-assistant');
+            const docked = !panel.hidden && !panel.classList.contains('assistant-page');
+            const parent = document.getElementById(docked ? 'assistant-panel-header' : 'assistant-launcher-home');
+            launcher.classList.toggle('assistant-launcher-docked', docked);
+            if (launcher.parentElement !== parent) parent.appendChild(launcher);
+        }
+
+        function updateAssistantMode() {
+            const panel = document.getElementById('tab-chat');
+            const page = panel.classList.contains('assistant-page');
+            document.getElementById('assistant-panel-resize').hidden = page;
+            panel.setAttribute('role', page ? 'region' : 'dialog');
+        }
+
+        function openAssistantPage() {
+            const panel = document.getElementById('tab-chat');
+            panel.classList.add('assistant-page');
+            updateAssistantMode();
+            setAssistantOpen(true);
+        }
+
+        function openDashboardAssistant() {
+            setAssistantOpen(true);
+        }
+
+        function toggleDashboardAssistant(event) {
+            if (event?.detail > 0 && Date.now() < assistantIgnoreClickUntil) {
+                assistantIgnoreClickUntil = 0;
+                event.preventDefault();
+                return;
+            }
+            assistantIgnoreClickUntil = 0;
+            const panel = document.getElementById('tab-chat');
+            if (panel.classList.contains('assistant-page')) {
+                panel.classList.remove('assistant-page');
+                setAssistantOpen(true);
+            } else {
+                setAssistantOpen(panel.hidden);
+            }
+        }
+
+        function closeDashboardAssistant() {
+            setAssistantOpen(false);
+            document.getElementById('tab-chat').classList.remove('assistant-page');
+            updateAssistantMode();
+        }
+
+        document.addEventListener('keydown', event => {
+            if (event.key !== 'Escape' || event.defaultPrevented
+                || document.getElementById('tab-chat').hidden
+                || document.getElementById('tab-chat').classList.contains('assistant-page')
+                || document.getElementById('master-brand-image-lightbox')?.hidden === false) return;
+            event.preventDefault();
+            closeDashboardAssistant();
+        });
+        // End floating assistant controls
+
+        // Draggable assistant launcher
+        let assistantPosition = null;
+        let assistantDrag = null;
+        const assistantPositionKey = 'beviq_assistant_position';
+        const assistantLauncher = document.getElementById('dashboard-floating-assistant');
+
+        function placeAssistantLauncher(x, y) {
+            const rect = assistantLauncher.getBoundingClientRect();
+            const margin = 12;
+            const maxX = Math.max(margin, window.innerWidth - rect.width - margin);
+            const maxY = Math.max(margin, window.innerHeight - rect.height - margin);
+            assistantPosition = {
+                x: Math.min(maxX, Math.max(margin, x)),
+                y: Math.min(maxY, Math.max(margin, y)),
+            };
+            assistantLauncher.style.left = assistantPosition.x + 'px';
+            assistantLauncher.style.top = assistantPosition.y + 'px';
+            assistantLauncher.style.right = 'auto';
+            assistantLauncher.style.bottom = 'auto';
+        }
+
+        function positionAssistantPanel() {
+            if (assistantPosition) placeAssistantLauncher(assistantPosition.x, assistantPosition.y);
+            const panel = document.getElementById('tab-chat');
+            if (panel.hidden) return;
+            if (panel.classList.contains('assistant-page')) {
+                ['width', 'height', 'left', 'top', 'right', 'bottom'].forEach(key => { panel.style[key] = ''; });
+                panel.classList.remove('assistant-panel-compact');
+                return;
+            }
+            if (assistantWindowBounds) {
+                applyAssistantWindowBounds(assistantWindowBounds);
+                return;
+            }
+            const button = assistantLauncher.getBoundingClientRect();
+            const width = Math.min(560, window.innerWidth - 24);
+            const height = Math.min(640, window.innerHeight - 24);
+            applyAssistantWindowBounds({
+                left: button.left < window.innerWidth / 2 ? button.left : button.right - width,
+                top: button.top - 12 - height,
+                width, height,
+            });
+        }
+
+        function saveAssistantPosition() {
+            if (!assistantPosition) return;
+            try {
+                localStorage.setItem(assistantPositionKey, JSON.stringify({
+                    x: Math.round(assistantPosition.x), y: Math.round(assistantPosition.y),
+                }));
+            } catch { /* Position still works when browser storage is unavailable. */ }
+        }
+
+        assistantLauncher.addEventListener('pointerdown', event => {
+            if (assistantLauncher.classList.contains('assistant-launcher-docked')) return;
+            if (event.button !== 0 || event.isPrimary === false || assistantDrag) return;
+            const rect = assistantLauncher.getBoundingClientRect();
+            assistantDrag = {
+                id: event.pointerId, startX: event.clientX, startY: event.clientY,
+                left: rect.left, top: rect.top, moved: false,
+                previous: assistantPosition ? { ...assistantPosition } : null,
+            };
+            assistantLauncher.setPointerCapture(event.pointerId);
+        });
+
+        assistantLauncher.addEventListener('pointermove', event => {
+            if (!assistantDrag || event.pointerId !== assistantDrag.id) return;
+            const dx = event.clientX - assistantDrag.startX;
+            const dy = event.clientY - assistantDrag.startY;
+            if (!assistantDrag.moved && Math.hypot(dx, dy) <= 6) return;
+            assistantDrag.moved = true;
+            event.preventDefault();
+            placeAssistantLauncher(assistantDrag.left + dx, assistantDrag.top + dy);
+            positionAssistantPanel();
+        });
+
+        function finishAssistantDrag(event, cancelled = false) {
+            if (!assistantDrag || event.pointerId !== assistantDrag.id) return;
+            const drag = assistantDrag;
+            assistantDrag = null;
+            if (assistantLauncher.hasPointerCapture(event.pointerId)) {
+                assistantLauncher.releasePointerCapture(event.pointerId);
+            }
+            if (!drag.moved) return;
+            if (cancelled) {
+                assistantPosition = drag.previous;
+                if (!assistantPosition) {
+                    assistantLauncher.style.left = '';
+                    assistantLauncher.style.top = '';
+                    assistantLauncher.style.right = '';
+                    assistantLauncher.style.bottom = '';
+                }
+                positionAssistantPanel();
+                return;
+            }
+            // Pointer release generates a click; it must not toggle chat.
+            assistantIgnoreClickUntil = Date.now() + 400;
+            saveAssistantPosition();
+        }
+
+        assistantLauncher.addEventListener('pointerup', event => finishAssistantDrag(event));
+        assistantLauncher.addEventListener('pointercancel', event => finishAssistantDrag(event, true));
+        assistantLauncher.addEventListener('lostpointercapture', event => finishAssistantDrag(event, true));
+        window.addEventListener('resize', positionAssistantPanel);
+
+        try {
+            const saved = JSON.parse(localStorage.getItem(assistantPositionKey) || 'null');
+            if (saved && Number.isFinite(saved.x) && Number.isFinite(saved.y)) {
+                placeAssistantLauncher(saved.x, saved.y);
+            }
+        } catch { /* Ignore old or invalid preferences. */ }
+        // End draggable assistant launcher
+
+        // Movable assistant window
+        let assistantWindowBounds = null;
+        let assistantWindowGesture = null;
+        const assistantWindowHeader = document.getElementById('assistant-panel-header');
+        const assistantResizeHandle = document.getElementById('assistant-panel-resize');
+
+        function isAssistantWindowMovable() {
+            const panel = document.getElementById('tab-chat');
+            return !panel.hidden && !panel.classList.contains('assistant-page');
+        }
+
+        function applyAssistantWindowBounds(bounds) {
+            const panel = document.getElementById('tab-chat');
+            const maxWidth = Math.max(1, window.innerWidth - 24);
+            const maxHeight = Math.max(1, window.innerHeight - 24);
+            const width = Math.min(maxWidth, Math.max(Math.min(320, maxWidth), bounds.width));
+            const height = Math.min(maxHeight, Math.max(Math.min(360, maxHeight), bounds.height));
+            const left = Math.max(12, Math.min(bounds.left, window.innerWidth - width - 12));
+            const top = Math.max(12, Math.min(bounds.top, window.innerHeight - height - 12));
+            assistantWindowBounds = {left, top, width, height};
+            Object.entries(assistantWindowBounds).forEach(([key, value]) => { panel.style[key] = value + 'px'; });
+            panel.style.right = 'auto';
+            panel.style.bottom = 'auto';
+            panel.classList.toggle('assistant-panel-compact', height < 480);
+        }
+
+        function resizeAssistantWindowBounds(original, dx, dy, edge) {
+            const bounds = {...original};
+            const right = original.left + original.width, bottom = original.top + original.height;
+            const minWidth = Math.min(320, window.innerWidth - 24);
+            const minHeight = Math.min(360, window.innerHeight - 24);
+            if (edge.includes('w')) {
+                bounds.left = Math.max(12, Math.min(original.left + dx, right - minWidth));
+                bounds.width = right - bounds.left;
+            } else if (edge.includes('e')) {
+                bounds.width = Math.max(minWidth, Math.min(original.width + dx, window.innerWidth - original.left - 12));
+            }
+            if (edge.includes('n')) {
+                bounds.top = Math.max(12, Math.min(original.top + dy, bottom - minHeight));
+                bounds.height = bottom - bounds.top;
+            } else if (edge.includes('s')) {
+                bounds.height = Math.max(minHeight, Math.min(original.height + dy, window.innerHeight - original.top - 12));
+            }
+            return bounds;
+        }
+
+        function beginAssistantWindowGesture(event, mode, handle) {
+            if (!isAssistantWindowMovable() || assistantWindowGesture || event.button !== 0
+                || event.isPrimary === false || (mode === 'move' && event.target?.closest?.('button'))) return;
+            const rect = document.getElementById('tab-chat').getBoundingClientRect();
+            assistantWindowGesture = {
+                id: event.pointerId, mode, handle, x: event.clientX, y: event.clientY,
+                bounds: {left: rect.left, top: rect.top, width: rect.width, height: rect.height},
+            };
+            handle.setPointerCapture(event.pointerId);
+            event.preventDefault();
+        }
+
+        function moveAssistantWindowGesture(event) {
+            const gesture = assistantWindowGesture;
+            if (!gesture || gesture.id !== event.pointerId || !isAssistantWindowMovable()) return;
+            event.preventDefault();
+            const dx = event.clientX - gesture.x, dy = event.clientY - gesture.y;
+            let bounds = {...gesture.bounds};
+            if (gesture.mode === 'move') {
+                bounds.left += dx;
+                bounds.top += dy;
+            } else {
+                const edge = gesture.mode === 'resize' ? 'se' : gesture.mode.slice(7);
+                bounds = resizeAssistantWindowBounds(gesture.bounds, dx, dy, edge);
+            }
+            applyAssistantWindowBounds(bounds);
+        }
+
+        function finishAssistantWindowGesture(event, cancelled = false) {
+            const gesture = assistantWindowGesture;
+            if (!gesture || gesture.id !== event.pointerId) return;
+            assistantWindowGesture = null;
+            if (cancelled && isAssistantWindowMovable()) applyAssistantWindowBounds(gesture.bounds);
+            if (gesture.handle.hasPointerCapture(event.pointerId)) gesture.handle.releasePointerCapture(event.pointerId);
+        }
+
+        function adjustAssistantWindowWithKeyboard(event, mode) {
+            if (!isAssistantWindowMovable() || event.target?.closest?.('button') && mode === 'move') return;
+            const direction = {ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1]}[event.key];
+            if (!direction) return;
+            event.preventDefault();
+            const step = event.shiftKey ? 40 : 10;
+            const bounds = {...assistantWindowBounds};
+            if (mode === 'move') {
+                bounds.left += direction[0] * step;
+                bounds.top += direction[1] * step;
+            } else {
+                bounds.width = Math.min(bounds.width + direction[0] * step, window.innerWidth - bounds.left - 12);
+                bounds.height = Math.min(bounds.height + direction[1] * step, window.innerHeight - bounds.top - 12);
+            }
+            applyAssistantWindowBounds(bounds);
+        }
+
+        const assistantWindowHandles = [[assistantWindowHeader, 'move'], [assistantResizeHandle, 'resize']];
+        ['n', 's', 'e', 'w', 'nw', 'ne', 'sw'].forEach(edge => {
+            assistantWindowHandles.push([document.getElementById('assistant-resize-' + edge), 'resize-' + edge]);
+        });
+        assistantWindowHandles.forEach(([handle, mode]) => {
+            handle.addEventListener('pointerdown', event => beginAssistantWindowGesture(event, mode, handle));
+            handle.addEventListener('pointermove', moveAssistantWindowGesture);
+            handle.addEventListener('pointerup', event => finishAssistantWindowGesture(event));
+            handle.addEventListener('pointercancel', event => finishAssistantWindowGesture(event, true));
+            handle.addEventListener('lostpointercapture', event => finishAssistantWindowGesture(event, true));
+            handle.addEventListener('keydown', event => adjustAssistantWindowWithKeyboard(event, mode));
+        });
+        // End movable assistant window
+
+
 
         function showSelectedDocument(input) {
             const label = document.getElementById('selected-document');
@@ -2472,14 +2946,45 @@
             untrainedDatasetTimer = setTimeout(() => loadUntrainedDataset(), 300);
         }
 
+        // Untrained dataset loader
+        let untrainedDatasetRequestId = 0;
+
         async function loadUntrainedDataset() {
+            const requestId = ++untrainedDatasetRequestId;
             const search = document.getElementById('untrained-brand-search')?.value?.trim() || '';
             const query = new URLSearchParams({ limit: '250' });
             if (search) query.set('search', search);
-            const data = await getDashboardData(`/api/untrained-dataset?${query}`);
-            const records = data.records || [];
-            document.querySelector('#untrained-brands-table tbody').innerHTML = records.length ? records.map(record => `<tr><td><strong>${escapeHtml(record.brand_name || 'Unnamed')}</strong></td><td>${escapeHtml(record.category || 'N/A')}</td><td>${escapeHtml(record.source || 'N/A')}</td></tr>`).join('') : '<tr><td colspan="3">No new brands found.</td></tr>';
+            const totalCard = document.getElementById('untrained-total-records');
+            const uniqueCard = document.getElementById('untrained-total-brands');
+            const label = document.getElementById('untrained-record-count');
+            const table = document.querySelector('#untrained-brands-table tbody');
+            totalCard.textContent = '…';
+            uniqueCard.textContent = '…';
+            label.textContent = 'Loading records...';
+            try {
+                const data = await getDashboardData(`/api/untrained-dataset?${query}`);
+                if (requestId !== untrainedDatasetRequestId) return;
+                const records = data.records || [];
+                const total = Number(data.summary?.total_records);
+                const unique = Number(data.summary?.unique_untrained_brands);
+                if (!Number.isInteger(total) || !Number.isInteger(unique)
+                    || total < records.length || unique < 0 || unique > total) {
+                    throw new Error('Untrained dataset summary is unavailable. Please reload.');
+                }
+                totalCard.textContent = total.toLocaleString();
+                uniqueCard.textContent = unique.toLocaleString();
+                label.textContent = `Showing ${records.length.toLocaleString()} of ${total.toLocaleString()} rows · New / NeedToVerify`;
+                table.innerHTML = records.length ? records.map(record => `<tr><td><strong>${escapeHtml(record.brand_name || 'Unnamed')}</strong></td><td>${escapeHtml(record.category || 'N/A')}</td><td>${escapeHtml(record.source || 'N/A')}</td></tr>`).join('') : '<tr><td colspan="3">No new brands found.</td></tr>';
+            } catch (error) {
+                if (requestId !== untrainedDatasetRequestId) return;
+                totalCard.textContent = '—';
+                uniqueCard.textContent = '—';
+                label.textContent = 'Could not load records. Try the search again or reopen this page.';
+                table.innerHTML = `<tr><td colspan="3">Unable to load data: ${escapeHtml(error.message || 'Request failed')}</td></tr>`;
+                untrainedDatasetLoaded = false;
+            }
         }
+        // End untrained dataset loader
 
         async function openTrainedDetail(recordId) {
             const panel = document.getElementById('trained-detail-panel');
@@ -2952,6 +3457,7 @@
 
             renderStudioTable(filtered);
         }
+        switchTab('dashboard', document.getElementById('dashboard-nav-button'));
     </script>
     </div>
 </body>

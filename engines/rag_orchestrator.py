@@ -11,6 +11,8 @@ from engines.vector_engine import vector_engine
 from data_ingestion.normalizer import normalize_upc
 from document_rag import search as search_documents
 from engines.conversation_store import ConversationStore
+from engines.image_chat import image_chat
+from engines.project_knowledge import is_project_question, get_project_context
 
 class RAGOrchestrator:
     def __init__(self):
@@ -42,6 +44,7 @@ class RAGOrchestrator:
                 "model": self.ollama_model,
                 "prompt": prompt,
                 "stream": False,
+                "options": {"num_gpu": 0},
                 "system": system_prompt or "You are an expert beverage data assistant. Answer truthfully based solely on retrieved context."
             }
             response = requests.post(f"{self.ollama_host}/api/generate", json=payload, timeout=120)
@@ -67,21 +70,47 @@ class RAGOrchestrator:
             return None
         return answer.strip()
 
-    def route_and_execute(self, user_query, session_id='default-session'):
+    def route_and_execute(self, user_query, session_id='default-session', uploaded_image=None, uploaded_document=None):
         history = self.conversation_store.recent(session_id, limit=8)
         original_query = user_query.strip()
         query = self._with_conversation_context(original_query, history)
-        result = self._route_and_execute(
-            query,
-            session_id=session_id,
-            conversation_history=history,
-            current_user_query=original_query,
-        )
-        if result.get("record_count") and self.is_ollama_available():
-            result = self._synthesize_data_response(original_query, result, history)
-        self.conversation_store.append(session_id, "user", original_query)
-        self.conversation_store.append(session_id, "assistant", result.get("answer", ""))
-        result["conversation_context_used"] = query != original_query
+        if uploaded_document:
+            query = original_query + "\nAttached document: " + uploaded_document["filename"]
+        image = None
+        if uploaded_image:
+            image = image_chat.get_image(session_id, uploaded_image["image_id"])
+            if image is None:
+                raise ValueError("Attach an image in this conversation before asking about it.")
+        elif not uploaded_document and not is_project_question(original_query) and image_chat.is_followup(original_query):
+            previous_image_id = history[-1].get("image_id") if history else None
+            explicit_image = bool(re.search(
+                r"\b(?:image|photo|picture|photograph|tasveer)\b", original_query, re.I))
+            if previous_image_id or explicit_image:
+                image = image_chat.get_image(
+                    session_id, None if explicit_image else previous_image_id)
+
+        if image:
+            answer = image_chat.answer(
+                original_query, session_id, history=history, image_id=image["image_id"],
+                language_instruction=self._language_response_instruction(original_query),
+            )
+            result = self._format_response(answer, [], [image["filename"]], str(uuid.uuid4())[:8])
+            result["image_id"] = image["image_id"]
+            for role, content in (("user", original_query), ("assistant", answer)):
+                self.conversation_store.append(session_id, role, content, image_id=image["image_id"])
+            result["conversation_context_used"] = not bool(uploaded_image) and bool(history)
+        else:
+            result = self._route_and_execute(
+                query,
+                session_id=session_id,
+                conversation_history=history,
+                current_user_query=original_query,
+            )
+            if result.get("record_count") and self.is_ollama_available():
+                result = self._synthesize_data_response(original_query, result, history)
+            self.conversation_store.append(session_id, "user", original_query)
+            self.conversation_store.append(session_id, "assistant", result.get("answer", ""))
+            result["conversation_context_used"] = query != original_query
         return result
 
     def _route_and_execute(
@@ -140,6 +169,36 @@ class RAGOrchestrator:
             q_lower,
         ))
         has_document_intent = has_document_reference and has_document_action
+        asks_about_user_document = "\nattached document:" in q_lower or bool(re.search(
+            r"\b(?:this|my|attached|uploaded)\s+(?:pdf|document|file|sheet)\b|"
+            r"\b(?:pdf|document|file|sheet)\s+(?:i uploaded|i attached)\b|"
+            r"\b(?:according to|based on|from)\s+(?:(?:the|my|this)\s+)?"
+            r"(?:(?:uploaded|attached)\s+)?(?:pdf|document|file|sheet)\b", q_lower))
+        if is_project_question(q) and not asks_about_user_document:
+            context = get_project_context(q)
+            answer = None
+            if self.is_ollama_available():
+                project_system = (
+                    "You are BevIQ, a helpful local assistant explaining this application. "
+                    "Use the verified project context for all claims about its code, architecture, "
+                    "features and deployment. Use conversation history for follow-ups. "
+                    "Explain naturally at the level requested; do not simply repeat the entire guide. "
+                    "If a project fact is absent, say it is not available in the supplied context. "
+                    "Do not invent database counts, credentials, runtime health, or actions you executed. "
+                    f"{self._language_response_instruction(current_user_query or q)}"
+                )
+                project_prompt = (
+                    "Verified project context:\n" + context["text"]
+                    + "\n\nReply instruction: "
+                    + self._language_response_instruction(current_user_query or q)
+                    + " Follow the requested format and do not repeat the user's question.\n\n"
+                    + self._build_general_chat_prompt(current_user_query or q, conversation_history or [])
+                )
+                answer = self.query_ollama(project_prompt, project_system)
+            if not answer:
+                answer = "### BevIQ project facts\n\n" + context["text"]
+            return self._format_response(answer, [], context["source_files"], token)
+
         if not has_catalog_intent and not has_document_intent:
             self._ollama_error = None
             if self.is_ollama_available():
@@ -151,7 +210,14 @@ class RAGOrchestrator:
                     "Follow an explicit language request if the user asks for a different language. "
                     "Keep technical terms such as Python, Flask, API, SQL, and database in English. "
                     "Do not force beverage-related content into unrelated conversations. "
-                    "Be helpful, conversational, accurate, and do not invent facts."
+                    "Answer directly and match the depth requested. Help with explanations, coding, "
+                    "writing, ideas, learning and ordinary conversation. Ask a short clarification only "
+                    "when a necessary detail is missing. "
+                    "Be helpful, conversational, accurate, and do not invent facts. "
+                    "You are a local Ollama assistant, not ChatGPT. Do not claim to browse the internet, "
+                    "execute code or access files and records that were not supplied. "
+                    "Do not fabricate current events, database counts or uploaded content. "
+                    "If you lack information, say so rather than forcing a beverage-data answer."
                 )
                 general_prompt = self._build_general_chat_prompt(
                     current_user_query or q,
