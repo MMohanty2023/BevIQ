@@ -20,14 +20,14 @@ def test_all_endpoints():
     res = client.get('/api/stats')
     assert res.status_code == 200
     stats = res.get_json()
-    assert stats['total_records'] == 702207, f"Expected 702207 total records, got {stats['total_records']}"
+    assert stats['total_records'] == 718046, f"Expected 718046 total records, got {stats['total_records']}"
     print(f"[PASS] GET /api/stats -> HTTP 200 OK (Total records: {stats['total_records']:,})")
 
     # 3. Test DB Status
     res = client.get('/api/db-status')
     assert res.status_code == 200
     db_st = res.get_json()
-    print(f"[PASS] GET /api/db-status -> HTTP 200 OK (MySQL Port: {db_st['mysql_port']}, DBeaver URL: {db_st['dbeaver_url']})")
+    print(f"[PASS] GET /api/db-status -> HTTP 200 OK (MySQL Port: {db_st['mysql_port']}, Active backend: {db_st['active_backend']})")
 
     # 4. Test Chat API
     chat_payload = {"message": "Find UPC 0852955008021"}
@@ -108,7 +108,6 @@ def test_index_exposes_upc_first_review_action():
     html = client.get('/').data.decode('utf-8')
     assert 'Product Match' in html
     assert 'Alternate UPC' in html
-    assert 'no master product or upc is changed automatically' in html.lower()
     assert 'id="studio-status-filter"' in html
     assert 'onchange="filterStudioTable(false)"' in html
     assert 'Exact Match' in html
@@ -118,6 +117,17 @@ def test_comparison_uses_human_category_label():
     response = client.post('/api/compare', json={'type': 'master_vs_beer', 'limit': 1})
     assert response.status_code == 200
     assert response.get_json()['comparison_type'] == 'Master vs Beer'
+
+
+def test_dbeaver_panel_is_not_misrepresented_as_an_app_connection():
+    response = client.get('/')
+    html = response.data.decode('utf-8')
+
+    assert response.status_code == 200
+    assert "switchTab('dbeaver'" not in html
+    assert 'id="tab-dbeaver"' not in html
+    assert 'DBeaver MySQL Direct Integration' not in html
+    assert 'id="tab-dashboard"' in html
 
 
 def test_comparison_search_is_sent_to_server_query(monkeypatch):

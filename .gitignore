@@ -52,4 +52,18 @@ generated_reports/
 .DS_Store
 Thumbs.db
 desktop.ini
+# Virtual Environment
+venv/
+.venv/
+env/
 
+# Test and coverage cache
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Logs and temporary files
+*.log
+
+# Installer
+OllamaSetup.exe

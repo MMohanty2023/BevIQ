@@ -4,12 +4,15 @@ import uuid
 import time
 import requests
 import pandas as pd
-from config import OLLAMA_HOST, OLLAMA_MODEL, REPORTS_DIR
+from config import DB_DIR, OLLAMA_HOST, OLLAMA_MODEL, REPORTS_DIR
 from engines.sql_engine import sql_engine
 from engines.comparison_engine import comparison_engine
 from engines.vector_engine import vector_engine
 from data_ingestion.normalizer import normalize_upc
 from document_rag import search as search_documents
+from engines.conversation_store import ConversationStore
+from engines.image_chat import image_chat
+from engines.project_knowledge import is_project_question, get_project_context
 
 class RAGOrchestrator:
     def __init__(self):
@@ -17,6 +20,8 @@ class RAGOrchestrator:
         self.ollama_model = OLLAMA_MODEL
         self._ollama_status = None
         self._ollama_status_checked_at = 0.0
+        self._ollama_error = None
+        self.conversation_store = ConversationStore(DB_DIR / "conversation.sqlite3")
 
     def is_ollama_available(self):
         """Check if local Ollama server is running."""
@@ -26,28 +31,95 @@ class RAGOrchestrator:
         try:
             r = requests.get(f"{self.ollama_host}/api/tags", timeout=1.0)
             self._ollama_status = r.status_code == 200
-        except Exception:
+        except requests.RequestException:
             self._ollama_status = False
         self._ollama_status_checked_at = now
         return self._ollama_status
 
     def query_ollama(self, prompt, system_prompt=None):
         """Send prompt to local Ollama instance."""
+        self._ollama_error = None
         try:
             payload = {
                 "model": self.ollama_model,
                 "prompt": prompt,
                 "stream": False,
+                "options": {"num_gpu": 0},
                 "system": system_prompt or "You are an expert beverage data assistant. Answer truthfully based solely on retrieved context."
             }
-            r = requests.post(f"{self.ollama_host}/api/generate", json=payload, timeout=30)
-            if r.status_code == 200:
-                return r.json().get('response', '')
-        except Exception as e:
-            pass
-        return None
+            response = requests.post(f"{self.ollama_host}/api/generate", json=payload, timeout=120)
+        except requests.RequestException:
+            self._ollama_error = "Ollama stopped responding while generating the reply. Check that Ollama is running and try again."
+            return None
 
-    def route_and_execute(self, user_query, session_id='default-session'):
+        if response.status_code == 404:
+            self._ollama_error = f"The configured Ollama model '{self.ollama_model}' was not found. Run `ollama run {self.ollama_model}` and try again."
+            return None
+        if response.status_code != 200:
+            self._ollama_error = f"Ollama returned HTTP {response.status_code} while generating the reply."
+            return None
+
+        try:
+            result = response.json()
+        except ValueError:
+            self._ollama_error = "Ollama returned an unreadable response. Check the local Ollama service and try again."
+            return None
+        answer = result.get("response") if isinstance(result, dict) else None
+        if not isinstance(answer, str) or not answer.strip():
+            self._ollama_error = "Ollama returned an empty reply. Try again or check the selected local model."
+            return None
+        return answer.strip()
+
+    def route_and_execute(self, user_query, session_id='default-session', uploaded_image=None, uploaded_document=None):
+        history = self.conversation_store.recent(session_id, limit=8)
+        original_query = user_query.strip()
+        query = self._with_conversation_context(original_query, history)
+        if uploaded_document:
+            query = original_query + "\nAttached document: " + uploaded_document["filename"]
+        image = None
+        if uploaded_image:
+            image = image_chat.get_image(session_id, uploaded_image["image_id"])
+            if image is None:
+                raise ValueError("Attach an image in this conversation before asking about it.")
+        elif not uploaded_document and not is_project_question(original_query) and image_chat.is_followup(original_query):
+            previous_image_id = history[-1].get("image_id") if history else None
+            explicit_image = bool(re.search(
+                r"\b(?:image|photo|picture|photograph|tasveer)\b", original_query, re.I))
+            if previous_image_id or explicit_image:
+                image = image_chat.get_image(
+                    session_id, None if explicit_image else previous_image_id)
+
+        if image:
+            answer = image_chat.answer(
+                original_query, session_id, history=history, image_id=image["image_id"],
+                language_instruction=self._language_response_instruction(original_query),
+            )
+            result = self._format_response(answer, [], [image["filename"]], str(uuid.uuid4())[:8])
+            result["image_id"] = image["image_id"]
+            for role, content in (("user", original_query), ("assistant", answer)):
+                self.conversation_store.append(session_id, role, content, image_id=image["image_id"])
+            result["conversation_context_used"] = not bool(uploaded_image) and bool(history)
+        else:
+            result = self._route_and_execute(
+                query,
+                session_id=session_id,
+                conversation_history=history,
+                current_user_query=original_query,
+            )
+            if result.get("record_count") and self.is_ollama_available():
+                result = self._synthesize_data_response(original_query, result, history)
+            self.conversation_store.append(session_id, "user", original_query)
+            self.conversation_store.append(session_id, "assistant", result.get("answer", ""))
+            result["conversation_context_used"] = query != original_query
+        return result
+
+    def _route_and_execute(
+        self,
+        user_query,
+        session_id='default-session',
+        conversation_history=None,
+        current_user_query=None,
+    ):
         """
         Understands natural language questions in English and Hinglish,
         executes relevant RAG / DB retrieval, and synthesizes accurate response.
@@ -60,42 +132,143 @@ class RAGOrchestrator:
         report_records = []
         source_files = []
 
-        # Always prioritize explicit normal-chat messages over catalog retrieval.
+        # Keep concise offline definitions available when the local model is off.
         local_general = self._local_general_response(q)
-        if local_general:
-            return self._format_response(local_general, [], [], token)
 
         # Keep ordinary conversation away from the product vector index. The
         # index is useful for catalog questions, but it can produce false hits
         # for words such as "day", "joke", or "India" in product names.
-        catalog_terms = [
-            'upc', 'barcode', 'product', 'brand', 'supplier', 'vendor',
-            'beer', 'wine', 'rtd', 'spirits', 'master', 'categorization',
-            'dataset', 'category', 'missing', 'compare', 'duplicate', 'audit', 'search', 'find'
-        ]
-        document_terms = ['document', 'pdf', 'file', 'upload', 'uploaded', 'image', 'sheet']
-        has_catalog_intent = bool(re.search(r'\b\d{10,14}\b', q)) or any(term in q_lower for term in catalog_terms)
-        has_document_intent = any(term in q_lower for term in document_terms)
-        if not has_catalog_intent and not has_document_intent:
+        has_identifier_intent = bool(re.search(r'\b(?:id|identifier)\s*[:#-]?\s*[a-z0-9_-]+\b', q_lower))
+        has_catalog_entity = bool(re.search(
+            r'\b(?:upc|barcode|product|products|brand|brands|supplier|vendor|beer|wine|rtd|spirits|master|categorization|dataset|category|flavour|flavor|size|origin|records?|trained|training|class\s+id|model\s+id|image\s+count|trained\s+images?)\b',
+            q_lower,
+        ))
+        has_catalog_action = bool(re.search(
+            r'\b(?:find|search|look up|lookup|show|list|count|how many|compare|missing|not found|absent|duplicate|audit|verify|check|export|report|profile|details?|highest|lowest|top|more than|over|above|at least|kitne|kitni|gino|dikhao|batao)\b',
+            q_lower,
+        ))
+        has_general_question_shape = bool(re.search(
+            r'\b(?:what is|what are|why|how does|how do|who is|tell me a|tell me about)\b',
+            q_lower,
+        ))
+        has_catalog_intent = (
+            bool(re.search(r'\b\d{10,14}\b', q))
+            or has_identifier_intent
+            or (has_catalog_action and has_catalog_entity)
+            or (bool(re.search(r'\b(?:search|find|look up|lookup)\b', q_lower)) and not has_general_question_shape)
+        )
+        has_document_reference = bool(re.search(
+            r'\b(?:uploaded|attached|this|my|is|iss|ye|yeh)\s+(?:document|pdf|file|image|sheet)\b|'
+            r'\b(?:document|pdf|file|image|sheet)\s+(?:i uploaded|i attached)\b|'
+            r'\b(?:document|pdf|file|image|sheet)\b|'
+            r'\b(?:summarize|summary|read|extract|what does|what is in)\b.{0,40}\b(?:document|pdf|file|image|sheet)\b',
+            q_lower,
+        ))
+        has_document_action = bool(re.search(
+            r'\b(?:summarize|summary|read|extract|in|from|about|according to|what does|what is in|tell me about|explain|describe|mein|kya|kab|batao|dikhao|samjhao)\b',
+            q_lower,
+        ))
+        has_document_intent = has_document_reference and has_document_action
+        asks_about_user_document = "\nattached document:" in q_lower or bool(re.search(
+            r"\b(?:this|my|attached|uploaded)\s+(?:pdf|document|file|sheet)\b|"
+            r"\b(?:pdf|document|file|sheet)\s+(?:i uploaded|i attached)\b|"
+            r"\b(?:according to|based on|from)\s+(?:(?:the|my|this)\s+)?"
+            r"(?:(?:uploaded|attached)\s+)?(?:pdf|document|file|sheet)\b", q_lower))
+        if is_project_question(q) and not asks_about_user_document:
+            context = get_project_context(q)
+            answer = None
             if self.is_ollama_available():
-                general = self.query_ollama(
-                    q,
-                    "You are BevIQ, a friendly general chat assistant. Answer normal questions naturally in the user's language. Use beverage data only when the user asks for it."
+                project_system = (
+                    "You are BevIQ, a helpful local assistant explaining this application. "
+                    "Use the verified project context for all claims about its code, architecture, "
+                    "features and deployment. Use conversation history for follow-ups. "
+                    "Explain naturally at the level requested; do not simply repeat the entire guide. "
+                    "If a project fact is absent, say it is not available in the supplied context. "
+                    "Do not invent database counts, credentials, runtime health, or actions you executed. "
+                    f"{self._language_response_instruction(current_user_query or q)}"
                 )
+                project_prompt = (
+                    "Verified project context:\n" + context["text"]
+                    + "\n\nReply instruction: "
+                    + self._language_response_instruction(current_user_query or q)
+                    + " Follow the requested format and do not repeat the user's question.\n\n"
+                    + self._build_general_chat_prompt(current_user_query or q, conversation_history or [])
+                )
+                answer = self.query_ollama(project_prompt, project_system)
+            if not answer:
+                answer = "### BevIQ project facts\n\n" + context["text"]
+            return self._format_response(answer, [], context["source_files"], token)
+
+        if not has_catalog_intent and not has_document_intent:
+            self._ollama_error = None
+            if self.is_ollama_available():
+                general_system_prompt = (
+                    "You are BevIQ, a friendly and capable general-purpose assistant. "
+                    "The user may ask about any topic, not only beverage data. "
+                    "Use the conversation history to understand follow-up questions and avoid restarting the conversation. "
+                    f"{self._language_response_instruction(current_user_query or q)} "
+                    "Follow an explicit language request if the user asks for a different language. "
+                    "Keep technical terms such as Python, Flask, API, SQL, and database in English. "
+                    "Do not force beverage-related content into unrelated conversations. "
+                    "Answer directly and match the depth requested. Help with explanations, coding, "
+                    "writing, ideas, learning and ordinary conversation. Ask a short clarification only "
+                    "when a necessary detail is missing. "
+                    "Be helpful, conversational, accurate, and do not invent facts. "
+                    "You are a local Ollama assistant, not ChatGPT. Do not claim to browse the internet, "
+                    "execute code or access files and records that were not supplied. "
+                    "Do not fabricate current events, database counts or uploaded content. "
+                    "If you lack information, say so rather than forcing a beverage-data answer."
+                )
+                general_prompt = self._build_general_chat_prompt(
+                    current_user_query or q,
+                    conversation_history or [],
+                )
+                general = self.query_ollama(general_prompt, general_system_prompt)
                 if general:
                     return self._format_response(general, [], [], token)
-            if not self._is_hinglish(q_lower):
-                return self._format_response(
-                    "### 💬 Normal Chat\n\nI’m ready for normal conversation. You can ask casual questions, request a joke, or chat freely. Start local Ollama for richer open-ended knowledge answers; database and document questions work offline.",
-                    [], [], token
+            else:
+                self._ollama_error = (
+                    f"Ollama is not reachable at {self.ollama_host}. "
+                    f"Run `ollama run {self.ollama_model}` to start the local chat model."
                 )
-            return self._format_response(
-                "### 💬 Normal Chat\n\nMain normal conversation ke liye ready hoon. Aap casual questions, greetings, jokes, ya general baat kar sakte ho. Open-ended knowledge answers ke liye local Ollama start karna hoga; database/document questions abhi bhi offline mode mein available hain.",
-                [], [], token
-            )
+
+            local_general = self._local_general_response(q)
+            if local_general:
+                return self._format_response(local_general, [], [], token)
+
+            detected_language = self._detect_response_language(q)
+            if detected_language == "Hindi":
+                fallback = (
+                    "### 💬 सामान्य बातचीत\n\n"
+                    "खुले सवालों के जवाब के लिए local Ollama शुरू करें और PowerShell में "
+                    f"`ollama run {self.ollama_model}` चलाएँ। आपकी chat इसी computer पर रहती है। "
+                    "BevIQ के database और uploaded-document वाले सवाल भी उपलब्ध हैं।"
+                )
+            elif detected_language == "Hinglish":
+                fallback = (
+                    "### 💬 Normal Chat\n\n"
+                    "Open-ended chat ke liye local Ollama start karke PowerShell mein "
+                    f"`ollama run {self.ollama_model}` chalayein. Aapki chat isi computer par rehti hai. "
+                    "BevIQ ke database aur uploaded-document questions bhi available hain."
+                )
+            else:
+                fallback = (
+                    "### 💬 Normal Chat\n\n"
+                    "Open-ended conversation needs the local Ollama model. Start Ollama, then run "
+                    f"`ollama run {self.ollama_model}` in PowerShell and send your message again. "
+                    "Your chat stays on this computer; beverage-data and uploaded-document features remain available."
+                )
+            if self._ollama_error:
+                fallback += f"\n\n**Ollama status:** {self._ollama_error}"
+            return self._format_response(fallback, [], [], token)
 
         # Direct aggregates should never fall through to the slower vector index.
-        is_master_brand_count = bool(re.search(r'\b(how many|number of|count|kitne|kitni|gino)\b', q_lower)) and 'brand' in q_lower
+        is_missing_intent = any(w in q_lower for w in ['missing', 'not found', 'absent', 'nahi hai', 'gap'])
+        is_master_brand_count = (
+            bool(re.search(r'\b(how many|number of|count|kitne|kitni|gino)\b', q_lower))
+            and 'brand' in q_lower
+            and not is_missing_intent
+        )
         if is_master_brand_count:
             category = next((f'cat_{name}' for name in ('beer', 'wine', 'rtd', 'spirits') if re.search(rf'\b{name}\b', q_lower)), None)
             brand_count = sql_engine.count_brands(category) if category else sql_engine.count_master_brands()
@@ -115,8 +288,17 @@ class RAGOrchestrator:
                 for hit in document_hits
             )
             if self.is_ollama_available():
-                prompt = f"Use only this uploaded-document context to answer the question. Cite filename and page/section.\n\nContext:\n{context}\n\nQuestion: {q}"
-                answer = self.query_ollama(prompt, "You answer questions about user-uploaded documents. If the answer is not in context, say so clearly.")
+                prompt = (
+                    "Use only this uploaded-document context to answer the question. "
+                    "Cite filename and page/section. Do not invent details.\n\n"
+                    f"Context:\n{context}\n\nQuestion: {current_user_query or q}"
+                )
+                system_prompt = (
+                    "You answer questions about user-uploaded documents. "
+                    "If the answer is not in context, say so clearly. "
+                    f"{self._language_response_instruction(current_user_query or q)}"
+                )
+                answer = self.query_ollama(prompt, system_prompt)
             else:
                 answer = None
             if not answer:
@@ -130,12 +312,72 @@ class RAGOrchestrator:
         # 1. Check for UPC pattern (10 to 14 digits or 'upc' keyword)
         upc_match = re.search(r'\b(\d{10,14})\b', q)
         is_upc_query = bool(upc_match) or 'upc' in q_lower or 'barcode' in q_lower
+        identifier_match = re.search(r'\b(?:id|identifier)\s*[:#-]?\s*([a-z0-9_-]+)\b', q_lower)
+        trained_class_match = re.search(r'\bclass\s*id\s*[:#-]?\s*([a-z0-9_-]+)\b', q_lower)
+        trained_model_match = re.search(r'\bmodel\s*id\s*[:#-]?\s*([a-z0-9_-]+)\b', q_lower)
+        trained_intent = bool(re.search(
+            r'\b(?:trained|training|class\s+id|model\s+id|trained\s+images?|image\s+count|average\s+trained)\b',
+            q_lower,
+        ))
+        is_master_brand_request = 'master brand' in q_lower or ('master' in q_lower and 'brand' in q_lower)
+        master_brand_phrase = re.search(r'(?:find|search|show)\s+(.+?)\s+with\s+(?:a\s+)?(?:upc|barcode)\b', q, re.I)
+
+        # TrainedBrandsData questions use the existing assistant and return
+        # records from the trained dataset without falling through to the
+        # legacy MasterData identifier lookup.
+        if trained_intent:
+            trained_filters = {}
+            category = next((name for name in ('beer', 'wine', 'spirits', 'non alcoholic') if re.search(rf'\b{re.escape(name)}\b', q_lower)), None)
+            if category:
+                trained_filters['category'] = category
+            status = 'inactive' if re.search(r'\binactive\b|\bnot active\b', q_lower) else ('active' if re.search(r'\bactive\b', q_lower) else None)
+            if status:
+                trained_filters['status'] = status
+            image_threshold = re.search(r'\b(?:more than|over|above|at least)\s+(\d+)\s+images?\b', q_lower)
+            if image_threshold:
+                trained_filters['min_images'] = image_threshold.group(1)
+            if re.search(r'\bmissing\s+(?:sku|skus)\b', q_lower):
+                trained_filters['missing_sku'] = True
+            if re.search(r'\bmissing\s+(?:images?|image\s+urls?)\b|\bwithout\s+images?\b', q_lower):
+                trained_filters['missing_images'] = True
+            if re.search(r'\bmissing\s+model\s+id\b', q_lower):
+                trained_filters['missing_model_id'] = True
+
+            supplier_match = re.search(r'\bhow many brands? does\s+(.+?)\s+have\b', q, re.I)
+            if supplier_match:
+                trained_filters['supplier'] = supplier_match.group(1).strip(' ?.,')
+
+            if re.search(r'\b(?:highest|top)\b.*\b(?:supplier|suppliers)\b', q_lower):
+                analytics = sql_engine.get_trained_dataset_analytics(trained_filters)
+                top_supplier = (analytics.get('top_suppliers') or [{}])[0]
+                if top_supplier.get('supplier_name'):
+                    ans = f"### 📊 Top Trained-Dataset Supplier\n\n**{top_supplier['supplier_name']}** has **{int(top_supplier.get('brand_count') or 0):,} unique brands** in TrainedBrandsData."
+                    return self._format_response(ans, [], ['TrainedBrandsData.csv'], token)
+
+            if re.search(r'\bcompare\b', q_lower) and len(re.findall(r'\b(?:beer|wine|spirits|non alcoholic)\b', q_lower)) >= 2:
+                analytics = sql_engine.get_trained_dataset_analytics(trained_filters)
+                wanted = [name for name in ('beer', 'wine', 'spirits', 'non alcoholic') if name in q_lower]
+                rows = [item for item in analytics.get('category_brands', []) if str(item.get('category', '')).lower() in wanted]
+                comparison = '\n'.join(f"- **{item.get('category', 'Unknown')}**: {int(item.get('brand_count') or 0):,} brands" for item in rows)
+                ans = "### 📊 Trained Dataset Category Comparison\n\n" + (comparison or "No matching category records were found.")
+                return self._format_response(ans, [], ['TrainedBrandsData.csv'] if rows else [], token)
+
+            exact_query = trained_class_match.group(1) if trained_class_match else (trained_model_match.group(1) if trained_model_match else None)
+            res = sql_engine.search_trained_brands(query=exact_query or '', page=1, page_size=200, **trained_filters)
+            report_records = res.get('records', [])
+            source_files = ['TrainedBrandsData.csv'] if report_records else []
+            if report_records:
+                ans = f"### ✅ Trained Dataset Results\n\nFound **{res.get('total_matches', len(report_records)):,} matching trained record(s)** in TrainedBrandsData. Complete matching details are available below."
+            else:
+                lookup_label = exact_query or trained_filters.get('supplier') or q
+                ans = f"### ❌ Trained Dataset Record Not Found\n\nNo TrainedBrandsData record matched `{lookup_label}`."
+            return self._format_response(ans, report_records, source_files, token)
 
         # 2. Check for Comparison Intent
         is_compare = any(w in q_lower for w in ['compare', 'mismatch', 'diff', 'versus', 'vs', 'difference', 'farq'])
         is_beer_rtd = ('beer' in q_lower and 'rtd' in q_lower) or 'hard seltzer' in q_lower
         is_supplier_brand = ('supplier' in q_lower and ('brand' in q_lower or 'sheet' in q_lower or 'master' in q_lower))
-        is_missing = any(w in q_lower for w in ['missing', 'not found', 'absent', 'nahi hai', 'gap'])
+        is_missing = is_missing_intent
         is_duplicate = any(w in q_lower for w in ['duplicate', 'repeated', 'multiple', 'dohra'])
         is_category_count = bool(re.search(r'\b(count|category count|gino|total count)\b', q_lower)) or 'total products in each' in q_lower
         is_product_upc_gap = any(w in q_lower for w in [
@@ -151,6 +393,63 @@ class RAGOrchestrator:
         ]) and not is_product_upc_gap
         is_supplier_search = any(w in q_lower for w in ['supplier', 'vendor']) and not is_compare
         is_brand_search = any(w in q_lower for w in ['brand', 'products belonging to', 'show products for', 'products of', 'search', 'find']) and not is_supplier_search
+        master_brand_query = re.sub(r'(?i)\b(show|find|search|master|brand|with|a|an|the|in|please|dikhao|batao|karo)\b', ' ', q).strip()
+        master_brand_query = re.sub(r'\s+', ' ', master_brand_query).strip()
+
+        category_words = [name for name in ('beer', 'wine', 'rtd', 'spirits') if re.search(rf'\b{name}\b', q_lower)]
+        if len(category_words) >= 1 and not is_compare and not is_upc_query and not is_brand_search and not is_supplier_search and not is_product_upc_gap:
+            metrics = sql_engine.get_dashboard_metrics()
+            rows = []
+            for name in category_words:
+                item = metrics.get('categories', {}).get(name, {})
+                rows.append(f"- **{name.upper()}**: {int(item.get('total_records') or 0):,} records, {int(item.get('available_upcs') or 0):,} UPCs available, {int(item.get('missing_upcs') or 0):,} missing")
+            answer = "### 📊 Beverage Category Summary\n\n" + "\n".join(rows)
+            return self._format_response(answer, [], [], token)
+
+        if is_master_brand_request and not is_compare and not is_missing and not is_product_upc_gap and (identifier_match or upc_match or master_brand_query):
+            brand_query = (master_brand_phrase.group(1).strip() if master_brand_phrase else master_brand_query) or None
+            brand_query = re.sub(r'(?i)\s+in\s+master\s*$', '', brand_query or '').strip() or None
+            master_id = identifier_match.group(1) if identifier_match else None
+            res = sql_engine.search_master_brands(
+                master_id=master_id,
+                brand=brand_query,
+                upc=upc_match.group(1) if upc_match else None,
+                limit=200,
+            )
+            report_records = res.get('records', [])
+            source_files = ['AIMasterBrandData.csv'] if report_records else []
+            if report_records:
+                details = []
+                for key, value in report_records[0].items():
+                    if value not in (None, ''):
+                        details.append(f"- **{key}**: {value}")
+                answer_title = 'Master Brand Record' if len(report_records) == 1 else 'Master Brand Records'
+                ans = (
+                    f"### ✅ {answer_title}\n\n"
+                    f"Found **{len(report_records)} matching record(s)** in the Master Brand sheet.\n\n"
+                    + "\n".join(details[:40])
+                    + "\n\nAll details below are returned directly from the connected database."
+                )
+            else:
+                lookup_label = master_id or brand_query or (upc_match.group(1) if upc_match else q)
+                ans = f"### ❌ Master Brand Record Not Found\n\nNo Master Brand record matched `{lookup_label}`. Try the exact ID, brand name, or UPC."
+            if self._is_hinglish(q_lower):
+                ans = ans.replace("Found **", "**Mila: **").replace(" matching record(s) in the Master Brand sheet.", " matching record(s) Master Brand sheet mein.").replace("No Master Brand record matched", "Master Brand mein koi record match nahi hua")
+            return self._format_response(ans, report_records, source_files, token)
+
+        if identifier_match:
+            identifier = identifier_match.group(1)
+            res = sql_engine.lookup_identifier(identifier, limit=200)
+            report_records = res['records'] + res.get('related_records', [])
+            source_files = res.get('source_files', [])
+            if res['total_matches']:
+                primary = report_records[0] if report_records else {}
+                product = primary.get('ProductName') or primary.get('Product') or primary.get('ProductDescription') or 'Not available'
+                brand = primary.get('BrandName') or primary.get('Brands_Value') or primary.get('Beer_Brands_Value') or primary.get('Spirits_Brands_Value') or 'Not available'
+                ans = f"### ✅ Complete ID Lookup: `{res['normalized_identifier']}`\n\nFound **{res['total_matches']} direct record(s)** and **{len(res.get('related_records', []))} related record(s)** across **{len(source_files)} source file(s)**.\n\n- **Brand:** {brand}\n- **Product:** {product}\n\nAll displayed details come directly from the connected database."
+            else:
+                ans = f"### ❌ ID Not Found: `{res['normalized_identifier']}`\n\nNo exact matching ID, UPC, or alternate UPC was found in the configured beverage datasets."
+            return self._format_response(ans, report_records, source_files, token)
 
         if is_product_upc_gap:
             from engines.upc_match_engine import upc_match_engine
@@ -423,10 +722,15 @@ Found **{res['total_matches']} matching record(s)** associated with supplier '{r
 Retrieved Records:
 {context_text}
 
-User Question: {q}
+User Question: {current_user_query or q}
 
 Answer with source file references and exact details:"""
-                ollama_ans = self.query_ollama(prompt)
+                system_prompt = (
+                    "You answer beverage-data questions using only the supplied records. "
+                    "Be conversational, accurate, and cite the source file when available. "
+                    f"{self._language_response_instruction(current_user_query or q)}"
+                )
+                ollama_ans = self.query_ollama(prompt, system_prompt)
                 if ollama_ans:
                     return self._format_response(ollama_ans, report_records, source_files, token)
 
@@ -437,7 +741,12 @@ Retrieved **{len(docs)} highly relevant beverage records** from local vector sto
 """ + "\n".join([f"- **{d['brand']}** (`UPC: {d['upc']}`): {d['description']} *(Source: `{d['source_file']}`, Row: {d['original_row']})*" for d in docs[:5]])
         else:
             if self.is_ollama_available():
-                general = self.query_ollama(q, "You are a helpful general chat assistant with beverage-data expertise. Be concise, honest, and answer in the user's language. Do not invent database facts unless they are in context.")
+                general = self.query_ollama(
+                    current_user_query or q,
+                    "You are a helpful general chat assistant with beverage-data expertise. "
+                    "Be concise and honest. Do not invent database facts unless they are in context. "
+                    f"{self._language_response_instruction(current_user_query or q)}",
+                )
                 if general:
                     return self._format_response(general, [], [], token)
             local_general = self._local_general_response(q)
@@ -450,9 +759,93 @@ No matching beverage records were retrieved for query: *"{q}"*.
 
         return self._format_response(ans, report_records, source_files, token)
 
+    def _with_conversation_context(self, query, history):
+        """Resolve short pronoun-based follow-ups without changing explicit searches."""
+        if not history:
+            return query
+        lowered = query.lower()
+        contextual = len(query.split()) <= 8 and bool(re.search(
+            r'\b(what about|and|also|it|that|this|same|iska|uska|iske|uske|aur)\b', lowered
+        ))
+        if not contextual:
+            return query
+        previous_user = next((turn["content"] for turn in reversed(history) if turn["role"] == "user"), "")
+        if not previous_user:
+            return query
+        return query + "\nPrevious user request for context: " + previous_user
+
+    def _build_general_chat_prompt(self, current_query, history):
+        """Format recent turns so local Ollama can answer conversational follow-ups."""
+        lines = ["Conversation so far:"]
+        for turn in history[-8:]:
+            role = turn.get("role")
+            if role not in {"user", "assistant"}:
+                continue
+            content = str(turn.get("content", "")).strip()
+            if content:
+                speaker = "User" if role == "user" else "Assistant"
+                lines.append(f"{speaker}: {content[:2000]}")
+        lines.extend((f"Current user message: {current_query}", "Assistant:"))
+        return "\n".join(lines)
+
+    def _language_response_instruction(self, latest_message):
+        """Tell each model route to match the latest message's English/Hinglish style."""
+        language = self._detect_response_language(latest_message)
+        if language == "Hinglish":
+            return (
+                "The latest user message is Hinglish. Reply in natural conversational Hinglish "
+                "using Roman script, mixing Hindi and English naturally. Do not reply in "
+                "Devanagari or switch to English-only. Use the conversation history for meaning, "
+                "not for choosing the reply language."
+            )
+        if language == "Hindi":
+            return (
+                "The latest user message is Hindi in Devanagari. Reply in natural Hindi using "
+                "Devanagari. Use the conversation history for meaning, not for choosing the reply language."
+            )
+        return (
+            "The latest user message is English. Reply in natural English only. Do not switch "
+            "to Hindi or Hinglish unless the user explicitly asks for it. Use the conversation "
+            "history for meaning, not for choosing the reply language."
+        )
+
+    def _synthesize_data_response(self, user_query, result, history):
+        """Use only the retrieved result to make data answers conversational."""
+        records = result.get("records", [])[:12]
+        context = {
+            "verified_answer": result.get("answer", ""),
+            "records": records,
+            "source_files": result.get("source_files", []),
+        }
+        prompt = (
+            "Answer the user's beverage-data question in natural human language. "
+            "Use only the verified answer and retrieved records below; do not invent counts, "
+            "products, or sources. If no further explanation is needed, answer concisely. "
+            "Do not repeat the raw records as a table; the application displays those separately.\n\n"
+            f"Conversation:\n{self._build_general_chat_prompt(user_query, history)}\n\n"
+            f"Verified data context:\n{json.dumps(context, ensure_ascii=False, default=str)[:12000]}"
+        )
+        system_prompt = (
+            "You are a friendly beverage-data assistant. Explain retrieved results accurately, "
+            "conversationally, without changing any verified facts. "
+            f"{self._language_response_instruction(user_query)}"
+        )
+        answer = self.query_ollama(prompt, system_prompt)
+        if answer:
+            result["answer"] = answer
+        return result
+
     def _local_general_response(self, query):
         """Keep basic normal chat useful even when Ollama is not running."""
         text = query.lower().strip()
+        if re.search(r'\bwhat is (a )?database\b', text) or 'database kya hai' in text:
+            if self._detect_response_language(text) == 'Hinglish':
+                return "### 🗄️ Database\n\nDatabase ek organized collection hota hai jahan records ko securely store, search aur update kiya ja sakta hai. BevIQ mein beverage products, UPCs, brands aur suppliers database se read hote hain."
+            return "### 🗄️ Database\n\nA database is an organized collection of information that can be stored, searched, and updated reliably. In BevIQ, beverage products, UPCs, brands, and suppliers are read from the connected database."
+        if re.search(r'\bwhat is (an )?upc\b', text) or 'upc kya hai' in text:
+            if self._detect_response_language(text) == 'Hinglish':
+                return "### 🏷️ UPC\n\nUPC (Universal Product Code) product ka barcode identifier hota hai. BevIQ mein UPC se exact product, brand, category aur Master Brand record lookup kiya ja sakta hai."
+            return "### 🏷️ UPC\n\nUPC (Universal Product Code) is a barcode identifier for a product. BevIQ uses it to find exact product, brand, category, and Master Brand records."
         if not self._is_hinglish(text):
             if re.search(r'^(hi|hello|hey|hii)\b', text):
                 return "### 👋 Hello!\n\nI’m the BevIQ Assistant. You can chat normally or ask about beverage data, UPCs, comparisons, and uploaded documents."
@@ -483,16 +876,24 @@ No matching beverage records were retrieved for query: *"{q}"*.
             return "### 💡 BevIQ Help\n\n- Normal chat in English/Hinglish\n- UPC, brand, supplier aur category search\n- Beer, Wine, RTD aur Spirits comparison\n- Missing/product-match UPC audit\n- PDF, image, DOCX, CSV aur XLSX upload karke questions\n\nOpen-ended general answers ke liye local Ollama enable kar sakte ho."
         return None
 
-    def _is_hinglish(self, text):
-        """Lightweight language hint for deterministic offline replies."""
+    def _detect_response_language(self, text):
+        """Detect the reply style from the latest user message."""
+        if re.search(r'[\u0900-\u097f]', text):
+            return "Hindi"
+
         hindi_markers = [
             'kya', 'hai', 'hain', 'hoon', 'karna', 'karo', 'kaise', 'kyun',
-            'mujhe', 'mera', 'mere', 'aap', 'apka', 'batao', 'dikhao',
-            'chahiye', 'nahi', 'mein'
+            'mujhe', 'mera', 'mere', 'aap', 'apka', 'aapka', 'batao',
+            'dikhao', 'chahiye', 'nahi', 'nahin', 'mein', 'mujhko',
+            'kyunki', 'acha', 'achha', 'haan'
         ]
-        return bool(re.search(r'[\u0900-\u097f]', text)) or any(
-            re.search(rf'\b{re.escape(marker)}\b', text) for marker in hindi_markers
-        )
+        if any(re.search(rf'\b{re.escape(marker)}\b', text.lower()) for marker in hindi_markers):
+            return "Hinglish"
+        return "English"
+
+    def _is_hinglish(self, text):
+        """Backward-compatible helper used by existing deterministic responses."""
+        return self._detect_response_language(text) in ("Hindi", "Hinglish")
 
     def _extract_brand_guess(self, query):
         """Remove profile question words while keeping a multi-word brand name."""

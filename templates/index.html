@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BevIQ | Beverage Intelligence</title>
+    <title>BevIQ | Beverage Intelligence, Simplified</title>
     <style>
         :root {
             --bg-page: #090d16;
@@ -22,6 +22,33 @@
             --accent-rose: #f43f5e;
             --accent-purple: #a855f7;
             --accent-orange: #fb923c;
+            --theme-toggle-bg: #111827;
+            --theme-toggle-border: #334155;
+            --theme-choice-idle: #94a3b8;
+            --theme-choice-hover: #263449;
+            --theme-choice-selected: #3b82f6;
+            --theme-choice-selected-text: #ffffff;
+            --theme-choice-focus: rgba(96, 165, 250, 0.55);
+        }
+
+        html[data-theme="light"] {
+            --bg-page: #f5f7fb;
+            --bg-surface: #ffffff;
+            --bg-card: #ffffff;
+            --bg-hover: #eef3fb;
+            --border-color: #d9e2ef;
+            --border-light: #b8c5d6;
+            --text-main: #17243a;
+            --text-secondary: #4a5b73;
+            --text-muted: #63748b;
+            --accent-blue: #2563eb;
+            --theme-toggle-bg: #f1f5f9;
+            --theme-toggle-border: #d7e0ec;
+            --theme-choice-idle: #52647d;
+            --theme-choice-hover: #e2eaf5;
+            --theme-choice-selected: #2563eb;
+            --theme-choice-selected-text: #ffffff;
+            --theme-choice-focus: rgba(37, 99, 235, 0.4);
         }
 
         * {
@@ -40,6 +67,10 @@
             flex-direction: column;
         }
 
+        #beviq-app {
+            display: block;
+        }
+
         /* Top Header */
         header {
             background: linear-gradient(180deg, #0f172a 0%, #0c1222 100%);
@@ -51,6 +82,54 @@
             position: sticky;
             top: 0;
             z-index: 50;
+        }
+
+        html[data-theme="light"] header,
+        html[data-theme="light"] .nav-tabs-wrapper {
+            background: #ffffff;
+        }
+
+        .theme-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.28rem;
+            border: 1px solid var(--theme-toggle-border);
+            background: var(--theme-toggle-bg);
+            border-radius: 999px;
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.12);
+        }
+
+        .theme-choice {
+            display: inline-grid;
+            place-items: center;
+            width: 32px;
+            height: 32px;
+            border: 0;
+            border-radius: 50%;
+            background: transparent;
+            color: var(--theme-choice-idle);
+            font-size: 1.05rem;
+            line-height: 1;
+            cursor: pointer;
+            transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .theme-choice:hover {
+            transform: translateY(-1px);
+            color: var(--text-main);
+            background: var(--theme-choice-hover);
+        }
+
+        .theme-choice:focus-visible {
+            outline: 3px solid var(--theme-choice-focus);
+            outline-offset: 2px;
+        }
+
+        .theme-choice[aria-pressed="true"] {
+            background: var(--theme-choice-selected);
+            color: var(--theme-choice-selected-text);
+            box-shadow: 0 1px 4px rgba(37, 99, 235, 0.3);
         }
 
         .brand-container {
@@ -113,6 +192,12 @@
         .pill-db { background: rgba(56, 189, 248, 0.12); color: #38bdf8; border-color: rgba(56, 189, 248, 0.3); }
         .pill-offline { background: rgba(168, 85, 247, 0.12); color: #c084fc; border-color: rgba(168, 85, 247, 0.3); }
 
+        .brand-logo { display: block; width: 40px; height: 40px; flex: 0 0 40px; object-fit: contain; }
+        .brand-lockup { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+        .brand-wordmark { color: var(--text-main); font-size: 1.45rem; font-weight: 800; letter-spacing: -.055em; line-height: 1; }
+        .brand-wordmark span { color: #06b6d4; }
+        .brand-tagline { color: var(--text-secondary); font-size: .65rem; line-height: 1.3; letter-spacing: .015em; }
+
         /* Navigation Bar */
         .nav-tabs-wrapper {
             background: #0d1424;
@@ -120,9 +205,15 @@
             padding: 0 1.75rem;
             display: flex;
             gap: 0.5rem;
+            min-width: 0;
+            max-width: 100%;
+            overflow-x: auto;
+            scrollbar-width: thin;
         }
 
         .nav-tab-btn {
+            flex: 0 0 auto;
+            white-space: nowrap;
             background: transparent;
             border: none;
             color: var(--text-secondary);
@@ -156,6 +247,27 @@
             border-radius: 3px 3px 0 0;
             box-shadow: 0 -2px 8px rgba(56, 189, 248, 0.5);
         }
+
+        .dataset-nav { flex: 0 0 auto; }
+        .dataset-dropdown {
+            position: fixed;
+            inset: auto;
+            margin: 0;
+            padding: .35rem;
+            min-width: 200px;
+            max-width: calc(100vw - 16px);
+            background: var(--bg-card);
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, .25);
+        }
+        .dataset-dropdown:popover-open { display: grid; gap: .2rem; }
+        .dataset-dropdown .nav-tab-btn { width: 100%; border-radius: 6px; text-align: left; }
+        .dataset-dropdown .nav-tab-btn:hover,
+        .dataset-dropdown .nav-tab-btn:focus-visible { background: var(--bg-hover); }
+        .dataset-dropdown .nav-tab-btn.active::after { display: none; }
+        .dataset-nav-toggle:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: -3px; }
 
         /* Layout Container */
         .main-content {
@@ -646,7 +758,7 @@
             outline: none;
         }
 
-        /* DBeaver & Datasets Panes */
+        /* Dataset catalog pane */
         .pane-card {
             background: var(--bg-card);
             border: 1px solid var(--border-color);
@@ -790,6 +902,188 @@
         .metric-box { padding: .75rem; border-radius: 8px; }
         .metric-box-value { font-size: 1.35rem; }
 
+        .dashboard-grid { display: grid; gap: 1rem; }
+        .dashboard-kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: .75rem; }
+        .dashboard-chart-toolbar { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:.75rem; }
+        .dashboard-chart-controls, .dashboard-display-controls { display:flex; flex-wrap:wrap; gap:.4rem; }
+        .dashboard-chart-btn, .dashboard-display-btn { border:1px solid var(--border-color); border-radius:999px; padding:.45rem .75rem; color:var(--text-secondary); background:var(--bg-surface); cursor:pointer; transition:all .16s ease; }
+        .dashboard-chart-btn:hover, .dashboard-display-btn:hover, .dashboard-chart-btn.active, .dashboard-display-btn.active { color:var(--text-main); border-color:var(--accent-blue); background:rgba(37,99,235,.16); }
+        .dashboard-visualization { min-height:260px; display:grid; place-items:center; margin-top:1rem; overflow:auto; }
+        .dashboard-visualization svg { width:100%; min-width:560px; height:270px; }
+        .dashboard-visualization-empty { color:var(--text-muted); padding:2rem; text-align:center; }
+        .dashboard-heatmap { width:100%; display:grid; grid-template-columns:repeat(5, minmax(90px,1fr)); gap:.5rem; }
+        .dashboard-heatmap-cell { min-height:88px; display:flex; flex-direction:column; justify-content:space-between; padding:.65rem; border:1px solid var(--border-color); border-radius:10px; color:#fff; }
+        .dashboard-heatmap-cell strong { font-size:1.15rem; }
+        .dashboard-floating-assistant { position:fixed; right:1.25rem; bottom:1.25rem; z-index:201; border:1px solid rgba(147,197,253,.45); border-radius:999px; padding:.8rem 1rem; color:#fff; background:linear-gradient(135deg,#2563eb,#0ea5e9); box-shadow:0 12px 30px rgba(14,165,233,.3); cursor:grab; touch-action:none; user-select:none; }
+        @keyframes dashboard-assistant-float { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-7px); } }
+        @media (prefers-reduced-motion: reduce) { .dashboard-floating-assistant { animation:none; } }
+        .dashboard-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 10px; padding: 1rem; }
+        .dashboard-card h3 { font-size: .82rem; color: var(--text-secondary); margin-bottom: .35rem; font-weight: 600; }
+        .dashboard-card h2 { margin: 0; font-size: 1rem; }
+        .supplier-directory-toolbar { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:.75rem; margin-bottom:.9rem; }
+        .supplier-directory-search { min-width:240px; flex:1; max-width:360px; }
+        .supplier-directory-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:.75rem; }
+        .supplier-card { border:1px solid var(--border-color); border-radius:12px; background:var(--bg-surface); overflow:hidden; }
+        .supplier-card__toggle { width:100%; display:flex; justify-content:space-between; align-items:flex-start; gap:.75rem; padding:.9rem; border:0; color:var(--text-main); background:transparent; text-align:left; cursor:pointer; }
+        .supplier-card__toggle:hover { background:var(--bg-hover); }
+        .supplier-card__name { font-weight:700; }
+        .supplier-card__meta { color:var(--text-muted); font-size:.76rem; margin-top:.2rem; }
+        .supplier-card__chevron { color:var(--accent-blue); font-size:1.1rem; }
+        .supplier-card__body { display:none; padding:0 .9rem .9rem; border-top:1px solid var(--border-color); }
+        .supplier-card.is-open .supplier-card__body { display:block; }
+        .supplier-card__stats { display:grid; grid-template-columns:repeat(3,1fr); gap:.45rem; padding:.75rem 0; }
+        .supplier-card__stat { padding:.5rem; border-radius:8px; background:var(--bg-card); }
+        .supplier-card__stat strong { display:block; font-size:1.05rem; }
+        .supplier-card__stat span, .supplier-card__body small { color:var(--text-muted); font-size:.72rem; }
+        .supplier-brand-list { display:flex; flex-wrap:wrap; gap:.35rem; margin:.35rem 0 .8rem; }
+        .supplier-brand-pill { border:1px solid var(--border-light); border-radius:999px; padding:.25rem .5rem; color:var(--text-secondary); font-size:.74rem; }
+        .supplier-record-list { display:grid; gap:.35rem; max-height:220px; overflow:auto; }
+        .supplier-record { padding:.45rem .55rem; border-left:2px solid var(--accent-blue); background:var(--bg-card); font-size:.76rem; }
+        .supplier-brand-detail-list { display:grid; gap:.35rem; margin:.35rem 0 .8rem; }
+        .supplier-brand-detail { display:flex; justify-content:space-between; gap:.75rem; padding:.45rem .55rem; border:1px solid var(--border-light); border-radius:8px; background:var(--bg-card); font-size:.76rem; }
+        .supplier-brand-detail strong { color:var(--text-main); }
+        .supplier-brand-detail span { color:var(--text-muted); white-space:nowrap; }
+        .supplier-directory-filters { display:flex; flex-wrap:wrap; gap:.5rem; margin-bottom:.85rem; }
+        .supplier-directory-filters .search-filter-input { min-width:150px; flex:1 1 150px; }
+        .supplier-clustered-chart { margin:0 0 1rem; }
+        .supplier-chart-legend { display:flex; gap:1rem; color:var(--text-secondary); font-size:.72rem; margin:.65rem 0 .8rem; }
+        .supplier-chart-legend span::before { content:''; display:inline-block; width:9px; height:9px; border-radius:2px; margin-right:.35rem; background:var(--chart-color); }
+        .supplier-chart-row { display:grid; grid-template-columns:minmax(120px, .7fr) minmax(180px, 2fr) auto; gap:.6rem; align-items:center; margin:.55rem 0; font-size:.72rem; }
+        .supplier-chart-bars { display:grid; gap:.25rem; }
+        .supplier-chart-bar { height:8px; min-width:2px; border-radius:99px; background:var(--chart-color); }
+        .supplier-chart-values { color:var(--text-secondary); white-space:nowrap; }
+        .supplier-brand-button { width:100%; display:flex; justify-content:space-between; align-items:center; gap:.75rem; padding:.45rem .55rem; border:1px solid var(--border-light); border-radius:8px; color:var(--text-main); background:var(--bg-card); text-align:left; cursor:pointer; font-size:.76rem; }
+        .supplier-brand-button:hover { border-color:var(--accent-blue); background:var(--bg-hover); }
+        .supplier-brand-panel { margin-top:.75rem; padding:.75rem; border:1px solid var(--accent-blue); border-radius:10px; background:var(--bg-card); }
+        .supplier-brand-panel[hidden] { display:none; }
+        .supplier-brand-panel__grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:.55rem; }
+        .supplier-brand-panel__item { padding:.45rem; border:1px solid var(--border-color); border-radius:7px; }
+        .supplier-brand-panel__item small { display:block; color:var(--text-muted); font-size:.68rem; }
+        .supplier-brand-panel__item strong { display:block; overflow-wrap:anywhere; }
+        .supplier-brand-images { display:flex; flex-wrap:wrap; gap:.5rem; margin-top:.65rem; }
+        .supplier-brand-images img { width:72px; height:72px; object-fit:contain; border-radius:7px; border:1px solid var(--border-color); background:var(--bg-surface); }
+        .supplier-overview-header { display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; padding:1.15rem 1.25rem; border:1px solid var(--border-color); border-radius:14px; background:linear-gradient(135deg, rgba(37,99,235,.18), rgba(15,23,42,.12)); }
+        .supplier-overview-eyebrow { color:var(--accent-blue); font-size:.68rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase; margin-bottom:.35rem; }
+        .supplier-overview-summary { min-width:175px; padding:.75rem .9rem; border:1px solid rgba(147,197,253,.3); border-radius:10px; background:rgba(15,23,42,.34); text-align:right; }
+        .supplier-overview-summary-label { color:var(--text-secondary); font-size:.68rem; text-transform:uppercase; letter-spacing:.06em; }
+        .supplier-overview-summary-value { color:var(--text-main); font-size:1.65rem; font-weight:800; line-height:1.15; margin:.2rem 0; }
+        .supplier-overview-summary-note { color:var(--text-muted); font-size:.68rem; }
+        .supplier-directory-card { padding:1.15rem; }
+        .supplier-filter-heading { color:var(--text-main); font-size:.82rem; font-weight:700; }
+        .supplier-filter-help { color:var(--text-muted); font-size:.72rem; margin-top:.2rem; }
+        .supplier-filter-row { display:grid; grid-template-columns:minmax(260px,1.5fr) repeat(3,minmax(150px,1fr)); gap:.55rem; margin-top:.75rem; }
+        .supplier-filter-row .text-input-field, .supplier-filter-row .search-filter-input { width:100%; min-width:0; }
+        .supplier-card__header-content { min-width:0; flex:1; }
+        .supplier-card__badges { display:flex; flex-wrap:wrap; gap:.35rem; margin-top:.55rem; }
+        .supplier-card__brand-count, .supplier-card__record-count { display:inline-flex; align-items:center; padding:.22rem .48rem; border-radius:999px; font-size:.68rem; font-weight:700; }
+        .supplier-card__brand-count { color:#bfdbfe; background:rgba(37,99,235,.2); }
+        .supplier-card__record-count { color:#e9d5ff; background:rgba(168,85,247,.18); }
+        .supplier-card__category-list { display:flex; flex-wrap:wrap; gap:.3rem; margin:.2rem 0 .65rem; }
+        .supplier-category-badge { color:var(--text-secondary); border:1px solid var(--border-light); border-radius:999px; padding:.18rem .42rem; font-size:.66rem; }
+        .supplier-card__section { margin-top:.8rem; }
+        .supplier-card__section-title { display:flex; align-items:center; justify-content:space-between; gap:.5rem; color:var(--text-main); font-size:.74rem; font-weight:700; }
+        .supplier-card__section-title span:last-child { color:var(--text-muted); font-weight:500; }
+        .supplier-brand-panel__header { display:flex; align-items:flex-start; justify-content:space-between; gap:.75rem; padding-bottom:.55rem; border-bottom:1px solid var(--border-color); }
+        .supplier-brand-panel__header small { display:block; color:var(--accent-blue); font-size:.65rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; }
+        .supplier-brand-panel__header strong { display:block; margin-top:.15rem; }
+        .supplier-brand-panel__header > span { color:var(--text-muted); font-size:.7rem; white-space:nowrap; }
+        @media (max-width: 900px) { .supplier-filter-row { grid-template-columns:1fr 1fr; } .supplier-overview-header { flex-direction:column; } .supplier-overview-summary { width:100%; text-align:left; } }
+        @media (max-width: 560px) { .supplier-filter-row { grid-template-columns:1fr; } }
+        .analytics-grid { display:grid; grid-template-columns: minmax(240px, .85fr) minmax(0, 1.5fr); gap: .85rem; }
+        .upc-quality { display:flex; align-items:center; gap:1.25rem; min-height:190px; }
+        .upc-pie { width:150px; height:150px; border-radius:50%; flex:0 0 auto; background: conic-gradient(var(--accent-emerald) 0deg, var(--accent-emerald) 0deg, var(--accent-rose) 0deg, var(--accent-rose) 360deg); box-shadow:0 0 0 1px var(--border-color); }
+        .legend-list { display:grid; gap:.55rem; font-size:.82rem; color:var(--text-secondary); }
+        .legend-item { display:flex; justify-content:space-between; gap:1rem; }
+        .legend-dot { width:9px; height:9px; border-radius:50%; display:inline-block; margin-right:.4rem; }
+        .category-kpi-grid { display:grid; grid-template-columns:repeat(4, 1fr); gap:.65rem; }
+        .category-kpi { cursor:pointer; transition:transform .15s ease, border-color .15s ease; }
+        .category-kpi:hover { transform:translateY(-2px); border-color:var(--accent-blue); }
+        .category-kpi .dashboard-number { font-size:1.45rem; }
+        .master-summary-grid { display:grid; grid-template-columns:repeat(5, 1fr); gap:.65rem; }
+        .master-summary-item { background:rgba(56,189,248,.06); border:1px solid var(--border-color); border-radius:8px; padding:.7rem; }
+        .master-summary-item strong { display:block; font-size:1.1rem; color:var(--text-main); }
+        .master-summary-item span { color:var(--text-secondary); font-size:.72rem; }
+        .db-status-grid { display:flex; flex-wrap:wrap; gap:.55rem; font-size:.78rem; color:var(--text-secondary); }
+        .status-chip { padding:.35rem .6rem; border:1px solid var(--border-color); border-radius:999px; }
+        .master-search-grid { display:grid; grid-template-columns:repeat(4, 1fr); gap:.6rem; margin:1rem 0; }
+        .master-search-grid .btn-submit-send { min-height:40px; }
+        .master-results { max-height:520px; overflow:auto; }
+        .master-brand-result-card { display:grid; grid-template-columns:96px minmax(0,1fr); gap:1rem; align-items:stretch; margin-top:.8rem; padding:.9rem; border:1px solid var(--border-color); border-radius:12px; background:linear-gradient(135deg, rgba(56,189,248,.08), var(--bg-card)); box-shadow:0 8px 24px rgba(2,6,23,.22); transition:transform .2s ease, border-color .2s ease, box-shadow .2s ease; }
+        .master-brand-result-card:hover { transform:translateY(-2px); border-color:rgba(56,189,248,.55); box-shadow:0 12px 30px rgba(2,6,23,.32); }
+        .master-brand-result-media { min-height:96px; display:grid; place-items:center; overflow:hidden; border-radius:10px; background:rgba(15,23,42,.46); border:1px solid var(--border-light); }
+        .master-brand-result-media img { width:92px; height:92px; object-fit:contain; display:block; cursor:zoom-in; transition:transform .2s ease, filter .2s ease; }
+        .master-brand-result-media img:hover { transform:scale(1.12); filter:brightness(1.08); }
+        .master-brand-image-placeholder { width:84px; height:84px; display:grid; place-items:center; padding:.5rem; box-sizing:border-box; border:1px dashed var(--border-light); border-radius:8px; color:var(--text-muted); background:transparent; font-size:.7rem; text-align:center; }
+        .master-brand-result-media:has(img:only-child) { min-height:84px; }
+        .master-brand-image-lightbox { position:fixed; inset:0; z-index:1000; display:grid; place-items:center; padding:2rem; background:rgba(2,6,23,.86); cursor:zoom-out; }
+        .master-brand-image-lightbox[hidden] { display:none; }
+        .master-brand-image-lightbox img { max-width:min(90vw,720px); max-height:86vh; object-fit:contain; border:1px solid var(--border-color); border-radius:12px; background:transparent; box-shadow:0 20px 70px rgba(0,0,0,.45); cursor:default; transition:transform .25s ease; }
+        .master-brand-image-lightbox img:hover { transform:scale(1.16); }
+        .master-brand-image-lightbox-close { position:absolute; top:1rem; right:1.25rem; width:2.5rem; height:2.5rem; border:1px solid var(--border-color); border-radius:50%; color:var(--text-main); background:var(--bg-card); font-size:1.8rem; line-height:1; cursor:pointer; }
+        .master-brand-image-lightbox-close:hover { border-color:var(--accent-blue); color:var(--accent-blue); }
+        body.master-brand-lightbox-open { overflow:hidden; }
+        @media (max-width: 760px) { .master-brand-result-card { grid-template-columns:1fr; } .master-brand-result-media { min-height:110px; } .master-brand-result-media img { width:104px; height:104px; } }
+        .dashboard-number { font-size: 1.65rem; font-weight: 700; color: var(--text-main); }
+        .dashboard-subtle { color: var(--text-muted); font-size: .8rem; }
+        .dashboard-table { width: 100%; border-collapse: collapse; font-size: .84rem; }
+        .dashboard-table th, .dashboard-table td { padding: .65rem .7rem; text-align: left; border-bottom: 1px solid var(--border-color); }
+        .dashboard-table th { color: var(--text-secondary); font-weight: 600; }
+        .trained-summary-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:.65rem; margin:1rem 0; }
+        .trained-summary-card { background:var(--bg-card); border:1px solid var(--border-color); border-radius:10px; padding:.8rem; }
+        .trained-summary-card strong { display:block; font-size:1.35rem; color:var(--text-main); }
+        .trained-summary-card span { color:var(--text-secondary); font-size:.72rem; }
+        .trained-filter-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:.55rem; margin:1rem 0; }
+        .trained-filter-grid .text-input-field, .trained-filter-grid .search-filter-input { min-width:0; }
+        .trained-filter-checks { display:flex; flex-wrap:wrap; align-items:center; gap:.6rem; color:var(--text-secondary); font-size:.76rem; }
+        .trained-chart-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.75rem; margin:1rem 0; }
+        .trained-chart-card { min-height:220px; }
+        .trained-chart-card h3 { margin:0 0 .7rem; }
+        .trained-donut-layout { display:flex; align-items:center; gap:1rem; min-height:150px; }
+        .trained-donut { width:138px; height:138px; flex:0 0 auto; border-radius:50%; position:relative; display:grid; place-items:center; }
+        .trained-donut::after { content:''; width:72px; height:72px; border-radius:50%; background:var(--bg-card); position:absolute; }
+        .trained-donut-label { position:relative; z-index:1; color:var(--text-main); font-weight:700; font-size:.85rem; text-align:center; }
+        .trained-chart-legend { display:grid; gap:.3rem; font-size:.72rem; color:var(--text-secondary); max-height:170px; overflow:auto; }
+        .trained-chart-legend div { display:flex; justify-content:space-between; gap:.75rem; }
+        .trained-bar-list { display:grid; gap:.48rem; }
+        .trained-bar-row { display:grid; grid-template-columns:minmax(90px,.8fr) minmax(100px,2fr) auto; gap:.5rem; align-items:center; font-size:.72rem; color:var(--text-secondary); }
+        .trained-bar-track { height:9px; border-radius:99px; background:var(--bg-hover); overflow:hidden; }
+        .trained-bar-fill { height:100%; border-radius:inherit; background:linear-gradient(90deg,var(--accent-blue),var(--accent-purple)); }
+        .trained-category-visual { display:inline-grid; place-items:center; width:31px; height:31px; margin-right:.35rem; border-radius:8px; background:rgba(56,189,248,.1); font-size:1.05rem; vertical-align:middle; }
+        .trained-data-shell { position:relative; }
+        .trained-table-controls { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:.6rem; margin:.8rem 0; }
+        .untrained-summary-strip { display:flex; flex-wrap:wrap; gap:.55rem; margin:1rem 0; padding:.7rem; border:1px solid var(--border-color); border-radius:10px; background:var(--bg-card); }
+        .untrained-summary-item { flex:1 1 150px; padding:.35rem .65rem; border-right:1px solid var(--border-color); }
+        .untrained-summary-item:last-child { border-right:0; }
+        .untrained-summary-item strong { display:block; font-size:1.15rem; color:var(--text-main); }
+        .untrained-summary-item span { color:var(--text-secondary); font-size:.7rem; }
+        .trained-table-scroll { overflow:auto; max-height:600px; }
+        .trained-data-table { min-width:1120px; }
+        .trained-data-table th { position:sticky; top:0; z-index:1; background:var(--bg-card); cursor:pointer; }
+        .trained-data-table td { vertical-align:middle; }
+        .trained-row-thumb { width:38px; height:38px; object-fit:contain; border-radius:6px; background:transparent; cursor:zoom-in; }
+        .trained-detail-panel { position:fixed; top:0; right:0; width:min(560px,95vw); height:100vh; z-index:900; overflow:auto; padding:1.2rem; background:var(--bg-card); border-left:1px solid var(--border-color); box-shadow:-20px 0 60px rgba(0,0,0,.35); }
+        .trained-detail-panel[hidden] { display:none; }
+        .trained-detail-close { float:right; border:1px solid var(--border-color); background:transparent; color:var(--text-main); border-radius:50%; width:32px; height:32px; cursor:pointer; }
+        .trained-detail-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.55rem; clear:both; margin-top:1rem; }
+        .trained-detail-item { padding:.55rem; border:1px solid var(--border-color); border-radius:8px; }
+        .trained-detail-item small { display:block; color:var(--text-muted); font-size:.68rem; }
+        .trained-detail-item strong { display:block; overflow-wrap:anywhere; }
+        .trained-gallery { display:flex; flex-wrap:wrap; gap:.55rem; margin-top:.75rem; }
+        .trained-gallery img { width:88px; height:88px; object-fit:contain; border:1px solid var(--border-color); border-radius:8px; background:transparent; cursor:zoom-in; }
+        .trained-column-menu { display:flex; flex-wrap:wrap; gap:.45rem; max-width:480px; color:var(--text-secondary); font-size:.72rem; }
+        .trained-column-menu label { white-space:nowrap; }
+        @media (max-width:900px) { .trained-summary-grid { grid-template-columns:repeat(2,1fr); } .trained-filter-grid { grid-template-columns:repeat(2,1fr); } .trained-chart-grid { grid-template-columns:1fr; } }
+        @media (max-width:560px) { .trained-filter-grid { grid-template-columns:1fr; } .trained-summary-grid { grid-template-columns:1fr 1fr; } .trained-detail-grid { grid-template-columns:1fr; } }
+        .upload-preview { display: none; align-items: center; gap: .6rem; margin-top: .45rem; color: var(--text-secondary); font-size: .8rem; }
+        .upload-preview img { width: 52px; height: 52px; object-fit: cover; border-radius: 7px; border: 1px solid var(--border-color); }
+
+        @media (max-width: 900px) {
+            .dashboard-kpis,
+            .category-kpi-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
         @media (max-width: 760px) {
             header { align-items: flex-start; gap: .65rem; flex-direction: column; }
             .status-strip { width: 100%; }
@@ -801,49 +1095,372 @@
             .chat-form { gap: .45rem; }
             .btn-submit-send { padding: 0 .8rem; }
             .metric-cards-grid { grid-template-columns: repeat(2, 1fr); }
+            .dashboard-kpis, .category-kpi-grid, .master-summary-grid { grid-template-columns: repeat(2, 1fr); }
+            .analytics-grid { grid-template-columns: 1fr; }
+            .master-search-grid { grid-template-columns: 1fr 1fr; }
+        }
+
+        html[data-theme="light"] body {
+            background:
+                radial-gradient(ellipse at 10% 0%, rgba(37, 99, 235, .045), transparent 35%),
+                var(--bg-page);
+        }
+
+        html[data-theme="light"] header {
+            background: rgba(255, 255, 255, .96);
+            box-shadow: 0 2px 12px rgba(23, 36, 58, .06);
+        }
+
+        html[data-theme="light"] .nav-tabs-wrapper {
+            background: rgba(255, 255, 255, .92);
+            box-shadow: 0 1px 4px rgba(23, 36, 58, .04);
+        }
+
+        html[data-theme="light"] .brand-title,
+        html[data-theme="light"] .studio-title,
+        html[data-theme="light"] .card-heading,
+        html[data-theme="light"] .metric-box-value,
+        html[data-theme="light"] .bot-markdown h3 {
+            color: var(--text-main);
+        }
+
+        html[data-theme="light"] .brand-title {
+            background: none;
+            -webkit-text-fill-color: var(--text-main);
+        }
+
+        html[data-theme="light"] .brand-subtitle {
+            color: var(--text-secondary);
+        }
+
+        html[data-theme="light"] #tab-dashboard > .dashboard-grid > div:first-child .studio-title {
+            color: var(--text-main);
+        }
+
+        html[data-theme="light"] .nav-tab-btn {
+            color: var(--text-secondary);
+        }
+
+        html[data-theme="light"] .nav-tab-btn:hover {
+            color: #1d4ed8;
+            background: #f1f5fb;
+        }
+
+        html[data-theme="light"] .nav-tab-btn.active {
+            color: #1d4ed8;
+        }
+
+        html[data-theme="light"] .brand-subtitle,
+        html[data-theme="light"] .bot-markdown h4 {
+            color: var(--text-secondary);
+        }
+
+        html[data-theme="light"] .quick-prompts-bar,
+        html[data-theme="light"] .dashboard-card,
+        html[data-theme="light"] .studio-sidebar,
+        html[data-theme="light"] .studio-main,
+        html[data-theme="light"] .pane-card,
+        html[data-theme="light"] .chat-layout {
+            background: var(--bg-surface);
+            border-color: var(--border-color);
+            box-shadow: 0 2px 8px rgba(15, 23, 42, .04);
+        }
+
+        html[data-theme="light"] .dashboard-card {
+            transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+        }
+
+        html[data-theme="light"] .dashboard-card:hover {
+            transform: translateY(-2px);
+            border-color: #b9c9df;
+            box-shadow: 0 8px 20px rgba(23, 36, 58, .08);
+        }
+
+        html[data-theme="light"] .prompt-chip,
+        html[data-theme="light"] .preset-btn:hover {
+            background: #f1f5f9;
+            border-color: var(--border-color);
+            color: var(--text-main);
+        }
+
+        html[data-theme="light"] .prompt-chip:hover,
+        html[data-theme="light"] .preset-btn.active {
+            background: #dbeafe;
+            border-color: #93c5fd;
+            color: #1d4ed8;
+        }
+
+        html[data-theme="light"] .bot-message,
+        html[data-theme="light"] .chat-input-bar,
+        html[data-theme="light"] .metric-box {
+            background: #f8fafc;
+            border-color: var(--border-color);
+            color: var(--text-main);
+        }
+
+        html[data-theme="light"] .bot-message-header,
+        html[data-theme="light"] .source-pill-bar {
+            border-color: var(--border-color);
+        }
+
+        html[data-theme="light"] .text-input-field,
+        html[data-theme="light"] .search-filter-input {
+            background: #ffffff;
+            border-color: var(--border-light);
+            color: var(--text-main);
+        }
+
+        html[data-theme="light"] .markdown-table-wrapper {
+            background: #ffffff;
+        }
+
+        html[data-theme="light"] .styled-table th {
+            background: #eaf0f7;
+            color: var(--text-main);
+        }
+
+        html[data-theme="light"] .styled-table td {
+            border-bottom-color: var(--border-color);
+            color: var(--text-main);
+        }
+
+        html[data-theme="light"] .source-chip {
+            background: #f1f5f9;
+            border-color: var(--border-color);
+            color: var(--text-secondary);
+        }
+
+        html[data-theme="light"] .code-block {
+            background: #f1f5f9;
+            border-color: var(--border-color);
+            color: #1d4ed8;
+        }
+
+        html[data-theme="light"] .card-heading,
+        html[data-theme="light"] .pane-card h4 {
+            color: var(--text-main) !important;
+        }
+        @media (max-width: 760px) {
+            header { flex-direction: row; align-items: center; }
+            .brand-container { gap: .5rem; }
+            .brand-logo { width: 34px; height: 34px; flex-basis: 34px; }
+            .brand-wordmark { font-size: 1.25rem; }
+            .brand-tagline { font-size: .58rem; }
+        }
+
+        /* Floating assistant panel: the original chat stays mounted. */
+        .assistant-panel {
+            position: fixed; right: 1.25rem; bottom: 5.5rem; z-index: 200;
+            width: min(560px, calc(100vw - 2rem));
+            height: min(740px, calc(100vh - 7rem));
+            height: min(740px, calc(100dvh - 7rem));
+            display: flex; flex-direction: column; overflow: hidden;
+            background: var(--bg-card); border: 1px solid var(--border-color);
+            border-radius: 16px; box-shadow: 0 16px 60px rgba(0,0,0,.35);
+        }
+        .assistant-panel[hidden] { display: none; }
+        .assistant-panel-compact .quick-prompts-bar { display: none; }
+        .dashboard-floating-assistant:active { cursor: grabbing; }
+        .assistant-panel-header {
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 1rem; padding: .8rem 1rem; flex-shrink: 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .assistant-panel-title { margin: 0; font-size: 1rem; color: var(--text-main); }
+        .dashboard-floating-assistant:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 3px; }
+        .assistant-panel .quick-prompts-bar { flex-shrink: 0; max-height: 88px; overflow-y: auto; margin: .5rem; }
+        .assistant-panel .chat-layout { flex: 1; height: auto; min-height: 0; border: 0; border-radius: 0; box-shadow: none; }
+        .assistant-panel .chat-history { min-height: 0; padding: .8rem; }
+        .assistant-panel .chat-bubble { overflow-wrap: anywhere; }
+        .assistant-panel .chat-input-bar { flex-shrink: 0; }
+        .assistant-panel .chat-input-bar > div { flex-wrap: wrap; }
+        .assistant-panel .text-input-field { min-width: 0; }
+        .assistant-panel #selected-document { max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        @media (max-width: 600px) {
+            .assistant-panel { right: .75rem; bottom: 5.25rem; width: calc(100vw - 1.5rem); height: calc(100vh - 6.25rem); height: calc(100dvh - 6.25rem); }
+            .dashboard-floating-assistant { right: .75rem; bottom: 1rem; }
+            .assistant-panel .quick-prompts-bar { max-height: 72px; }
+        }
+        .brand-logo.brand-logo-full {
+            width: 210px; height: 70px; flex: 0 1 210px;
+            max-width: 60vw; object-fit: contain; border-radius: 6px;
+            transform: scale(1); transform-origin: left center;
+            transition: transform 250ms ease;
+        }
+        html[data-theme="light"] .brand-logo.brand-logo-full {
+            filter: invert(1) hue-rotate(180deg);
+        }
+        @media (hover: hover) and (pointer: fine) {
+            .brand-logo.brand-logo-full:hover { transform: scale(1.08); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .brand-logo.brand-logo-full { transition: none; }
+        }
+        .assistant-panel.assistant-page {
+            position: relative; inset: auto; z-index: auto;
+            width: 100%; height: calc(100vh - 240px); height: calc(100dvh - 240px);
+            min-height: 400px; margin: 0; box-sizing: border-box;
+        }
+        .main-content:has(> .assistant-page:not([hidden])) > .tab-panel { display: none; }
+        body:has(.assistant-page:not([hidden])) .nav-tab-btn.active { color: var(--text-secondary); border-bottom-color: transparent; }
+        body:has(.assistant-page:not([hidden])) #assistant-nav-toggle { color: var(--accent-blue); border-bottom: 3px solid var(--accent-blue); }
+        body:has(.assistant-page:not([hidden])) .dashboard-floating-assistant { display: none; }
+        @media (max-width: 600px) {
+            .brand-logo.brand-logo-full { width: 168px; height: 56px; flex-basis: 168px; }
+            .assistant-panel.assistant-page { min-height: 320px; }
+        }
+        .assistant-resize-handle[hidden] { display: none; }
+        .assistant-panel.assistant-page .assistant-resize-handle { display: none; }
+        .assistant-panel:not(.assistant-page) .assistant-panel-header {
+            cursor: move; touch-action: none; user-select: none;
+        }
+        .assistant-panel-header:focus-visible, .assistant-resize-handle:focus-visible {
+            outline: 2px solid var(--accent-blue); outline-offset: -3px;
+        }
+        .assistant-resize-handle {
+            position: absolute; bottom: 2px; right: 2px; width: 22px; height: 22px;
+            display: grid; place-items: center; padding: 0; border: 0;
+            color: var(--text-secondary); background: transparent;
+            cursor: nwse-resize; touch-action: none; font-size: 18px;
+        }
+        .assistant-panel { box-sizing: border-box; }
+        .main-content:has(> .assistant-page:not([hidden])) { max-width: none; width: 100%; box-sizing: border-box; }
+        .assistant-resize-edge { position: absolute; z-index: 20; touch-action: none; }
+        .assistant-panel.assistant-page .assistant-resize-edge { display: none; }
+        .assistant-resize-n, .assistant-resize-s { left: 18px; right: 18px; height: 9px; cursor: ns-resize; }
+        .assistant-resize-n { top: 0; }
+        .assistant-resize-s { bottom: 0; }
+        .assistant-resize-e, .assistant-resize-w { top: 18px; bottom: 18px; width: 9px; cursor: ew-resize; }
+        .assistant-resize-e { right: 0; }
+        .assistant-resize-w { left: 0; }
+        .assistant-resize-nw, .assistant-resize-ne, .assistant-resize-sw { width: 18px; height: 18px; }
+        .assistant-resize-nw { top: 0; left: 0; cursor: nwse-resize; }
+        .assistant-resize-ne { top: 0; right: 0; cursor: nesw-resize; }
+        .assistant-resize-sw { bottom: 0; left: 0; cursor: nesw-resize; }
+        .assistant-resize-handle { z-index: 21; }
+        .studio-grid { grid-template-columns: 260px minmax(0,1fr); }
+        .studio-header { flex-wrap: wrap; gap: .75rem; }
+        .studio-header > div { flex: 1 1 240px; min-width: 0; }
+        .studio-header .btn-download-csv { flex: 0 0 auto; }
+        .studio-main .markdown-table-wrapper { width: 100%; }
+        .metric-box { min-width: 0; overflow-wrap: anywhere; }
+        @media (max-width: 900px) {
+            .studio-grid { grid-template-columns: minmax(0,1fr); }
+            .studio-sidebar { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); }
+            .studio-sidebar .sidebar-heading { grid-column: 1 / -1; }
+            .studio-sidebar .preset-btn { min-width: 0; white-space: normal; text-align: left; }
+            .table-filter-bar { flex-wrap: wrap; }
+            .table-filter-bar .search-filter-input { flex: 1 1 200px; min-width: 0; }
+            .metric-cards-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+        }
+        .trained-chart-card, .trained-chart-legend { min-width: 0; max-width: 100%; }
+        .trained-bar-row { grid-template-columns: minmax(0,.9fr) minmax(0,1.5fr) auto; }
+        .trained-bar-row > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .trained-chart-legend div > span { min-width: 0; overflow-wrap: anywhere; }
+        .trained-chart-legend div > strong { flex-shrink: 0; }
+        /* Compact shell and scrollable data views. */
+        header { padding: .5rem 1.25rem; gap: 1rem; }
+        .brand-container { min-width: 0; }
+        .theme-toggle { flex-shrink: 0; }
+        .main-content, .tab-panel, .studio-main, .dashboard-card, .pane-card { min-width: 0; }
+        .trained-table-scroll { max-height: min(600px, 65dvh); border-radius: 8px; isolation: isolate; }
+        .trained-table-scroll table, .markdown-table-wrapper .styled-table {
+            border-collapse: separate; border-spacing: 0;
+        }
+        .trained-table-scroll thead th, .markdown-table-wrapper thead th {
+            position: sticky; top: 0; z-index: 2;
+            background: var(--bg-card); box-shadow: 0 1px 0 var(--border-color);
+        }
+        .trained-data-table th { cursor: default; }
+        .trained-data-table th[data-trained-column] { cursor: pointer; }
+        #untrained-brands-table { min-width: 0; table-layout: fixed; }
+        #untrained-brands-table th:first-child { width: 42%; }
+        #untrained-brands-table th:nth-child(2) { width: 18%; }
+        #untrained-brands-table td { overflow-wrap: anywhere; }
+        .dashboard-table tbody tr:hover { background: var(--bg-hover); }
+        .trained-table-controls .text-input-field { flex: 1 1 220px; min-width: 0; }
+        .assistant-panel-header { min-height: 58px; padding: .65rem 1rem; }
+        .assistant-panel-title { min-width: 0; }
+        .dashboard-floating-assistant.assistant-launcher-docked {
+            position: static !important; inset: auto !important; flex: 0 0 auto;
+            padding: .5rem .75rem; font-size: .8rem; line-height: 1.4;
+            box-shadow: none; cursor: pointer; touch-action: auto;
+        }
+        body:has(.assistant-page:not([hidden])) #beviq-app {
+            height: 100dvh; display: flex; flex-direction: column;
+        }
+        body:has(.assistant-page:not([hidden])) header,
+        body:has(.assistant-page:not([hidden])) .nav-tabs-wrapper { flex-shrink: 0; }
+        .main-content:has(> .assistant-page:not([hidden])) {
+            flex: 1; min-height: 0; display: flex; flex-direction: column;
+        }
+        .assistant-panel.assistant-page { flex: 1; height: auto; min-height: 0; }
+        @media (max-width: 760px) {
+            header { padding: .5rem .75rem; gap: .5rem; }
+            .untrained-summary-item { flex-basis: 120px; }
+            .trained-donut-layout { flex-wrap: wrap; }
+            .master-search-grid { grid-template-columns: minmax(0,1fr); }
+            .dashboard-heatmap { grid-template-columns: repeat(2,minmax(0,1fr)); }
+            .assistant-panel .chat-form { flex-wrap: wrap; }
+            .assistant-panel .chat-form .text-input-field { flex: 1 1 180px; }
+            .assistant-panel .btn-submit-send { min-height: 42px; justify-content: center; }
+            .assistant-panel .quick-prompts-bar { flex-wrap: nowrap; align-items: center; }
+        }
+        @media (max-width: 420px) {
+            .assistant-panel-header { gap: .5rem; padding: .6rem .75rem; }
+            .dashboard-floating-assistant.assistant-launcher-docked { padding: .45rem .55rem; font-size: .75rem; }
+            .assistant-panel .chat-form .btn-submit-send { flex: 1 0 100%; }
+            .trained-table-controls { align-items: stretch; }
+            #untrained-record-count { width: 100%; }
         }
     </style>
 </head>
 <body>
+    <div id="beviq-app">
 
     <!-- Header -->
     <header>
         <div class="brand-container">
-            <div class="brand-icon">
-                <svg viewBox="0 0 24 24"><path d="M7 2h10v2l-2 3v13a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V7L5 4V2h2zm2 5h6v-1.5L16 4H8l1 1.5V7zm5 3H10v2h4v-2z"/></svg>
-            </div>
-            <div>
-                <div class="brand-title">BEVIQ</div>
-                <div class="brand-subtitle">Beverage Intelligence, Simply</div>
-            </div>
+            <img class="brand-logo brand-logo-full" src="{{ url_for('static', filename='images/beviq-logo.png') }}"
+                 alt="BevIQ - Beverage Intelligence, Simplified" width="210" height="70" fetchpriority="high">
+        </div>
+        <div id="theme-toggle" class="theme-toggle" role="group" aria-label="Choose color theme" data-active-theme="dark">
+            <button class="theme-choice theme-choice--light" type="button" title="Light mode" aria-label="Light mode" aria-pressed="false">&#9728;</button>
+            <button class="theme-choice theme-choice--dark" type="button" title="Dark mode" aria-label="Dark mode" aria-pressed="true">&#9790;</button>
         </div>
 
-        <div class="status-strip">
-            <span class="pill-badge pill-mysql" id="mysql-badge">
-                ● MySQL 3307: Connected (beverage_db)
-            </span>
-            <span class="pill-badge pill-db">
-                ⚡ 702,207 Records Ready
-            </span>
-            <span class="pill-badge pill-offline">
-                🛡️ 100% Offline & Secure
-            </span>
-        </div>
     </header>
 
     <!-- Nav Tabs -->
     <div class="nav-tabs-wrapper">
-        <button class="nav-tab-btn active" onclick="switchTab('chat', this)">
+        <button id="dashboard-nav-button" class="nav-tab-btn active" onclick="switchTab('dashboard', this)">
+            Dashboard
+        </button>
+        <button class="nav-tab-btn" onclick="switchTab('supplier-overview', this)">
+            Supplier Overview
+        </button>
+        <button id="assistant-nav-toggle" class="nav-tab-btn" onclick="switchTab('chat', this)" aria-controls="tab-chat" aria-expanded="false">
             💬 AI Assistant
         </button>
+        <button class="nav-tab-btn" onclick="switchTab('master-brands', this)">
+            Product Details
+        </button>
+        <div class="dataset-nav" id="dataset-nav">
+            <button class="nav-tab-btn dataset-nav-toggle" id="dataset-nav-toggle" type="button"
+                    popovertarget="dataset-dropdown" aria-expanded="false" aria-controls="dataset-dropdown">
+                Datasets <span aria-hidden="true">&#9662;</span>
+            </button>
+            <div class="dataset-dropdown" id="dataset-dropdown" popover="auto" aria-label="Dataset pages">
+                <button class="nav-tab-btn" type="button" onclick="switchTab('trained-dataset', this)">
+                    Trained Dataset
+                </button>
+                <button class="nav-tab-btn" type="button" onclick="switchTab('untrained-dataset', this)">
+                    Untrained Dataset
+                </button>
+            </div>
+        </div>
         <button class="nav-tab-btn" onclick="switchTab('comparison', this)">
-            ⚖️ Comparison Studio
-        </button>
-        <button class="nav-tab-btn" onclick="switchTab('dbeaver', this)">
-            🐬 DBeaver & MySQL 3307
-        </button>
-        <button class="nav-tab-btn" onclick="switchTab('datasets', this)">
-            📊 Datasets & Schema
+            ⚖️ PD Comparison Studio
         </button>
     </div>
 
@@ -851,7 +1468,10 @@
     <div class="main-content">
 
         <!-- TAB 1: AI CHAT ASSISTANT -->
-        <div id="tab-chat" class="tab-panel active">
+        <div id="tab-chat" class="assistant-panel" role="dialog" aria-modal="false" aria-labelledby="assistant-panel-title" hidden>
+            <div id="assistant-panel-header" class="assistant-panel-header" tabindex="0" aria-label="AI Assistant window header">
+                <h2 id="assistant-panel-title" class="assistant-panel-title" tabindex="-1">AI Assistant</h2>
+            </div>
             <!-- Quick Prompts Bar -->
             <div class="quick-prompts-bar">
                 <span class="prompt-label">⚡ Quick Queries:</span>
@@ -863,9 +1483,6 @@
                 </span>
                 <span class="prompt-chip" onclick="triggerQuickPrompt('Compare AIMasterBrandData with Beer categorization')">
                     🍺 Master vs Beer Sheet
-                </span>
-                <span class="prompt-chip" onclick="triggerQuickPrompt('Compare All Brand Sheet with Supplier Sheet')">
-                    🏢 AllBrand vs Supplier Master
                 </span>
                 <span class="prompt-chip" onclick="triggerQuickPrompt('Compare Beer and RTD categorization')">
                     🔄 Beer vs RTD Validation
@@ -892,12 +1509,14 @@
                             <div class="bot-identity">
                                 🤖 BevIQ Assistant
                             </div>
-                            <div>Local Engine • Ready</div>
+                            <div>Local Assistant • Ready</div>
                         </div>
                         <div class="bot-markdown">
-                            <p>Hello! I am your <strong>BevIQ Assistant</strong>. All <strong>702,207 records</strong> from your 7 CSV datasets and your MySQL <code>beverage_db</code> database are fully indexed.</p>
-                            <p>You can also use me for <strong>normal chat</strong> in English or Hinglish. I can find UPCs, audit missing records, compare categorization sheets, answer questions from uploaded documents, or generate downloadable CSV reports.</p>
-                            <p style="color: #93c5fd; font-size: 0.82rem;">UPC audits are review-only: no master product or UPC is changed automatically.</p>
+                            <p>👋 <strong>Welcome to BevIQ!</strong></p>
+                            <p>I'm here to help you with beverage data and everyday questions.</p>
+                            <p>Ask about this project's setup and architecture, or upload a photo for a description and poetry.</p>
+                            <p>You can chat with me in English or Hinglish, ask anything, find UPCs, compare products, check missing records, or create reports.</p>
+                            <p>Just type your question and let's get started! 😊</p>
                         </div>
                     </div>
                 </div>
@@ -906,8 +1525,9 @@
                 <div class="chat-input-bar">
                     <div style="display:flex; align-items:center; gap:.65rem; margin-bottom:.65rem; color:var(--text-secondary); font-size:.8rem;">
                         <label for="document-upload" class="prompt-chip">📎 Attach PDF / image / document</label>
-                        <input type="file" id="document-upload" accept=".pdf,.docx,.txt,.md,.csv,.xlsx,.xls,.png,.jpg,.jpeg,.webp,.bmp,.tiff" style="display:none" onchange="showSelectedDocument(this)">
+                        <input type="file" id="document-upload" accept=".pdf,.doc,.docx,.txt,.md,.csv,.xlsx,.xls,.png,.jpg,.jpeg,.webp,.bmp,.tiff" style="display:none" onchange="showSelectedDocument(this)">
                         <span id="selected-document" style="color:var(--accent-emerald);"></span>
+                        <div id="upload-preview" class="upload-preview"></div>
                     </div>
                     <form class="chat-form" onsubmit="submitUserChat(event)">
                         <input type="text" id="chat-input-box" class="text-input-field" placeholder="Chat normally or ask about products, UPCs, datasets, or uploaded files..." autocomplete="off">
@@ -917,9 +1537,237 @@
                     </form>
                 </div>
             </div>
+            <span id="assistant-resize-n" class="assistant-resize-edge assistant-resize-n" aria-hidden="true"></span>
+            <span id="assistant-resize-s" class="assistant-resize-edge assistant-resize-s" aria-hidden="true"></span>
+            <span id="assistant-resize-e" class="assistant-resize-edge assistant-resize-e" aria-hidden="true"></span>
+            <span id="assistant-resize-w" class="assistant-resize-edge assistant-resize-w" aria-hidden="true"></span>
+            <span id="assistant-resize-nw" class="assistant-resize-edge assistant-resize-nw" aria-hidden="true"></span>
+            <span id="assistant-resize-ne" class="assistant-resize-edge assistant-resize-ne" aria-hidden="true"></span>
+            <span id="assistant-resize-sw" class="assistant-resize-edge assistant-resize-sw" aria-hidden="true"></span>
+            <button id="assistant-panel-resize" class="assistant-resize-handle" type="button" aria-label="Resize AI Assistant" title="Drag to resize; arrow keys adjust size">&#9698;</button>
         </div>
 
-        <!-- TAB 2: COMPARISON STUDIO -->
+        <!-- TAB 2: BUSINESS DASHBOARD -->
+        <div id="tab-dashboard" class="tab-panel active">
+            <div class="dashboard-grid">
+                <div>
+                    <div class="studio-title">Beverage Dashboard</div>
+                </div>
+                <div class="dashboard-card">
+                    <div class="dashboard-chart-toolbar">
+                        <div>
+                            <h3 style="margin:0;">Dashboard visual view</h3>
+                            <div class="dashboard-subtle">Use the same live data as a chart or heatmap</div>
+                        </div>
+                        <div id="dashboard-chart-controls" class="dashboard-chart-controls" role="group" aria-label="Dashboard chart type">
+                            <button class="dashboard-chart-btn active" type="button" data-dashboard-chart="overview" onclick="setDashboardChart('overview', this)">Overview</button>
+                            <button class="dashboard-chart-btn" type="button" data-dashboard-chart="pie" onclick="setDashboardChart('pie', this)">Pie Chart</button>
+                            <button class="dashboard-chart-btn" type="button" data-dashboard-chart="bar" onclick="setDashboardChart('bar', this)">Bar Graph</button>
+                            <button class="dashboard-chart-btn" type="button" data-dashboard-chart="heatmap" onclick="setDashboardChart('heatmap', this)">Heatmap</button>
+                        </div>
+                        <div class="dashboard-display-controls" role="group" aria-label="Dashboard value format">
+                            <button class="dashboard-display-btn active" type="button" data-dashboard-display="count" onclick="setDashboardDisplayMode('count', this)">Count</button>
+                            <button class="dashboard-display-btn" type="button" data-dashboard-display="percentage" onclick="setDashboardDisplayMode('percentage', this)">Percentage</button>
+                        </div>
+                    </div>
+                    <div id="dashboard-visualization" class="dashboard-visualization" aria-live="polite"><div class="dashboard-visualization-empty">Open Dashboard to load chart data.</div></div>
+                </div>
+                <div id="dashboard-error" class="dashboard-card" style="display:none; color:#fda4af;"></div>
+                <div class="dashboard-kpis">
+                    <div class="dashboard-card"><h3>Total records</h3><div class="dashboard-number" id="dashboard-total-records">—</div></div>
+                    <div class="dashboard-card"><h3>Dataset UPC entries</h3><div class="dashboard-number" id="dashboard-total-upcs">—</div></div>
+                    <div class="dashboard-card"><h3>Datasets</h3><div class="dashboard-number" id="dashboard-dataset-count">—</div></div>
+                    <div class="dashboard-card"><h3>Primary database</h3><div class="dashboard-number" id="dashboard-backend">—</div><div class="dashboard-subtle" id="dashboard-backend-detail">Checking MySQL connection and active fallback status...</div></div>
+                </div>
+                <div class="dashboard-kpis" id="dashboard-category-kpis">
+                    <div class="dashboard-card"><h3>Beer products</h3><div class="dashboard-number" id="dashboard-beer-total">—</div></div>
+                    <div class="dashboard-card"><h3>Wine products</h3><div class="dashboard-number" id="dashboard-wine-total">—</div></div>
+                    <div class="dashboard-card"><h3>RTD products</h3><div class="dashboard-number" id="dashboard-rtd-total">—</div></div>
+                    <div class="dashboard-card"><h3>Spirits products</h3><div class="dashboard-number" id="dashboard-spirits-total">—</div></div>
+                    <div class="dashboard-card"><h3>Master Brand records</h3><div class="dashboard-number" id="dashboard-master-total">—</div></div>
+                    <div class="dashboard-card"><h3>UPC completion</h3><div class="dashboard-number" id="dashboard-upc-completion">—</div></div>
+                </div>
+                <div class="analytics-grid">
+                    <div class="dashboard-card">
+                        <h3>UPC availability summary</h3>
+                        <div class="dashboard-subtle">Master Brand and categorization UPCs shown separately</div>
+                        <div class="upc-quality">
+                            <div class="upc-pie" id="dashboard-upc-pie" role="img" aria-label="Master Brand, Beer, RTD, Wine, and Spirits UPC pie chart"></div>
+                            <div class="legend-list">
+                                <div class="legend-item"><span><i class="legend-dot" style="background:#38bdf8"></i>Master Brand UPC</span><strong id="dashboard-upc-master">—</strong></div>
+                                <div class="legend-item"><span><i class="legend-dot" style="background:#f59e0b"></i>Beer UPC</span><strong id="dashboard-upc-beer">—</strong></div>
+                                <div class="legend-item"><span><i class="legend-dot" style="background:#a78bfa"></i>RTD UPC</span><strong id="dashboard-upc-rtd">—</strong></div>
+                                <div class="legend-item"><span><i class="legend-dot" style="background:#f472b6"></i>Wine UPC</span><strong id="dashboard-upc-wine">—</strong></div>
+                                <div class="legend-item"><span><i class="legend-dot" style="background:#14b8a6"></i>Spirits UPC</span><strong id="dashboard-upc-spirits">—</strong></div>
+                                <div class="legend-item"><span>Total UPC records</span><strong id="dashboard-upc-total">—</strong></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="dashboard-card">
+                        <h3>Category UPC availability</h3>
+                        <div class="dashboard-subtle">Available and missing UPC counts by category; click a category to review missing records</div>
+                        <div class="category-kpi-grid" id="dashboard-category-quality"></div>
+                    </div>
+                </div>
+                <div class="dashboard-card">
+                    <h3>Master Brand overview</h3>
+                    <div class="dashboard-subtle">Distinct counts from the Master Brand table</div>
+                    <div class="master-summary-grid">
+                        <div class="master-summary-item"><strong id="dashboard-master-total-summary">—</strong><span>Total records</span></div>
+                        <div class="master-summary-item"><strong id="dashboard-master-brands">—</strong><span>Unique brands</span></div>
+                        <div class="master-summary-item"><strong id="dashboard-master-ids">—</strong><span>Unique Master IDs</span></div>
+                        <div class="master-summary-item"><strong id="dashboard-master-with-upc">—</strong><span>Records with UPC</span></div>
+                        <div class="master-summary-item"><strong id="dashboard-master-without-upc">—</strong><span>Records without UPC</span></div>
+                    </div>
+                </div>
+                <div class="dashboard-card">
+                    <div style="display:flex; justify-content:space-between; align-items:center; gap:.75rem; margin-bottom:.6rem;">
+                        <div><h3 style="margin:0;">Dataset health</h3><div class="dashboard-subtle">Counts from the active database</div><div class="dashboard-subtle" id="dashboard-refresh-time">Last refreshed: —</div></div>
+                        <a id="dashboard-export-link" class="btn-download-csv" href="/api/dashboard/export/ai_master?limit=50000">Power BI CSV</a>
+                    </div>
+                    <div style="overflow-x:auto;"><table class="dashboard-table"><thead><tr><th>Dataset</th><th>Rows</th><th>Distinct UPCs</th><th>Source file</th></tr></thead><tbody id="dashboard-datasets"><tr><td colspan="4">Open Dashboard to load live data.</td></tr></tbody></table></div>
+                </div>
+                <div class="dashboard-card">
+                    <h3>Category UPCs missing from AI Master</h3>
+                    <div id="dashboard-missing-summary" class="dashboard-subtle">Loading...</div>
+                    <div id="dashboard-missing-by-category" class="legend-list" style="margin-top:.7rem;"></div>
+                </div>
+                <div class="dashboard-card database-status-card">
+                    <h3>Database connection</h3>
+                    <div class="db-status-grid" id="dashboard-database-status">Checking SQLite and MySQL status...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SUPPLIER OVERVIEW -->
+        <div id="tab-supplier-overview" class="tab-panel">
+            <div class="dashboard-grid">
+                <div class="supplier-overview-header">
+                    <div>
+                        <div class="supplier-overview-eyebrow">Supplier intelligence</div>
+                        <div class="studio-title">Supplier Overview</div>
+                        <div class="studio-subtitle">Explore each supplier's brand portfolio, categories, and Master Brand coverage.</div>
+                    </div>
+                    <div class="supplier-overview-summary" id="supplier-overview-total-suppliers-card">
+                        <div class="supplier-overview-summary-label">Total Suppliers</div>
+                        <div class="supplier-overview-summary-value" id="supplier-overview-total-suppliers">—</div>
+                        <div class="supplier-overview-summary-note">Source: AllMasterBrands</div>
+                    </div>
+                </div>
+                <div class="dashboard-card supplier-clustered-chart" id="supplier-overview-clustered-chart">
+                    <h3 style="margin:0;">Supplier scale at a glance</h3>
+                    <div class="dashboard-subtle">Compare unique brands with the total records stored for each supplier.</div>
+                    <div class="supplier-chart-legend"><span style="--chart-color:var(--accent-blue);">Unique Brands</span><span style="--chart-color:var(--accent-purple);">Master Brand Records</span></div>
+                    <div id="supplier-overview-clustered-chart-body" class="dashboard-subtle">Open Supplier Overview to load chart.</div>
+                </div>
+                <div class="dashboard-card supplier-directory-card" id="supplier-directory-card">
+                    <div class="supplier-directory-toolbar">
+                        <div><h3 style="margin:0;">Supplier directory</h3><div class="dashboard-subtle">Select a supplier to see its complete brand portfolio.</div></div>
+                        <div class="dashboard-number" id="dashboard-supplier-total">—</div>
+                    </div>
+                    <div class="supplier-filter-heading">Find a supplier or brand</div>
+                    <div class="supplier-filter-help">Search by supplier, supplier code, brand name, brand code, or class ID.</div>
+                    <div class="supplier-filter-row" aria-label="Supplier filters">
+                        <input class="text-input-field" id="dashboard-supplier-search" type="search" placeholder="Search suppliers, brands, codes..." aria-label="Search suppliers, codes, brands or IDs" oninput="filterSupplierCards(this.value)">
+                        <select class="search-filter-input" id="dashboard-supplier-category-filter" aria-label="Filter supplier brands by category" onchange="filterSupplierDirectory()">
+                            <option value="">All categories</option><option>Beer</option><option>Wine</option><option>Spirits</option><option>Non Alcoholic</option>
+                        </select>
+                        <select class="search-filter-input" id="dashboard-supplier-filter" aria-label="Filter by supplier"><option value="">All suppliers</option></select>
+                        <select class="search-filter-input" id="dashboard-supplier-status-filter" aria-label="Filter by status" onchange="filterSupplierDirectory()"><option value="">All statuses</option></select>
+                        <select class="search-filter-input" id="dashboard-supplier-sort" aria-label="Sort suppliers by brand count" onchange="filterSupplierDirectory()"><option value="">Sort: default</option><option value="brand_desc">Most brands</option><option value="brand_asc">Fewest brands</option></select>
+                    </div>
+                    <div id="dashboard-supplier-directory" class="supplier-directory-grid" aria-live="polite"><div class="dashboard-subtle">Open Supplier Overview to load suppliers.</div></div>
+                    <div id="dashboard-supplier-visible-total" class="dashboard-subtle" style="margin-top:.75rem;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MASTER BRAND SEARCH -->
+        <div id="tab-master-brands" class="tab-panel">
+            <div class="studio-title">Master Brand Search</div>
+            <div class="studio-subtitle">Search exact IDs, brand names, UPCs, or product names from the live Master Brand table.</div>
+            <div class="dashboard-card" style="margin-top:1rem;">
+                <form id="master-brand-search-form" class="master-search-grid" onsubmit="searchMasterBrands(event)">
+                    <input class="text-input-field" id="master-id-input" placeholder="Master Brand ID">
+                    <input class="text-input-field" id="master-brand-input" placeholder="Brand name">
+                    <input class="text-input-field" id="master-upc-input" placeholder="UPC / alternate UPC">
+                    <input class="text-input-field" id="master-product-input" placeholder="Product name">
+                    <button class="btn-submit-send" type="submit">Search Master Brands</button>
+                    <button class="btn-download-csv" type="button" onclick="clearMasterBrandSearch()">Clear</button>
+                </form>
+                <div id="master-brand-search-status" class="dashboard-subtle">Enter at least one search field.</div>
+                <div id="master-brand-results" class="master-results"></div>
+            </div>
+        </div>
+
+        <div id="master-brand-image-lightbox" class="master-brand-image-lightbox" hidden role="dialog" aria-modal="true" aria-label="Enlarged Master Brand image" onclick="closeMasterBrandImage(event)">
+            <button class="master-brand-image-lightbox-close" type="button" aria-label="Close enlarged image" onclick="closeMasterBrandImage(event)">&times;</button>
+            <img id="master-brand-image-lightbox-preview" alt="" onclick="event.stopPropagation()">
+        </div>
+
+        <!-- TAB: TRAINED DATASET -->
+        <div id="tab-trained-dataset" class="tab-panel">
+            <div class="studio-title">Trained Dataset</div>
+            <div class="studio-subtitle">Training coverage, models, suppliers, and brand images from the live TrainedBrandsData sheet.</div>
+            <div class="trained-summary-grid">
+                <div class="trained-summary-card"><strong id="trained-total-brands">—</strong><span>Total Brands</span></div>
+                <div class="trained-summary-card"><strong id="trained-total-suppliers">—</strong><span>Total Suppliers</span></div>
+                <div class="trained-summary-card"><strong id="trained-total-images">—</strong><span>Total Trained Images</span></div>
+                <div class="trained-summary-card"><strong id="trained-active-brands">—</strong><span>Active Brands</span></div>
+                <div class="trained-summary-card"><strong id="trained-inactive-brands">—</strong><span>Inactive Brands</span></div>
+                <div class="trained-summary-card"><strong id="trained-total-models">—</strong><span>Unique Models</span></div>
+                <div class="trained-summary-card"><strong id="trained-total-categories">—</strong><span>Categories</span></div>
+                <div class="trained-summary-card"><strong id="trained-missing-records">—</strong><span>Missing Data Records</span></div>
+            </div>
+            <div class="dashboard-card">
+                <div class="trained-filter-grid">
+                    <input class="text-input-field" id="trained-global-search" placeholder="Search ID, Class ID, supplier, brand, SKU, model..." oninput="queueTrainedDatasetLoad()">
+                    <select class="search-filter-input" id="trained-category-filter" onchange="loadTrainedDataset()"><option value="">All categories</option><option>Beer</option><option>Wine</option><option>Spirits</option><option>Non Alcoholic</option></select>
+                    <input class="text-input-field" id="trained-supplier-filter" placeholder="Supplier name/code" oninput="queueTrainedDatasetLoad()">
+                    <input class="text-input-field" id="trained-brand-filter" placeholder="Brand name/code" oninput="queueTrainedDatasetLoad()">
+                    <select class="search-filter-input" id="trained-status-filter" onchange="loadTrainedDataset()"><option value="">Active and inactive</option><option value="active">Active</option><option value="inactive">Inactive</option></select>
+                    <input class="text-input-field" id="trained-model-filter" placeholder="Model name or ID" oninput="queueTrainedDatasetLoad()">
+                    <input class="text-input-field" id="trained-image-count-filter" type="number" min="0" placeholder="Minimum image count" oninput="queueTrainedDatasetLoad()">
+                    <div class="trained-filter-checks"><label><input type="checkbox" id="trained-missing-sku" onchange="loadTrainedDataset()"> Missing SKU</label><label><input type="checkbox" id="trained-missing-images" onchange="loadTrainedDataset()"> Missing images</label><label><input type="checkbox" id="trained-missing-model" onchange="loadTrainedDataset()"> Missing model ID</label></div>
+                </div>
+                <div class="trained-chart-grid">
+                    <div class="dashboard-card trained-chart-card"><h3>Category-wise Brand Distribution</h3><div id="trained-category-chart"></div></div>
+                    <div class="dashboard-card trained-chart-card"><h3>Active vs Inactive Brands</h3><div id="trained-status-chart"></div></div>
+                    <div class="dashboard-card trained-chart-card"><h3>Top 10 Suppliers by Brand Count</h3><div id="trained-supplier-chart"></div></div>
+                    <div class="dashboard-card trained-chart-card"><h3>Top 10 Brands by Image Count</h3><div id="trained-brand-chart"></div></div>
+                    <div class="dashboard-card trained-chart-card"><h3>Model-wise Brand Distribution</h3><div id="trained-model-chart"></div></div>
+                    <div class="dashboard-card trained-chart-card"><h3>Category-wise Trained Image Count</h3><div id="trained-category-image-chart"></div></div>
+                </div>
+                <div class="trained-table-controls">
+                    <div><span id="trained-record-count" class="dashboard-subtle">Open Trained Dataset to load records.</span></div>
+                    <div style="display:flex;flex-wrap:wrap;gap:.45rem;align-items:center;"><select class="search-filter-input" id="trained-page-size" onchange="loadTrainedDataset()"><option value="50">50 rows</option><option value="100">100 rows</option><option value="200">200 rows</option></select><select class="search-filter-input" id="trained-sort" onchange="loadTrainedDataset()"><option value="BrandName|asc">Sort: Brand</option><option value="ImageCounts|desc">Images: high to low</option><option value="ImageCounts|asc">Images: low to high</option><option value="SupplierName|asc">Supplier</option><option value="Status|asc">Status</option></select><button class="btn-download-csv" type="button" onclick="exportTrainedDataset()">Export CSV</button></div>
+                </div>
+                <details><summary class="dashboard-subtle" style="cursor:pointer;">Column visibility</summary><div class="trained-column-menu" id="trained-column-menu"></div></details>
+                <div class="trained-table-scroll"><table class="dashboard-table trained-data-table" id="trained-records-table"><thead><tr><th data-trained-column="id">ID</th><th data-trained-column="class_id">Class ID</th><th data-trained-column="supplier_name">Supplier</th><th data-trained-column="brand_name">Brand</th><th data-trained-column="category">Category</th><th data-trained-column="image_count">Images</th><th data-trained-column="avg_trained_photos">Avg Photos</th><th data-trained-column="sku">SKU</th><th data-trained-column="status">Status</th><th data-trained-column="model">Model</th><th data-trained-column="model_id">Model ID</th><th>Action</th></tr></thead><tbody><tr><td colspan="12">Open Trained Dataset to load records.</td></tr></tbody></table></div>
+                <div style="display:flex;justify-content:center;gap:.75rem;align-items:center;margin-top:.75rem;"><button class="btn-download-csv" type="button" onclick="changeTrainedPage(-1)">Previous</button><span id="trained-page-label" class="dashboard-subtle">Page 1</span><button class="btn-download-csv" type="button" onclick="changeTrainedPage(1)">Next</button></div>
+            </div>
+        </div>
+
+        <aside id="trained-detail-panel" class="trained-detail-panel" hidden></aside>
+
+        <!-- TAB: UNTRAINED DATASET -->
+        <div id="tab-untrained-dataset" class="tab-panel">
+            <div class="studio-title">Untrained Dataset</div>
+            <div class="studio-subtitle">Brands marked New or NeedToVerify in Beer, Wine, Spirits and RTD datasets. Each brand appears once per category.</div>
+            <div class="untrained-summary-strip" aria-label="Untrained dataset summary">
+                <div class="untrained-summary-item"><strong id="untrained-total-records">—</strong><span>Dataset Records</span></div>
+                <div class="untrained-summary-item"><strong id="untrained-total-brands">—</strong><span>Unique Brands</span></div>
+            </div>
+            <div class="dashboard-card trained-data-shell">
+                <div class="trained-table-controls">
+                    <input class="text-input-field" id="untrained-brand-search" placeholder="Search brands..." aria-label="Search untrained brands" oninput="queueUntrainedDatasetLoad()">
+                    <span id="untrained-record-count" class="dashboard-subtle" role="status" aria-live="polite">New / NeedToVerify rows</span>
+                </div>
+                <div class="trained-table-scroll"><table class="dashboard-table trained-data-table" id="untrained-brands-table"><thead><tr><th>Brand Name</th><th>Category</th><th>Source Dataset</th></tr></thead><tbody><tr><td colspan="3">Open Untrained Dataset to load records.</td></tr></tbody></table></div>
+            </div>
+        </div>
+
+        <!-- TAB 3: COMPARISON STUDIO -->
         <div id="tab-comparison" class="tab-panel">
             <div class="studio-grid">
                 <!-- Sidebar Presets -->
@@ -940,14 +1788,8 @@
                     <button class="preset-btn" onclick="executeComparison('master_vs_wine', this)">
                         🍷 Master vs Wine
                     </button>
-                    <button class="preset-btn" onclick="executeComparison('allbrand_vs_supplier', this)">
-                        🏢 AllBrand vs Supplier
-                    </button>
                     <button class="preset-btn" onclick="executeComparison('beer_vs_rtd', this)">
                         🔄 Beer vs RTD Validation
-                    </button>
-                    <button class="preset-btn" onclick="executeComparison('duplicate_upcs', this)">
-                        📑 Duplicate UPC Audit
                     </button>
                 </div>
 
@@ -1023,45 +1865,7 @@
             </div>
         </div>
 
-        <!-- TAB 3: DBEAVER & MYSQL 3307 -->
-        <div id="tab-dbeaver" class="tab-panel">
-            <div class="pane-card">
-                <div class="card-heading">
-                    🐬 DBeaver MySQL 3307 Direct Integration
-                </div>
-                <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1rem;">
-                    Your MySQL Server 8.0 on port <strong>3307</strong> is connected! DBeaver can directly query the <code>beverage_db</code> database containing all 7 datasets:
-                </p>
-
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;">
-                    <div>
-                        <h4 style="font-size: 0.9rem; color: #ffffff; margin-bottom: 0.5rem;">DBeaver Connection Parameters:</h4>
-                        <div class="code-block">
-Host: localhost (or 127.0.0.1)<br>
-Port: 3307<br>
-Database: beverage_db<br>
-Username: root<br>
-Password: Madhu@123<br>
-JDBC URL: jdbc:mysql://127.0.0.1:3307/beverage_db
-                        </div>
-                    </div>
-                    <div>
-                        <h4 style="font-size: 0.9rem; color: #ffffff; margin-bottom: 0.5rem;">Available Tables in DBeaver:</h4>
-                        <ul style="color: var(--text-secondary); font-size: 0.85rem; padding-left: 1.2rem; line-height: 1.8;">
-                            <li><code>aimasterbranddata</code> — 189,752 Master Records</li>
-                            <li><code>allbrand_data</code> — 189,619 Records</li>
-                            <li><code>beer_data</code> — 50,441 Categorization Records</li>
-                            <li><code>rtd_data</code> — 153,026 Categorization Records</li>
-                            <li><code>spirits_data</code> — 41,554 Categorization Records</li>
-                            <li><code>wine_data</code> — 61,031 Categorization Records</li>
-                            <li><code>supplier_data</code> — 16,784 Supplier Records</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- TAB 4: DATASETS & SCHEMA -->
+        <!-- TAB 5: DATASETS & SCHEMA -->
         <div id="tab-datasets" class="tab-panel">
             <div class="pane-card">
                 <div class="card-heading">
@@ -1144,40 +1948,1151 @@ JDBC URL: jdbc:mysql://127.0.0.1:3307/beverage_db
 
     </div>
 
+    <!-- Persistent floating chat toggle -->
+    <div id="assistant-launcher-home">
+    <button id="dashboard-floating-assistant" class="dashboard-floating-assistant" type="button" onclick="toggleDashboardAssistant(event)" aria-controls="tab-chat" aria-expanded="false" aria-haspopup="dialog" aria-label="Open AI Assistant" title="Open AI Assistant">💬 AI Assistant</button>
+    </div>
+
     <!-- Client Script (100% Offline & Pure JS) -->
     <script>
+        const savedTheme = localStorage.getItem('beviq_theme') || 'dark';
+        document.documentElement.dataset.theme = savedTheme;
+
+        function applyTheme(theme) {
+            const normalized = theme === 'light' ? 'light' : 'dark';
+            document.documentElement.dataset.theme = normalized;
+            localStorage.setItem('beviq_theme', normalized);
+            const toggle = document.getElementById('theme-toggle');
+            if (toggle) {
+                const light = normalized === 'light';
+                toggle.dataset.activeTheme = normalized;
+                toggle.querySelector('.theme-choice--light')?.setAttribute('aria-pressed', String(light));
+                toggle.querySelector('.theme-choice--dark')?.setAttribute('aria-pressed', String(!light));
+            }
+        }
+
+        document.querySelector('.theme-choice--light')?.addEventListener('click', () => applyTheme('light'));
+        document.querySelector('.theme-choice--dark')?.addEventListener('click', () => applyTheme('dark'));
+        applyTheme(savedTheme);
+
         let currentStudioRecords = [];
         let currentStudioPreset = 'all_missing';
         let lastServerSearch = '';
         let studioSearchTimer = null;
         let studioLoaded = false;
+        let dashboardLoaded = false;
+        let supplierDirectoryData = [];
+        let trainedDatasetLoaded = false;
+        let trainedDatasetTimer = null;
+        const trainedDatasetState = { page: 1, records: [], total: 0, analytics: null, filters: {} };
+        let untrainedDatasetLoaded = false;
+        let untrainedDatasetTimer = null;
+        const dashboardVisualizationState = {
+            chartType: 'overview',
+            displayMode: 'count',
+            metrics: null,
+        };
         const chatSessionId = localStorage.getItem('beverage_chat_session') ||
             (window.crypto && typeof window.crypto.randomUUID === 'function'
                 ? window.crypto.randomUUID()
                 : `session-${Date.now()}-${Math.random().toString(16).slice(2)}`);
         localStorage.setItem('beverage_chat_session', chatSessionId);
 
+        const dashboardRequestCache = new Map();
+        function getDashboardData(url) {
+            if (!dashboardRequestCache.has(url)) {
+                const request = fetch(url).then(async response => {
+                    const data = await response.json();
+                    if (!response.ok) throw new Error(data.error || `Request failed: ${url}`);
+                    return data;
+                }).catch(error => {
+                    dashboardRequestCache.delete(url);
+                    throw error;
+                });
+                dashboardRequestCache.set(url, request);
+            }
+            return dashboardRequestCache.get(url);
+        }
+
+        getDashboardData('/api/db-status').then(status => {
+            const badge = document.getElementById('backend-badge');
+            if (badge) badge.textContent = `● ${(status.active_backend || 'sqlite').toUpperCase()} active`;
+        }).catch(() => {});
+
+        async function updateHeaderStatus() {
+            const backendBadge = document.getElementById('header-backend-status');
+            const recordBadge = document.getElementById('header-record-status');
+            const securityBadge = document.getElementById('header-security-status');
+            try {
+                const [status, overview] = await Promise.all([
+                    getDashboardData('/api/db-status'),
+                    getDashboardData('/api/dashboard/overview')
+                ]);
+                const active = (status.active_backend || overview.backend || 'sqlite').toUpperCase();
+                const connected = active === 'MYSQL' ? status.mysql_connected : status.sqlite_connected;
+                if (backendBadge) backendBadge.textContent = `${active}: ${connected ? 'Connected' : 'Unavailable'} (${status.database_name || 'unknown'})`;
+                if (recordBadge) recordBadge.textContent = `${Number((overview.kpis || {}).total_records || 0).toLocaleString()} records ready`;
+                if (securityBadge) securityBadge.textContent = active === 'SQLITE' ? 'Local SQLite • Credentials server-side' : 'MySQL connection • Credentials server-side';
+            } catch (error) {
+                if (backendBadge) backendBadge.textContent = 'Database status unavailable';
+                if (recordBadge) recordBadge.textContent = 'Live metrics unavailable';
+            }
+        }
+
+        updateHeaderStatus();
+        getDashboardData('/api/dashboard/metrics').catch(error => {
+            console.warn('Dashboard metrics prefetch failed:', error);
+        });
+
+        const datasetNav = document.getElementById('dataset-nav');
+        const datasetToggle = document.getElementById('dataset-nav-toggle');
+        const datasetDropdown = document.getElementById('dataset-dropdown');
+
+        function positionDatasetDropdown() {
+            const rect = datasetToggle.getBoundingClientRect();
+            datasetDropdown.style.top = `${rect.bottom}px`;
+            datasetDropdown.style.left = `${Math.max(8, Math.min(rect.left, window.innerWidth - 220))}px`;
+        }
+
+        datasetNav.addEventListener('mouseenter', () => {
+            if (window.matchMedia('(hover: hover)').matches && !datasetDropdown.matches(':popover-open')) {
+                datasetDropdown.showPopover();
+            }
+        });
+        datasetNav.addEventListener('mouseleave', () => {
+            if (!datasetDropdown.contains(document.activeElement)) datasetDropdown.hidePopover();
+        });
+        datasetNav.addEventListener('focusout', event => {
+            if (!datasetNav.contains(event.relatedTarget)) datasetDropdown.hidePopover();
+        });
+        datasetDropdown.addEventListener('beforetoggle', event => {
+            datasetToggle.setAttribute('aria-expanded', String(event.newState === 'open'));
+            if (event.newState === 'open') positionDatasetDropdown();
+        });
+        datasetToggle.addEventListener('keydown', event => {
+            if (event.key === 'ArrowDown') {
+                event.preventDefault();
+                if (!datasetDropdown.matches(':popover-open')) datasetDropdown.showPopover();
+                datasetDropdown.querySelector('button').focus();
+            }
+        });
+        window.addEventListener('resize', () => datasetDropdown.hidePopover());
+        document.querySelector('.nav-tabs-wrapper').addEventListener('scroll', () => datasetDropdown.hidePopover());
+
         function switchTab(tabId, btn) {
+            if (tabId === 'chat') {
+                openAssistantPage();
+                return;
+            }
+            if (document.getElementById('tab-chat').classList.contains('assistant-page')) closeDashboardAssistant();
             document.querySelectorAll('.nav-tab-btn').forEach(b => b.classList.remove('active'));
             document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
 
             btn.classList.add('active');
+            if (tabId === 'trained-dataset' || tabId === 'untrained-dataset') {
+                datasetToggle.classList.add('active');
+            }
+            if (datasetDropdown.matches(':popover-open')) {
+                if (datasetDropdown.contains(document.activeElement)) datasetToggle.focus();
+                datasetDropdown.hidePopover();
+            }
             document.getElementById('tab-' + tabId).classList.add('active');
+            if (tabId === 'dashboard' && !dashboardLoaded) {
+                dashboardLoaded = true;
+                loadDashboard();
+            }
+            if (tabId === 'supplier-overview') {
+                loadSupplierDirectory();
+            }
             if (tabId === 'comparison' && !studioLoaded) {
                 studioLoaded = true;
                 executeComparison('all_missing');
             }
+            if (tabId === 'trained-dataset' && !trainedDatasetLoaded) {
+                trainedDatasetLoaded = true;
+                loadTrainedDataset();
+            }
+            if (tabId === 'untrained-dataset' && !untrainedDatasetLoaded) {
+                untrainedDatasetLoaded = true;
+                loadUntrainedDataset();
+            }
         }
 
         function triggerQuickPrompt(query) {
-            switchTab('chat', document.querySelectorAll('.nav-tab-btn')[0]);
+            openDashboardAssistant();
             document.getElementById('chat-input-box').value = query;
             submitUserChat(new Event('submit'));
         }
 
+        function getDashboardVisualizationSeries(metrics) {
+            const categories = metrics?.categories || {};
+            const master = metrics?.master_brand || {};
+            return [
+                { label: 'Master Brand', value: Number(master.distinct_upcs || 0), color: '#38bdf8' },
+                { label: 'Beer', value: Number((categories.beer || {}).distinct_upcs || 0), color: '#f59e0b' },
+                { label: 'RTD', value: Number((categories.rtd || {}).distinct_upcs || 0), color: '#a78bfa' },
+                { label: 'Wine', value: Number((categories.wine || {}).distinct_upcs || 0), color: '#f472b6' },
+                { label: 'Spirits', value: Number((categories.spirits || {}).distinct_upcs || 0), color: '#14b8a6' },
+            ];
+        }
+
+        function formatDashboardVisualizationValue(value, series) {
+            if (dashboardVisualizationState.displayMode === 'count') return Number(value || 0).toLocaleString();
+            const total = series.reduce((sum, item) => sum + item.value, 0);
+            return total ? `${((Number(value || 0) / total) * 100).toFixed(1)}%` : '0.0%';
+        }
+
+        function setDashboardChart(chartType, button) {
+            dashboardVisualizationState.chartType = chartType;
+            document.querySelectorAll('#dashboard-chart-controls .dashboard-chart-btn').forEach(item => item.classList.remove('active'));
+            button?.classList.add('active');
+            renderDashboardVisualization();
+        }
+
+        function setDashboardDisplayMode(displayMode, button) {
+            dashboardVisualizationState.displayMode = displayMode;
+            document.querySelectorAll('.dashboard-display-btn').forEach(item => item.classList.remove('active'));
+            button?.classList.add('active');
+            renderDashboardVisualization();
+        }
+
+        function renderDashboardOverview(series) {
+            const total = series.reduce((sum, item) => sum + item.value, 0);
+            return `<div class="dashboard-heatmap">${series.map(item => {
+                const intensity = total ? 0.3 + (item.value / total) * 0.7 : 0.3;
+                return `<div class="dashboard-heatmap-cell" style="background:rgba(37,99,235,${intensity.toFixed(2)})"><span>${item.label}</span><strong>${formatDashboardVisualizationValue(item.value, series)}</strong></div>`;
+            }).join('')}</div>`;
+        }
+
+        function renderDashboardPie(series) {
+            const total = series.reduce((sum, item) => sum + item.value, 0);
+            const radius = 72;
+            const circumference = 2 * Math.PI * radius;
+            let offset = 0;
+            const rings = total ? series.map(item => {
+                const length = (item.value / total) * circumference;
+                const ring = `<circle cx="120" cy="120" r="${radius}" fill="none" stroke="${item.color}" stroke-width="42" stroke-dasharray="${length} ${circumference - length}" stroke-dashoffset="${-offset}" transform="rotate(-90 120 120)"></circle>`;
+                offset += length;
+                return ring;
+            }).join('') : `<circle cx="120" cy="120" r="${radius}" fill="none" stroke="var(--border-color)" stroke-width="42"></circle>`;
+            return `<svg viewBox="0 0 440 250" role="img" aria-label="Dashboard pie chart"><g>${rings}</g>${series.map((item, index) => `<g transform="translate(245 ${34 + index * 39})"><rect width="14" height="14" rx="3" fill="${item.color}"></rect><text x="23" y="12" fill="var(--text-main)" font-size="13">${item.label}</text><text x="23" y="29" fill="var(--text-muted)" font-size="12">${formatDashboardVisualizationValue(item.value, series)}</text></g>`).join('')}</svg>`;
+        }
+
+        function renderDashboardBar(series) {
+            const max = Math.max(...series.map(item => item.value), 1);
+            return `<svg viewBox="0 0 620 290" role="img" aria-label="Dashboard bar graph"><line x1="34" y1="224" x2="600" y2="224" stroke="var(--border-color)"></line>${series.map((item, index) => {
+                const height = (item.value / max) * 170;
+                const x = 54 + index * 108;
+                return `<g><rect x="${x}" y="${224 - height}" width="58" height="${height}" rx="8" fill="${item.color}"></rect><text x="${x + 29}" y="${244}" text-anchor="middle" fill="var(--text-main)" font-size="12">${item.label}</text><text x="${x + 29}" y="${Math.max(16, 214 - height)}" text-anchor="middle" fill="var(--text-main)" font-size="12">${formatDashboardVisualizationValue(item.value, series)}</text></g>`;
+            }).join('')}</svg>`;
+        }
+
+        function renderDashboardHeatmap(series) {
+            const max = Math.max(...series.map(item => item.value), 1);
+            return `<div class="dashboard-heatmap">${series.map(item => {
+                const intensity = 0.25 + (item.value / max) * 0.75;
+                return `<div class="dashboard-heatmap-cell" style="background:rgba(14,165,233,${intensity.toFixed(2)})"><span>${item.label}</span><strong>${formatDashboardVisualizationValue(item.value, series)}</strong><small>${dashboardVisualizationState.displayMode === 'count' ? 'distinct UPCs' : 'share of UPCs'}</small></div>`;
+            }).join('')}</div>`;
+        }
+
+        function renderDashboardVisualization(metrics = dashboardVisualizationState.metrics) {
+            const target = document.getElementById('dashboard-visualization');
+            if (!target) return;
+            if (metrics) dashboardVisualizationState.metrics = metrics;
+            if (!dashboardVisualizationState.metrics) {
+                target.innerHTML = '<div class="dashboard-visualization-empty">Open Dashboard to load chart data.</div>';
+                return;
+            }
+            const series = getDashboardVisualizationSeries(dashboardVisualizationState.metrics);
+            const renderer = {
+                overview: renderDashboardOverview,
+                pie: renderDashboardPie,
+                bar: renderDashboardBar,
+                heatmap: renderDashboardHeatmap,
+            }[dashboardVisualizationState.chartType] || renderDashboardOverview;
+            target.innerHTML = renderer(series);
+        }
+
+        // Floating assistant controls
+        let assistantReturnFocus = null;
+        let assistantIgnoreClickUntil = 0;
+
+        function setAssistantOpen(open) {
+            const panel = document.getElementById('tab-chat');
+            const launcher = document.getElementById('dashboard-floating-assistant');
+            const navToggle = document.getElementById('assistant-nav-toggle');
+            const wasOpen = !panel.hidden;
+            const hadPanelFocus = panel.contains(document.activeElement);
+            if (open && !wasOpen) assistantReturnFocus = document.activeElement;
+            panel.hidden = !open;
+            launcher.setAttribute('aria-expanded', String(open));
+            launcher.setAttribute('aria-label', open ? 'Close AI Assistant' : 'Open AI Assistant');
+            launcher.title = open ? 'Close AI Assistant' : 'Open AI Assistant';
+            launcher.textContent = open ? '✕ Close Assistant' : '💬 AI Assistant';
+            navToggle.setAttribute('aria-expanded', String(open));
+            updateAssistantMode();
+            positionAssistantPanel();
+            dockAssistantLauncher();
+
+            if (open && !wasOpen) {
+                const input = document.getElementById('chat-input-box');
+                const target = input.disabled
+                    ? document.getElementById('assistant-panel-title') : input;
+                target.focus({ preventScroll: true });
+            } else if (!open && wasOpen && hadPanelFocus) {
+                const target = assistantReturnFocus?.isConnected && !panel.contains(assistantReturnFocus)
+                    ? assistantReturnFocus : launcher;
+                target.focus({ preventScroll: true });
+            }
+        }
+
+        function dockAssistantLauncher() {
+            const panel = document.getElementById('tab-chat');
+            const launcher = document.getElementById('dashboard-floating-assistant');
+            const docked = !panel.hidden && !panel.classList.contains('assistant-page');
+            const parent = document.getElementById(docked ? 'assistant-panel-header' : 'assistant-launcher-home');
+            launcher.classList.toggle('assistant-launcher-docked', docked);
+            if (launcher.parentElement !== parent) parent.appendChild(launcher);
+        }
+
+        function updateAssistantMode() {
+            const panel = document.getElementById('tab-chat');
+            const page = panel.classList.contains('assistant-page');
+            document.getElementById('assistant-panel-resize').hidden = page;
+            panel.setAttribute('role', page ? 'region' : 'dialog');
+        }
+
+        function openAssistantPage() {
+            const panel = document.getElementById('tab-chat');
+            panel.classList.add('assistant-page');
+            updateAssistantMode();
+            setAssistantOpen(true);
+        }
+
+        function openDashboardAssistant() {
+            setAssistantOpen(true);
+        }
+
+        function toggleDashboardAssistant(event) {
+            if (event?.detail > 0 && Date.now() < assistantIgnoreClickUntil) {
+                assistantIgnoreClickUntil = 0;
+                event.preventDefault();
+                return;
+            }
+            assistantIgnoreClickUntil = 0;
+            const panel = document.getElementById('tab-chat');
+            if (panel.classList.contains('assistant-page')) {
+                panel.classList.remove('assistant-page');
+                setAssistantOpen(true);
+            } else {
+                setAssistantOpen(panel.hidden);
+            }
+        }
+
+        function closeDashboardAssistant() {
+            setAssistantOpen(false);
+            document.getElementById('tab-chat').classList.remove('assistant-page');
+            updateAssistantMode();
+        }
+
+        document.addEventListener('keydown', event => {
+            if (event.key !== 'Escape' || event.defaultPrevented
+                || document.getElementById('tab-chat').hidden
+                || document.getElementById('tab-chat').classList.contains('assistant-page')
+                || document.getElementById('master-brand-image-lightbox')?.hidden === false) return;
+            event.preventDefault();
+            closeDashboardAssistant();
+        });
+        // End floating assistant controls
+
+        // Draggable assistant launcher
+        let assistantPosition = null;
+        let assistantDrag = null;
+        const assistantPositionKey = 'beviq_assistant_position';
+        const assistantLauncher = document.getElementById('dashboard-floating-assistant');
+
+        function placeAssistantLauncher(x, y) {
+            const rect = assistantLauncher.getBoundingClientRect();
+            const margin = 12;
+            const maxX = Math.max(margin, window.innerWidth - rect.width - margin);
+            const maxY = Math.max(margin, window.innerHeight - rect.height - margin);
+            assistantPosition = {
+                x: Math.min(maxX, Math.max(margin, x)),
+                y: Math.min(maxY, Math.max(margin, y)),
+            };
+            assistantLauncher.style.left = assistantPosition.x + 'px';
+            assistantLauncher.style.top = assistantPosition.y + 'px';
+            assistantLauncher.style.right = 'auto';
+            assistantLauncher.style.bottom = 'auto';
+        }
+
+        function positionAssistantPanel() {
+            if (assistantPosition) placeAssistantLauncher(assistantPosition.x, assistantPosition.y);
+            const panel = document.getElementById('tab-chat');
+            if (panel.hidden) return;
+            if (panel.classList.contains('assistant-page')) {
+                ['width', 'height', 'left', 'top', 'right', 'bottom'].forEach(key => { panel.style[key] = ''; });
+                panel.classList.remove('assistant-panel-compact');
+                return;
+            }
+            if (assistantWindowBounds) {
+                applyAssistantWindowBounds(assistantWindowBounds);
+                return;
+            }
+            const button = assistantLauncher.getBoundingClientRect();
+            const width = Math.min(560, window.innerWidth - 24);
+            const height = Math.min(640, window.innerHeight - 24);
+            applyAssistantWindowBounds({
+                left: button.left < window.innerWidth / 2 ? button.left : button.right - width,
+                top: button.top - 12 - height,
+                width, height,
+            });
+        }
+
+        function saveAssistantPosition() {
+            if (!assistantPosition) return;
+            try {
+                localStorage.setItem(assistantPositionKey, JSON.stringify({
+                    x: Math.round(assistantPosition.x), y: Math.round(assistantPosition.y),
+                }));
+            } catch { /* Position still works when browser storage is unavailable. */ }
+        }
+
+        assistantLauncher.addEventListener('pointerdown', event => {
+            if (assistantLauncher.classList.contains('assistant-launcher-docked')) return;
+            if (event.button !== 0 || event.isPrimary === false || assistantDrag) return;
+            const rect = assistantLauncher.getBoundingClientRect();
+            assistantDrag = {
+                id: event.pointerId, startX: event.clientX, startY: event.clientY,
+                left: rect.left, top: rect.top, moved: false,
+                previous: assistantPosition ? { ...assistantPosition } : null,
+            };
+            assistantLauncher.setPointerCapture(event.pointerId);
+        });
+
+        assistantLauncher.addEventListener('pointermove', event => {
+            if (!assistantDrag || event.pointerId !== assistantDrag.id) return;
+            const dx = event.clientX - assistantDrag.startX;
+            const dy = event.clientY - assistantDrag.startY;
+            if (!assistantDrag.moved && Math.hypot(dx, dy) <= 6) return;
+            assistantDrag.moved = true;
+            event.preventDefault();
+            placeAssistantLauncher(assistantDrag.left + dx, assistantDrag.top + dy);
+            positionAssistantPanel();
+        });
+
+        function finishAssistantDrag(event, cancelled = false) {
+            if (!assistantDrag || event.pointerId !== assistantDrag.id) return;
+            const drag = assistantDrag;
+            assistantDrag = null;
+            if (assistantLauncher.hasPointerCapture(event.pointerId)) {
+                assistantLauncher.releasePointerCapture(event.pointerId);
+            }
+            if (!drag.moved) return;
+            if (cancelled) {
+                assistantPosition = drag.previous;
+                if (!assistantPosition) {
+                    assistantLauncher.style.left = '';
+                    assistantLauncher.style.top = '';
+                    assistantLauncher.style.right = '';
+                    assistantLauncher.style.bottom = '';
+                }
+                positionAssistantPanel();
+                return;
+            }
+            // Pointer release generates a click; it must not toggle chat.
+            assistantIgnoreClickUntil = Date.now() + 400;
+            saveAssistantPosition();
+        }
+
+        assistantLauncher.addEventListener('pointerup', event => finishAssistantDrag(event));
+        assistantLauncher.addEventListener('pointercancel', event => finishAssistantDrag(event, true));
+        assistantLauncher.addEventListener('lostpointercapture', event => finishAssistantDrag(event, true));
+        window.addEventListener('resize', positionAssistantPanel);
+
+        try {
+            const saved = JSON.parse(localStorage.getItem(assistantPositionKey) || 'null');
+            if (saved && Number.isFinite(saved.x) && Number.isFinite(saved.y)) {
+                placeAssistantLauncher(saved.x, saved.y);
+            }
+        } catch { /* Ignore old or invalid preferences. */ }
+        // End draggable assistant launcher
+
+        // Movable assistant window
+        let assistantWindowBounds = null;
+        let assistantWindowGesture = null;
+        const assistantWindowHeader = document.getElementById('assistant-panel-header');
+        const assistantResizeHandle = document.getElementById('assistant-panel-resize');
+
+        function isAssistantWindowMovable() {
+            const panel = document.getElementById('tab-chat');
+            return !panel.hidden && !panel.classList.contains('assistant-page');
+        }
+
+        function applyAssistantWindowBounds(bounds) {
+            const panel = document.getElementById('tab-chat');
+            const maxWidth = Math.max(1, window.innerWidth - 24);
+            const maxHeight = Math.max(1, window.innerHeight - 24);
+            const width = Math.min(maxWidth, Math.max(Math.min(320, maxWidth), bounds.width));
+            const height = Math.min(maxHeight, Math.max(Math.min(360, maxHeight), bounds.height));
+            const left = Math.max(12, Math.min(bounds.left, window.innerWidth - width - 12));
+            const top = Math.max(12, Math.min(bounds.top, window.innerHeight - height - 12));
+            assistantWindowBounds = {left, top, width, height};
+            Object.entries(assistantWindowBounds).forEach(([key, value]) => { panel.style[key] = value + 'px'; });
+            panel.style.right = 'auto';
+            panel.style.bottom = 'auto';
+            panel.classList.toggle('assistant-panel-compact', height < 480);
+        }
+
+        function resizeAssistantWindowBounds(original, dx, dy, edge) {
+            const bounds = {...original};
+            const right = original.left + original.width, bottom = original.top + original.height;
+            const minWidth = Math.min(320, window.innerWidth - 24);
+            const minHeight = Math.min(360, window.innerHeight - 24);
+            if (edge.includes('w')) {
+                bounds.left = Math.max(12, Math.min(original.left + dx, right - minWidth));
+                bounds.width = right - bounds.left;
+            } else if (edge.includes('e')) {
+                bounds.width = Math.max(minWidth, Math.min(original.width + dx, window.innerWidth - original.left - 12));
+            }
+            if (edge.includes('n')) {
+                bounds.top = Math.max(12, Math.min(original.top + dy, bottom - minHeight));
+                bounds.height = bottom - bounds.top;
+            } else if (edge.includes('s')) {
+                bounds.height = Math.max(minHeight, Math.min(original.height + dy, window.innerHeight - original.top - 12));
+            }
+            return bounds;
+        }
+
+        function beginAssistantWindowGesture(event, mode, handle) {
+            if (!isAssistantWindowMovable() || assistantWindowGesture || event.button !== 0
+                || event.isPrimary === false || (mode === 'move' && event.target?.closest?.('button'))) return;
+            const rect = document.getElementById('tab-chat').getBoundingClientRect();
+            assistantWindowGesture = {
+                id: event.pointerId, mode, handle, x: event.clientX, y: event.clientY,
+                bounds: {left: rect.left, top: rect.top, width: rect.width, height: rect.height},
+            };
+            handle.setPointerCapture(event.pointerId);
+            event.preventDefault();
+        }
+
+        function moveAssistantWindowGesture(event) {
+            const gesture = assistantWindowGesture;
+            if (!gesture || gesture.id !== event.pointerId || !isAssistantWindowMovable()) return;
+            event.preventDefault();
+            const dx = event.clientX - gesture.x, dy = event.clientY - gesture.y;
+            let bounds = {...gesture.bounds};
+            if (gesture.mode === 'move') {
+                bounds.left += dx;
+                bounds.top += dy;
+            } else {
+                const edge = gesture.mode === 'resize' ? 'se' : gesture.mode.slice(7);
+                bounds = resizeAssistantWindowBounds(gesture.bounds, dx, dy, edge);
+            }
+            applyAssistantWindowBounds(bounds);
+        }
+
+        function finishAssistantWindowGesture(event, cancelled = false) {
+            const gesture = assistantWindowGesture;
+            if (!gesture || gesture.id !== event.pointerId) return;
+            assistantWindowGesture = null;
+            if (cancelled && isAssistantWindowMovable()) applyAssistantWindowBounds(gesture.bounds);
+            if (gesture.handle.hasPointerCapture(event.pointerId)) gesture.handle.releasePointerCapture(event.pointerId);
+        }
+
+        function adjustAssistantWindowWithKeyboard(event, mode) {
+            if (!isAssistantWindowMovable() || event.target?.closest?.('button') && mode === 'move') return;
+            const direction = {ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1]}[event.key];
+            if (!direction) return;
+            event.preventDefault();
+            const step = event.shiftKey ? 40 : 10;
+            const bounds = {...assistantWindowBounds};
+            if (mode === 'move') {
+                bounds.left += direction[0] * step;
+                bounds.top += direction[1] * step;
+            } else {
+                bounds.width = Math.min(bounds.width + direction[0] * step, window.innerWidth - bounds.left - 12);
+                bounds.height = Math.min(bounds.height + direction[1] * step, window.innerHeight - bounds.top - 12);
+            }
+            applyAssistantWindowBounds(bounds);
+        }
+
+        const assistantWindowHandles = [[assistantWindowHeader, 'move'], [assistantResizeHandle, 'resize']];
+        ['n', 's', 'e', 'w', 'nw', 'ne', 'sw'].forEach(edge => {
+            assistantWindowHandles.push([document.getElementById('assistant-resize-' + edge), 'resize-' + edge]);
+        });
+        assistantWindowHandles.forEach(([handle, mode]) => {
+            handle.addEventListener('pointerdown', event => beginAssistantWindowGesture(event, mode, handle));
+            handle.addEventListener('pointermove', moveAssistantWindowGesture);
+            handle.addEventListener('pointerup', event => finishAssistantWindowGesture(event));
+            handle.addEventListener('pointercancel', event => finishAssistantWindowGesture(event, true));
+            handle.addEventListener('lostpointercapture', event => finishAssistantWindowGesture(event, true));
+            handle.addEventListener('keydown', event => adjustAssistantWindowWithKeyboard(event, mode));
+        });
+        // End movable assistant window
+
+
+
         function showSelectedDocument(input) {
             const label = document.getElementById('selected-document');
             label.textContent = input.files.length ? `Selected: ${input.files[0].name}` : '';
+            previewSelectedDocument(input);
+        }
+
+        function previewSelectedDocument(input) {
+            const preview = document.getElementById('upload-preview');
+            preview.innerHTML = '';
+            preview.style.display = 'none';
+            if (!input.files.length) return;
+            const file = input.files[0];
+            const wrapper = document.createElement('span');
+            wrapper.textContent = `${file.type || 'File'} · ${(file.size / 1024).toFixed(1)} KB`;
+            if (file.type.startsWith('image/')) {
+                const image = document.createElement('img');
+                image.alt = file.name;
+                image.src = URL.createObjectURL(file);
+                preview.appendChild(image);
+            }
+            preview.appendChild(wrapper);
+            preview.style.display = 'flex';
+        }
+
+        function renderSupplierCards(suppliers = supplierDirectoryData) {
+            const target = document.getElementById('dashboard-supplier-directory');
+            if (!target) return;
+            const visibleTotal = document.getElementById('dashboard-supplier-visible-total');
+            if (visibleTotal) visibleTotal.textContent = `${suppliers.length.toLocaleString()} supplier(s) shown`;
+            if (!suppliers.length) {
+                target.innerHTML = '<div class="dashboard-subtle">No suppliers match this search.</div>';
+                return;
+            }
+            const autoOpen = suppliers.length === 1;
+            target.innerHTML = suppliers.map((supplier, index) => {
+                const sourceIndex = supplierDirectoryData.indexOf(supplier);
+                const brands = (supplier.brand_details || []).map((detail, brandIndex) => `
+                    <button class="supplier-brand-button" type="button" onclick="loadSupplierBrandDetails(${sourceIndex}, ${brandIndex})"><strong>${escapeHtml(detail.brand_name || 'NA')}<small>${escapeHtml((detail.categories || []).join(', ') || 'Category unavailable')}</small></strong><span>${Number(detail.record_count || 0).toLocaleString()} record(s)</span></button>`).join('') || '<small>No brand names available</small>';
+                const records = (supplier.records || []).slice(0, 25).map(record => `
+                    <div class="supplier-record"><strong>${escapeHtml(record.BrandName || 'NA')}</strong> · ${escapeHtml(record.ProductName || 'Product unavailable')}<br><small>UPC: ${escapeHtml(record.clean_upc || 'NA')}</small></div>`).join('') || '<small>No related product details available</small>';
+                const categories = (supplier.categories || []).join(', ') || 'N/A';
+                const categoryBadges = (supplier.categories || []).map(category => `<span class="supplier-category-badge">${escapeHtml(category)}</span>`).join('') || '<span class="supplier-category-badge">Category unavailable</span>';
+                return `<article class="supplier-card${autoOpen ? ' is-open' : ''}" data-supplier-name="${escapeHtml(supplier.supplier || 'NA').toLowerCase()}" id="supplier-card-${index}">
+                    <button class="supplier-card__toggle" type="button" aria-expanded="${autoOpen}" aria-controls="supplier-body-${index}" onclick="toggleSupplierCard(${index})">
+                        <span class="supplier-card__header-content"><span class="supplier-card__name">${escapeHtml(supplier.supplier || 'NA')}</span><span class="supplier-card__meta">Supplier code: ${escapeHtml(supplier.supplier_code || 'N/A')}</span><span class="supplier-card__badges"><span class="supplier-card__brand-count">${Number(supplier.brand_count || 0).toLocaleString()} unique brands</span><span class="supplier-card__record-count">${Number(supplier.record_count || 0).toLocaleString()} records</span></span></span><span class="supplier-card__chevron">⌄</span>
+                    </button>
+                    <div class="supplier-card__body" id="supplier-body-${index}">
+                        <div class="supplier-card__stats"><div class="supplier-card__stat"><strong>${Number(supplier.record_count || 0).toLocaleString()}</strong><span>Master records</span></div><div class="supplier-card__stat"><strong>${Number(supplier.brand_count || 0).toLocaleString()}</strong><span>Unique brands</span></div><div class="supplier-card__stat"><strong>${escapeHtml(categories)}</strong><span>Categories</span></div></div>
+                        <div class="supplier-card__section"><div class="supplier-card__section-title"><span>Brand portfolio</span><span>${Number(supplier.brand_count || 0).toLocaleString()} brands · Records by brand</span></div><div class="supplier-card__category-list">${categoryBadges}</div><div class="supplier-brand-detail-list">${brands}</div></div>
+                        <div class="supplier-brand-panel" id="supplier-brand-panel-${sourceIndex}" hidden></div>
+                        <div class="supplier-card__section"><div class="supplier-card__section-title"><span>Related products</span><span>Showing up to 25 records</span></div><div class="supplier-record-list">${records}</div></div>
+                    </div>
+                </article>`;
+            }).join('');
+        }
+
+        function toggleSupplierCard(index) {
+            const card = document.getElementById(`supplier-card-${index}`);
+            const button = card?.querySelector('.supplier-card__toggle');
+            if (!card || !button) return;
+            const open = card.classList.toggle('is-open');
+            button.setAttribute('aria-expanded', String(open));
+        }
+
+        function filterSupplierCards(query) {
+            const term = String(query || '').trim().toLowerCase();
+            filterSupplierDirectory(term);
+        }
+
+        function filterSupplierDirectory(searchTerm = null) {
+            const term = searchTerm === null
+                ? String(document.getElementById('dashboard-supplier-search')?.value || '').trim().toLowerCase()
+                : String(searchTerm || '').trim().toLowerCase();
+            const category = String(document.getElementById('dashboard-supplier-category-filter')?.value || '').toLowerCase();
+            const supplierFilter = String(document.getElementById('dashboard-supplier-filter')?.value || '').toLowerCase();
+            const status = String(document.getElementById('dashboard-supplier-status-filter')?.value || '').toLowerCase();
+            const sort = document.getElementById('dashboard-supplier-sort')?.value || '';
+            const filtered = supplierDirectoryData.filter(item => {
+                const brandDetails = item.brand_details || [];
+                const brandNames = (item.brand_names || []).map(name => String(name).toLowerCase());
+                const searchable = [item.supplier, item.supplier_code, ...brandNames, ...brandDetails.flatMap(detail => [detail.brand_name, detail.brand_code, detail.brand_id])]
+                    .filter(Boolean).join(' ').toLowerCase();
+                const matchesBrand = brandNames.some(name => name.includes(term));
+                const matchesCategory = !category || (item.categories || []).some(value => String(value).toLowerCase().includes(category));
+                const matchesSupplier = !supplierFilter || String(item.supplier || '').toLowerCase() === supplierFilter;
+                const matchesStatus = !status || (item.statuses || []).some(value => String(value).toLowerCase() === status);
+                return (!term || searchable.includes(term) || matchesBrand) && matchesCategory && matchesSupplier && matchesStatus;
+            });
+            filtered.sort((a, b) => sort === 'brand_asc'
+                ? Number(a.brand_count || 0) - Number(b.brand_count || 0)
+                : sort === 'brand_desc'
+                    ? Number(b.brand_count || 0) - Number(a.brand_count || 0)
+                    : String(a.supplier || '').localeCompare(String(b.supplier || '')));
+            renderSupplierCards(filtered);
+        }
+
+        function populateSupplierFilters() {
+            const supplierFilter = document.getElementById('dashboard-supplier-filter');
+            const statusFilter = document.getElementById('dashboard-supplier-status-filter');
+            if (supplierFilter) {
+                supplierFilter.innerHTML = '<option value="">All suppliers</option>' + supplierDirectoryData.map(item => `<option value="${escapeHtml(String(item.supplier || '').toLowerCase())}">${escapeHtml(item.supplier || 'NA')}</option>`).join('');
+                supplierFilter.onchange = () => filterSupplierDirectory();
+            }
+            if (statusFilter) {
+                const statuses = [...new Set(supplierDirectoryData.flatMap(item => item.statuses || []))].sort();
+                statusFilter.innerHTML = '<option value="">All statuses</option>' + statuses.map(value => `<option value="${escapeHtml(String(value).toLowerCase())}">${escapeHtml(value)}</option>`).join('');
+            }
+        }
+
+        async function loadSupplierBrandDetails(supplierIndex, brandIndex) {
+            const supplier = supplierDirectoryData[supplierIndex];
+            const brand = supplier?.brand_details?.[brandIndex];
+            const panel = document.getElementById(`supplier-brand-panel-${supplierIndex}`);
+            if (!supplier || !brand || !panel) return;
+            panel.hidden = false;
+            panel.innerHTML = '<div class="dashboard-subtle">Loading complete brand details...</div>';
+            try {
+                const params = new URLSearchParams({ supplier: supplier.supplier || 'NA', brand: brand.brand_name || 'NA' });
+                const data = await getDashboardData(`/api/dashboard/supplier-brand-details?${params.toString()}`);
+                const records = data.records || [];
+                panel.innerHTML = `<div class="supplier-brand-panel__header"><div><small>Brand details</small><strong>${escapeHtml(brand.brand_name || 'NA')}</strong></div><span>${records.length.toLocaleString()} detailed record(s)</span></div>` + (records.length ? records.map(record => `
+                    <div class="supplier-brand-panel__grid" style="margin-top:.55rem;">
+                        ${[['Brand Name', record.brand_name], ['Brand ID / Class ID', `${record.brand_id || 'N/A'} / ${record.class_id || 'N/A'}`], ['Brand Code', record.brand_code], ['Category', record.category], ['Category Image', record.category_image_url || 'N/A'], ['Supplier Name', record.supplier_name], ['Supplier Code', record.supplier_code], ['SKU', record.sku], ['Image Count', record.image_count], ['Model Name', record.model_name], ['Model ID', record.model_id], ['Status', record.status]].map(([label, value]) => `<div class="supplier-brand-panel__item"><small>${label}</small><strong>${escapeHtml(value ?? 'N/A')}</strong></div>`).join('')}
+                    </div><div class="supplier-brand-images">${(record.available_images || []).map(url => `<a href="${escapeHtml(url)}" target="_blank" rel="noopener"><img src="${escapeHtml(url)}" alt="${escapeHtml(record.brand_name || 'Brand')} product image" onerror="this.remove()"></a>`).join('') || '<span class="dashboard-subtle">No product images available</span>'}</div>`).join('') : '<div class="dashboard-subtle" style="margin-top:.55rem;">No detailed records found.</div>');
+            } catch (err) {
+                panel.innerHTML = `<div class="dashboard-subtle">${escapeHtml(err.message)}</div>`;
+            }
+        }
+
+        function renderSupplierClusteredChart(suppliers = supplierDirectoryData) {
+            const target = document.getElementById('supplier-overview-clustered-chart-body');
+            if (!target) return;
+            const topSuppliers = [...suppliers].sort((a, b) => Number(b.record_count || 0) - Number(a.record_count || 0)).slice(0, 15);
+            if (!topSuppliers.length) {
+                target.textContent = 'No supplier data available for chart.';
+                return;
+            }
+            const maxValue = Math.max(...topSuppliers.map(item => Math.max(Number(item.record_count || 0), Number(item.brand_count || 0))), 1);
+            target.innerHTML = topSuppliers.map(item => {
+                const brandCount = Number(item.brand_count || 0);
+                const recordCount = Number(item.record_count || 0);
+                return `<div class="supplier-chart-row"><strong title="${escapeHtml(item.supplier || 'NA')}">${escapeHtml(item.supplier || 'NA')}</strong><div class="supplier-chart-bars"><div class="supplier-chart-bar" style="--chart-color:var(--accent-blue);width:${Math.max(2, brandCount / maxValue * 100)}%" title="Unique Brands: ${brandCount.toLocaleString()}"></div><div class="supplier-chart-bar" style="--chart-color:var(--accent-purple);width:${Math.max(2, recordCount / maxValue * 100)}%" title="Master Brand Records: ${recordCount.toLocaleString()}"></div></div><span class="supplier-chart-values">${brandCount.toLocaleString()} / ${recordCount.toLocaleString()}</span></div>`;
+            }).join('');
+        }
+
+        async function loadSupplierDirectory() {
+            const target = document.getElementById('dashboard-supplier-directory');
+            try {
+                const data = await getDashboardData('/api/dashboard/suppliers?limit=500&include_records=0');
+                supplierDirectoryData = data.suppliers || [];
+                const totalSuppliers = Number(data.total_suppliers || 0).toLocaleString();
+                document.getElementById('dashboard-supplier-total').textContent = totalSuppliers;
+                document.getElementById('supplier-overview-total-suppliers').textContent = totalSuppliers;
+                populateSupplierFilters();
+                renderSupplierClusteredChart(supplierDirectoryData);
+                renderSupplierCards(supplierDirectoryData);
+            } catch (err) {
+                if (target) target.innerHTML = `<div class="dashboard-subtle">${escapeHtml(err.message)}</div>`;
+            }
+        }
+
+        async function loadDashboard() {
+            const error = document.getElementById('dashboard-error');
+            try {
+                const [overview, status] = await Promise.all([
+                    getDashboardData('/api/dashboard/overview'),
+                    getDashboardData('/api/db-status')
+                ]);
+                document.getElementById('dashboard-total-records').textContent = Number(overview.kpis.total_records || 0).toLocaleString();
+                document.getElementById('dashboard-total-upcs').textContent = Number(overview.kpis.total_unique_upcs || 0).toLocaleString();
+                document.getElementById('dashboard-dataset-count').textContent = overview.kpis.dataset_count || 0;
+                const primaryBackend = (status.primary_backend || status.active_backend || 'sqlite').toUpperCase();
+                const activeBackend = (status.active_backend || 'sqlite').toUpperCase();
+                document.getElementById('dashboard-backend').textContent = primaryBackend;
+                const backendDetail = document.getElementById('dashboard-backend-detail');
+                if (backendDetail) {
+                    if (primaryBackend === 'MYSQL' && activeBackend === 'SQLITE') {
+                        const reason = !status.mysql_connected
+                            ? (status.mysql_message || 'MySQL connection unavailable.')
+                            : (status.mysql_schema_message || 'MySQL schema is not ready.');
+                        backendDetail.textContent = `SQLite fallback is serving data. MySQL primary is unavailable: ${reason}`;
+                    } else {
+                        backendDetail.textContent = `${activeBackend} is serving live dashboard queries.`;
+                    }
+                }
+                document.getElementById('dashboard-datasets').innerHTML = (overview.datasets || []).map(dataset => `
+                    <tr><td>${escapeHtml(dataset.dataset_key)}</td><td>${Number(dataset.total_rows || 0).toLocaleString()}</td>
+                    <td>${Number(dataset.unique_upcs || 0).toLocaleString()}</td><td>${escapeHtml(dataset.file_name || '')}</td></tr>`).join('');
+                document.getElementById('dashboard-refresh-time').textContent = `Last refreshed: ${overview.generated_at ? new Date(overview.generated_at).toLocaleString() : 'Unavailable'}`;
+                document.getElementById('dashboard-database-status').innerHTML = `
+                    <span class="status-chip">Active: <strong>${escapeHtml((status.active_backend || 'sqlite').toUpperCase())}</strong></span>
+                    <span class="status-chip">SQLite: ${status.sqlite_connected ? 'Connected' : 'Unavailable'}</span>
+                    <span class="status-chip">MySQL: ${status.mysql_connected ? (status.mysql_schema_ready ? 'Connected' : `Connected · ${escapeHtml(status.mysql_schema_message || 'schema not ready')}`) : `Not connected · ${escapeHtml(status.mysql_message || 'connection unavailable')}`}</span>
+                    <span class="status-chip">Database: ${escapeHtml(status.database_name || 'unknown')}</span>
+                    <span class="status-chip">${escapeHtml(status.mysql_schema_message || '')}</span>`;
+                error.style.display = 'none';
+                loadDashboardMetrics();
+                loadDashboardMissing();
+            } catch (err) {
+                error.textContent = err.message;
+                error.style.display = 'block';
+                dashboardLoaded = false;
+                ['dashboard-total-records', 'dashboard-total-upcs', 'dashboard-dataset-count', 'dashboard-backend', 'dashboard-master-total', 'dashboard-upc-completion', 'dashboard-upc-available', 'dashboard-upc-missing', 'dashboard-upc-total'].forEach(id => {
+                    const node = document.getElementById(id);
+                    if (node) node.textContent = '—';
+                });
+            }
+        }
+
+        async function loadDashboardMetrics() {
+            try {
+                const metrics = await getDashboardData('/api/dashboard/metrics');
+                dashboardVisualizationState.metrics = metrics;
+                renderDashboardVisualization(metrics);
+                const categories = metrics.categories || {};
+                ['beer', 'wine', 'rtd', 'spirits'].forEach(category => {
+                    const node = document.getElementById(`dashboard-${category}-total`);
+                    if (node) node.textContent = Number((categories[category] || {}).total_records || 0).toLocaleString();
+                });
+                const quality = metrics.overall_upc || {};
+                const completion = Number(quality.completion_percentage || 0);
+                const master = metrics.master_brand || {};
+                const upcSegments = [
+                    { key: 'master', value: Number(master.distinct_upcs || 0), color: '#38bdf8' },
+                    { key: 'beer', value: Number((categories.beer || {}).distinct_upcs || 0), color: '#f59e0b' },
+                    { key: 'rtd', value: Number((categories.rtd || {}).distinct_upcs || 0), color: '#a78bfa' },
+                    { key: 'wine', value: Number((categories.wine || {}).distinct_upcs || 0), color: '#f472b6' },
+                    { key: 'spirits', value: Number((categories.spirits || {}).distinct_upcs || 0), color: '#14b8a6' },
+                ];
+                const totalDatasetUpcs = upcSegments.reduce((sum, segment) => sum + segment.value, 0);
+                let angle = 0;
+                const pieStops = upcSegments.map(segment => {
+                    const nextAngle = totalDatasetUpcs ? angle + (segment.value / totalDatasetUpcs) * 360 : angle;
+                    const stop = `${segment.color} ${angle}deg ${nextAngle}deg`;
+                    angle = nextAngle;
+                    return stop;
+                });
+                document.getElementById('dashboard-upc-pie').style.background = totalDatasetUpcs
+                    ? `conic-gradient(${pieStops.join(', ')})`
+                    : 'var(--border-color)';
+                upcSegments.forEach(segment => {
+                    const node = document.getElementById(`dashboard-upc-${segment.key}`);
+                    if (node) node.textContent = segment.value.toLocaleString();
+                });
+                document.getElementById('dashboard-upc-total').textContent = totalDatasetUpcs.toLocaleString();
+                document.getElementById('dashboard-master-total').textContent = Number(master.total_records || 0).toLocaleString();
+                document.getElementById('dashboard-upc-completion').textContent = `${completion.toFixed(1)}%`;
+                document.getElementById('dashboard-category-quality').innerHTML = Object.entries(categories).map(([name, value]) => `
+                    <div class="dashboard-card category-kpi" onclick="openCategoryMissing('${name}')">
+                        <h3>${name.toUpperCase()}</h3><div class="dashboard-number">${Number(value.total_records || 0).toLocaleString()}</div>
+                    </div>`).join('');
+                document.getElementById('dashboard-master-total-summary').textContent = Number(master.total_records || 0).toLocaleString();
+                document.getElementById('dashboard-master-brands').textContent = Number(master.unique_brands || 0).toLocaleString();
+                document.getElementById('dashboard-master-ids').textContent = Number(master.unique_master_ids || 0).toLocaleString();
+                document.getElementById('dashboard-master-with-upc').textContent = Number(master.records_with_upc || 0).toLocaleString();
+                document.getElementById('dashboard-master-without-upc').textContent = Number(master.records_without_upc || 0).toLocaleString();
+            } catch (err) {
+                const error = document.getElementById('dashboard-error');
+                error.textContent = err.message;
+                error.style.display = 'block';
+            }
+        }
+
+        async function loadDashboardMissing() {
+            const summaryNode = document.getElementById('dashboard-missing-summary');
+            const categoriesNode = document.getElementById('dashboard-missing-by-category');
+            summaryNode.textContent = 'Loading missing UPC summary...';
+            try {
+                const data = await getDashboardData('/api/dashboard/missing-upc?limit=100');
+                const summary = data.summary || {};
+                summaryNode.textContent = `${Number(summary.total_missing_from_master || 0).toLocaleString()} UPCs are missing from the master catalog in the current comparison.`;
+                categoriesNode.innerHTML = (summary.categories || []).map(item => `
+                    <div class="legend-item"><span>${escapeHtml(item.category)} missing from AI Master</span><strong>${Number(item.missing_from_master || 0).toLocaleString()}</strong></div>`).join('');
+            } catch (err) {
+                summaryNode.textContent = err.message;
+                categoriesNode.innerHTML = '';
+            }
+        }
+
+        function openCategoryMissing(category) {
+            switchTab('comparison', document.querySelectorAll('.nav-tab-btn')[3]);
+            const preset = `master_vs_${category === 'rtd' ? 'rtd' : category}`;
+            executeComparison(preset);
+        }
+
+        function trainedCategoryVisual(category) {
+            const value = String(category || '').toLowerCase();
+            if (value.includes('beer')) return '<span class="trained-category-visual" title="Beer">🍺</span>';
+            if (value.includes('wine')) return '<span class="trained-category-visual" title="Wine">🍷</span>';
+            if (value.includes('spirit')) return '<span class="trained-category-visual" title="Spirits">🥃</span>';
+            return '<span class="trained-category-visual" title="Non Alcoholic">🥤</span>';
+        }
+
+        function trainedFilterParams() {
+            const params = new URLSearchParams();
+            const fields = { q:'trained-global-search', category:'trained-category-filter', supplier:'trained-supplier-filter', brand:'trained-brand-filter', status:'trained-status-filter', model:'trained-model-filter', min_images:'trained-image-count-filter' };
+            Object.entries(fields).forEach(([key, id]) => { const value = document.getElementById(id)?.value?.trim(); if (value) params.set(key, value); });
+            [['missing_sku','trained-missing-sku'], ['missing_images','trained-missing-images'], ['missing_model_id','trained-missing-model']].forEach(([key, id]) => { if (document.getElementById(id)?.checked) params.set(key, 'true'); });
+            return params;
+        }
+
+        function queueTrainedDatasetLoad() {
+            clearTimeout(trainedDatasetTimer);
+            trainedDatasetTimer = setTimeout(() => loadTrainedDataset(), 300);
+        }
+
+        async function loadTrainedDataset() {
+            try {
+                const base = trainedFilterParams();
+                const [sortBy, sortDir] = String(document.getElementById('trained-sort')?.value || 'BrandName|asc').split('|');
+                const pageSize = Number(document.getElementById('trained-page-size')?.value || 50);
+                base.set('page', trainedDatasetState.page);
+                base.set('page_size', pageSize);
+                base.set('sort_by', sortBy);
+                base.set('sort_dir', sortDir);
+                trainedDatasetState.filters = Object.fromEntries(base.entries());
+                const filterQuery = new URLSearchParams(Object.fromEntries([...base].filter(([key]) => !['page','page_size','sort_by','sort_dir'].includes(key))));
+                const recordsQuery = base.toString();
+                const [summary, analytics, records] = await Promise.all([
+                    getDashboardData(`/api/trained-dataset/summary?${filterQuery}`),
+                    getDashboardData(`/api/trained-dataset/analytics?${filterQuery}`),
+                    getDashboardData(`/api/trained-dataset/records?${recordsQuery}`),
+                ]);
+                trainedDatasetState.records = records.records || [];
+                trainedDatasetState.total = Number(records.total_matches || 0);
+                trainedDatasetState.analytics = analytics;
+                renderTrainedSummary(summary);
+                renderTrainedAnalytics(analytics);
+                renderTrainedTable();
+                renderTrainedColumnMenu();
+            } catch (error) {
+                // Allow the next tab visit to retry after a transient backend failure.
+                trainedDatasetLoaded = false;
+                const message = error?.message || 'Unable to load trained dataset.';
+                const count = document.getElementById('trained-record-count');
+                if (count) count.textContent = message;
+                const body = document.querySelector('#trained-records-table tbody');
+                if (body) body.innerHTML = `<tr><td colspan="12">${escapeHtml(message)}</td></tr>`;
+                ['trained-category-chart', 'trained-status-chart', 'trained-supplier-chart', 'trained-brand-chart', 'trained-model-chart', 'trained-category-image-chart'].forEach(id => {
+                    const node = document.getElementById(id);
+                    if (node) node.innerHTML = `<div class="dashboard-subtle">${escapeHtml(message)}</div>`;
+                });
+                console.error('Trained dataset load failed:', error);
+            }
+        }
+
+        function renderTrainedSummary(summary) {
+            const values = { 'trained-total-brands':summary.total_brands, 'trained-total-suppliers':summary.total_suppliers, 'trained-total-images':summary.total_trained_images, 'trained-active-brands':summary.active_brands, 'trained-inactive-brands':summary.inactive_brands, 'trained-total-models':summary.total_unique_models, 'trained-total-categories':summary.total_categories, 'trained-missing-records':summary.missing_data_records };
+            Object.entries(values).forEach(([id, value]) => { const node = document.getElementById(id); if (node) node.textContent = Number(value || 0).toLocaleString(); });
+        }
+
+        function renderTrainedDonut(targetId, rows, labelKey, valueKey) {
+            const target = document.getElementById(targetId);
+            if (!target) return;
+            const values = (rows || []).map(row => ({ label:String(row[labelKey] || 'Unknown'), value:Number(row[valueKey] || 0) })).filter(row => row.value > 0);
+            const total = values.reduce((sum, row) => sum + row.value, 0);
+            if (!total) { target.innerHTML = '<div class="dashboard-subtle">No data for the current filters.</div>'; return; }
+            let cursor = 0;
+            const colors = ['#38bdf8','#a78bfa','#10b981','#f59e0b','#f472b6','#fb923c','#22d3ee','#818cf8'];
+            const stops = values.map((row, index) => { const start = cursor; cursor += (row.value / total) * 360; return `${colors[index % colors.length]} ${start}deg ${cursor}deg`; }).join(',');
+            target.innerHTML = `<div class="trained-donut-layout"><div class="trained-donut" style="background:conic-gradient(${stops})"><div class="trained-donut-label">${total.toLocaleString()}<br><small>Total</small></div></div><div class="trained-chart-legend">${values.map((row,index) => `<div><span><i class="legend-dot" style="background:${colors[index % colors.length]}"></i>${escapeHtml(row.label)}</span><strong>${row.value.toLocaleString()}</strong></div>`).join('')}</div></div>`;
+        }
+
+        function renderTrainedBars(targetId, rows, labelKey, valueKey) {
+            const target = document.getElementById(targetId);
+            if (!target) return;
+            const values = (rows || []).map(row => ({ label:String(row[labelKey] || 'Unknown'), value:Number(row[valueKey] || 0) })).filter(row => row.value > 0).slice(0, 10);
+            const max = Math.max(...values.map(row => row.value), 1);
+            target.innerHTML = values.length ? `<div class="trained-bar-list">${values.map(row => `<div class="trained-bar-row"><span title="${escapeHtml(row.label)}">${escapeHtml(row.label)}</span><div class="trained-bar-track"><div class="trained-bar-fill" style="width:${Math.max(3, row.value / max * 100)}%"></div></div><strong>${row.value.toLocaleString()}</strong></div>`).join('')}</div>` : '<div class="dashboard-subtle">No data for the current filters.</div>';
+        }
+
+        function renderTrainedAnalytics(analytics) {
+            renderTrainedDonut('trained-category-chart', analytics.category_brands, 'category', 'brand_count');
+            renderTrainedDonut('trained-status-chart', analytics.active_inactive, 'status', 'brand_count');
+            renderTrainedBars('trained-supplier-chart', analytics.top_suppliers, 'supplier', 'brand_count');
+            renderTrainedBars('trained-brand-chart', analytics.top_brands, 'brand', 'image_count');
+            renderTrainedBars('trained-model-chart', analytics.model_brands, 'model', 'brand_count');
+            renderTrainedBars('trained-category-image-chart', analytics.category_images, 'category', 'image_count');
+        }
+
+        function renderTrainedTable() {
+            const body = document.querySelector('#trained-records-table tbody');
+            if (!body) return;
+            const columns = ['id','class_id','supplier_name','brand_name','category','image_count','avg_trained_photos','sku','status','model','model_id'];
+            body.innerHTML = trainedDatasetState.records.length ? trainedDatasetState.records.map(record => `<tr>${columns.map(column => {
+                let value = record[column] ?? '—';
+                if (column === 'category') value = `${trainedCategoryVisual(record.category)}${escapeHtml(record.category || 'Unknown')}`;
+                else if (column === 'brand_name') { const thumb = record.image_urls?.[0] ? `<img class="trained-row-thumb" loading="lazy" src="${escapeHtml(record.image_urls[0])}" alt="" onerror="this.style.display='none'">` : ''; value = `<button type="button" class="btn-download-csv" onclick="openTrainedDetail('${escapeHtml(record.id)}')">${thumb}${escapeHtml(record.brand_name || 'Unnamed')}</button>`; }
+                else if (column === 'image_count' || column === 'avg_trained_photos') value = Number(value || 0).toLocaleString();
+                return `<td data-trained-column="${column}">${value}</td>`;
+            }).join('')}<td><button type="button" class="btn-download-csv" onclick="openTrainedDetail('${escapeHtml(record.id)}')">View Details</button></td></tr>`).join('') : '<tr><td colspan="12">No trained records match the current filters.</td></tr>';
+            document.getElementById('trained-record-count').textContent = `${trainedDatasetState.total.toLocaleString()} matching trained record(s)`;
+            document.getElementById('trained-page-label').textContent = `Page ${trainedDatasetState.page}`;
+        }
+
+        function renderTrainedColumnMenu() {
+            const menu = document.getElementById('trained-column-menu');
+            if (!menu || menu.children.length) return;
+            ['id','class_id','supplier_name','brand_name','category','image_count','avg_trained_photos','sku','status','model','model_id'].forEach(column => { const label = column.replaceAll('_',' '); menu.insertAdjacentHTML('beforeend', `<label><input type="checkbox" checked onchange="toggleTrainedColumn('${column}', this.checked)"> ${label}</label>`); });
+        }
+
+        function toggleTrainedColumn(column, visible) {
+            document.querySelectorAll(`[data-trained-column="${column}"]`).forEach(node => node.style.display = visible ? '' : 'none');
+            const header = document.querySelector(`#trained-records-table th[data-trained-column="${column}"]`); if (header) header.style.display = visible ? '' : 'none';
+        }
+
+        function changeTrainedPage(delta) { if (trainedDatasetState.page + delta < 1) return; trainedDatasetState.page += delta; loadTrainedDataset(); }
+
+        function queueUntrainedDatasetLoad() {
+            clearTimeout(untrainedDatasetTimer);
+            untrainedDatasetTimer = setTimeout(() => loadUntrainedDataset(), 300);
+        }
+
+        // Untrained dataset loader
+        let untrainedDatasetRequestId = 0;
+
+        async function loadUntrainedDataset() {
+            const requestId = ++untrainedDatasetRequestId;
+            const search = document.getElementById('untrained-brand-search')?.value?.trim() || '';
+            const query = new URLSearchParams({ limit: '250' });
+            if (search) query.set('search', search);
+            const totalCard = document.getElementById('untrained-total-records');
+            const uniqueCard = document.getElementById('untrained-total-brands');
+            const label = document.getElementById('untrained-record-count');
+            const table = document.querySelector('#untrained-brands-table tbody');
+            totalCard.textContent = '…';
+            uniqueCard.textContent = '…';
+            label.textContent = 'Loading records...';
+            try {
+                const data = await getDashboardData(`/api/untrained-dataset?${query}`);
+                if (requestId !== untrainedDatasetRequestId) return;
+                const records = data.records || [];
+                const total = Number(data.summary?.total_records);
+                const unique = Number(data.summary?.unique_untrained_brands);
+                if (!Number.isInteger(total) || !Number.isInteger(unique)
+                    || total < records.length || unique < 0 || unique > total) {
+                    throw new Error('Untrained dataset summary is unavailable. Please reload.');
+                }
+                totalCard.textContent = total.toLocaleString();
+                uniqueCard.textContent = unique.toLocaleString();
+                label.textContent = `Showing ${records.length.toLocaleString()} of ${total.toLocaleString()} rows · New / NeedToVerify`;
+                table.innerHTML = records.length ? records.map(record => `<tr><td><strong>${escapeHtml(record.brand_name || 'Unnamed')}</strong></td><td>${escapeHtml(record.category || 'N/A')}</td><td>${escapeHtml(record.source || 'N/A')}</td></tr>`).join('') : '<tr><td colspan="3">No new brands found.</td></tr>';
+            } catch (error) {
+                if (requestId !== untrainedDatasetRequestId) return;
+                totalCard.textContent = '—';
+                uniqueCard.textContent = '—';
+                label.textContent = 'Could not load records. Try the search again or reopen this page.';
+                table.innerHTML = `<tr><td colspan="3">Unable to load data: ${escapeHtml(error.message || 'Request failed')}</td></tr>`;
+                untrainedDatasetLoaded = false;
+            }
+        }
+        // End untrained dataset loader
+
+        async function openTrainedDetail(recordId) {
+            const panel = document.getElementById('trained-detail-panel');
+            if (!panel) return;
+            panel.hidden = false;
+            panel.innerHTML = '<div class="dashboard-subtle">Loading trained brand details...</div>';
+            const response = await getDashboardData(`/api/trained-dataset/detail/${encodeURIComponent(recordId)}`);
+            const record = response.record;
+            panel.innerHTML = `<button class="trained-detail-close" type="button" onclick="document.getElementById('trained-detail-panel').hidden=true">×</button><h2>${escapeHtml(record.brand_name || 'Trained Brand')}</h2><div class="dashboard-subtle">${trainedCategoryVisual(record.category)}${escapeHtml(record.category || 'Category unavailable')}</div><div class="trained-detail-grid">${[['ID',record.id],['Class ID',record.class_id],['Supplier Code',record.supplier_code],['Supplier Name',record.supplier_name],['Brand Code',record.brand_code],['Brand Name',record.brand_name],['Image Counts',record.image_count],['Average Trained Photos',record.avg_trained_photos],['SKU',record.sku],['Status',record.status],['Record Status',record.record_status],['Model Name',record.model],['Model ID',record.model_id],['Training Accuracy','Not available in source']].map(([label,value]) => `<div class="trained-detail-item"><small>${label}</small><strong>${escapeHtml(value ?? 'N/A')}</strong></div>`).join('')}</div><h3 style="margin-top:1rem;">Brand/Product Images</h3><div class="trained-gallery">${(record.image_urls || []).map(url => `<a href="${escapeHtml(url)}" target="_blank" rel="noopener"><img loading="lazy" src="${escapeHtml(url)}" alt="${escapeHtml(record.brand_name || 'Brand')} image" onerror="this.remove()"></a>`).join('') || '<div class="dashboard-subtle">No image URLs available.</div>'}</div>`;
+        }
+
+        async function exportTrainedDataset() {
+            const query = trainedFilterParams();
+            const response = await fetch(`/api/trained-dataset/export?${query}`);
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error || 'Trained dataset export failed');
+            window.location.href = `/api/export-csv/${encodeURIComponent(data.download_token)}`;
+        }
+
+        function getMasterBrandImageUrl(row, columns) {
+            const imageColumnNames = new Set([
+                'imageurl', 'image_url', 'image', 'productimage', 'productimageurl',
+                'brandimage', 'brandimageurl'
+            ]);
+            for (const column of columns || []) {
+                const normalized = String(column).toLowerCase().replace(/[^a-z0-9]/g, '');
+                if (!imageColumnNames.has(normalized) && !normalized.includes('imageurl')) continue;
+                const value = String(row?.[column] ?? '').trim();
+                if (!value) continue;
+                try {
+                    const url = new URL(value);
+                    if (url.protocol === 'http:' || url.protocol === 'https:') return value;
+                } catch (error) {
+                    // Ignore malformed image values and keep rendering the data row.
+                }
+            }
+            return '';
+        }
+
+        function renderMasterBrandResults(data) {
+            const columns = data.columns || Object.keys(data.records?.[0] || {});
+            return (data.records || []).map(row => {
+                const imageUrl = getMasterBrandImageUrl(row, columns);
+                const placeholder = '<div class="master-brand-image-placeholder" role="img" aria-label="Image unavailable">Image unavailable</div>';
+                const media = `<div class="master-brand-result-media">${imageUrl
+                    ? `<img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(row.BrandName || row.ProductName || 'Master Brand')}" loading="lazy" onclick="openMasterBrandImage(this.src, this.alt)" onerror="handleMasterBrandImageError(this)">`
+                    : placeholder}</div>`;
+                const table = `<div style="overflow:auto"><table class="dashboard-table"><thead><tr>${columns.map(column => `<th>${escapeHtml(column)}</th>`).join('')}</tr></thead><tbody><tr>${columns.map(column => `<td>${escapeHtml(row[column])}</td>`).join('')}</tr></tbody></table></div>`;
+                return `<div class="master-brand-result-card">${media}${table}</div>`;
+            }).join('');
+        }
+
+        function handleMasterBrandImageError(image) {
+            const media = image?.closest('.master-brand-result-media');
+            if (media) media.innerHTML = '<div class="master-brand-image-placeholder" role="img" aria-label="Image unavailable">Image unavailable</div>';
+        }
+
+        function openMasterBrandImage(src, alt) {
+            const lightbox = document.getElementById('master-brand-image-lightbox');
+            const preview = document.getElementById('master-brand-image-lightbox-preview');
+            if (!lightbox || !preview || !src) return;
+            preview.src = src;
+            preview.alt = alt || 'Master Brand image';
+            lightbox.hidden = false;
+            document.body.classList.add('master-brand-lightbox-open');
+        }
+
+        function closeMasterBrandImage(event) {
+            if (event) event.stopPropagation();
+            const lightbox = document.getElementById('master-brand-image-lightbox');
+            const preview = document.getElementById('master-brand-image-lightbox-preview');
+            if (!lightbox || !preview) return;
+            lightbox.hidden = true;
+            preview.removeAttribute('src');
+            document.body.classList.remove('master-brand-lightbox-open');
+        }
+
+        document.addEventListener('keydown', event => {
+            if (event.key === 'Escape') closeMasterBrandImage();
+        });
+
+        async function searchMasterBrands(event) {
+            if (event) event.preventDefault();
+            const params = new URLSearchParams();
+            const fields = { id: 'master-id-input', brand: 'master-brand-input', upc: 'master-upc-input', product: 'master-product-input' };
+            Object.entries(fields).forEach(([key, id]) => {
+                const value = document.getElementById(id).value.trim();
+                if (value) params.set(key, value);
+            });
+            const status = document.getElementById('master-brand-search-status');
+            const results = document.getElementById('master-brand-results');
+            if (!params.toString()) { status.textContent = 'Enter at least one search field.'; results.innerHTML = ''; return; }
+            status.textContent = 'Searching the Master Brand table...';
+            results.innerHTML = '';
+            try {
+                const response = await fetch(`/api/master-brands/search?${params.toString()}`);
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || 'Master Brand search failed');
+                status.textContent = `${Number(data.total_matches || 0).toLocaleString()} matching record(s)`;
+                if (!data.records || !data.records.length) { results.innerHTML = '<div class="dashboard-subtle">No matching Master Brand records found.</div>'; return; }
+                results.innerHTML = renderMasterBrandResults(data);
+            } catch (err) { status.textContent = err.message; }
+        }
+
+        function clearMasterBrandSearch() {
+            ['master-id-input', 'master-brand-input', 'master-upc-input', 'master-product-input'].forEach(id => document.getElementById(id).value = '');
+            document.getElementById('master-brand-search-status').textContent = 'Enter at least one search field.';
+            document.getElementById('master-brand-results').innerHTML = '';
         }
 
         function submitUserChat(e) {
@@ -1200,7 +3115,7 @@ JDBC URL: jdbc:mysql://127.0.0.1:3307/beverage_db
             loadingBubble.innerHTML = `
                 <div class="bot-message-header">
                     <div class="bot-identity">🤖 BevIQ Assistant</div>
-                    <div>Auditing 702k+ records...</div>
+                    <div id="bot-loading-title">Thinking...</div>
                 </div>
                 <div>
                     <span class="loading-dots">
@@ -1208,7 +3123,7 @@ JDBC URL: jdbc:mysql://127.0.0.1:3307/beverage_db
                         <span class="loading-dot"></span>
                         <span class="loading-dot"></span>
                     </span>
-                    <span style="color: var(--text-secondary); font-size: 0.88rem; margin-left: 0.5rem;">Analyzing records and cross-referencing Master datasets...</span>
+                    <span style="color: var(--text-secondary); font-size: 0.88rem; margin-left: 0.5rem;">Understanding your question and preparing a response...</span>
                 </div>
             `;
             history.appendChild(loadingBubble);
@@ -1245,6 +3160,8 @@ JDBC URL: jdbc:mysql://127.0.0.1:3307/beverage_db
                 if (fileInput.files.length) {
                     fileInput.value = '';
                     document.getElementById('selected-document').textContent = '';
+                    document.getElementById('upload-preview').innerHTML = '';
+                    document.getElementById('upload-preview').style.display = 'none';
                 }
                 input.focus();
             });
@@ -1276,7 +3193,7 @@ JDBC URL: jdbc:mysql://127.0.0.1:3307/beverage_db
             const headerHtml = `
                 <div class="bot-message-header">
                     <div class="bot-identity">🤖 BevIQ Assistant</div>
-                    <div>Retrieved ${data.record_count || 0} records</div>
+                    <div>${(data.record_count || 0) > 0 ? `Retrieved ${data.record_count} records` : "General response"}</div>
                 </div>
             `;
 
@@ -1457,10 +3374,17 @@ JDBC URL: jdbc:mysql://127.0.0.1:3307/beverage_db
 
                 // Summary Stats
                 const sm = data.summary || {};
-                document.getElementById('card-total').textContent = (sm.total_categorization_upcs || sm.master_total_records || sm.records_analyzed || data.records.length || 0).toLocaleString();
-                document.getElementById('card-matched').textContent = (sm.total_matched_in_master || sm.exact_matches || sm.verified_non_rtd || sm.matching_upcs_in_both || 0).toLocaleString();
-                document.getElementById('card-missing').textContent = (sm.total_missing_from_master || sm.missing_from_master_total || sm.missing_in_supplier_sheet || 0).toLocaleString();
-                document.getElementById('card-ratio').textContent = sm.overall_missing_pct ? `${sm.overall_missing_pct}%` : (sm.match_rate_pct ? `${sm.match_rate_pct}% Match` : 'N/A');
+                if (presetType === 'untrained_brands') {
+                    document.getElementById('card-total').textContent = Number(sm.initial_missing_upcs || 0).toLocaleString();
+                    document.getElementById('card-matched').textContent = Number(sm.verified_in_client_sheets || 0).toLocaleString();
+                    document.getElementById('card-missing').textContent = Number(sm.final_missing_upcs || 0).toLocaleString();
+                    document.getElementById('card-ratio').textContent = Number(sm.unique_untrained_brands || 0).toLocaleString();
+                } else {
+                    document.getElementById('card-total').textContent = (sm.total_categorization_upcs || sm.master_total_records || sm.records_analyzed || data.records.length || 0).toLocaleString();
+                    document.getElementById('card-matched').textContent = (sm.total_matched_in_master || sm.exact_matches || sm.verified_non_rtd || sm.matching_upcs_in_both || 0).toLocaleString();
+                    document.getElementById('card-missing').textContent = (sm.total_missing_from_master || sm.missing_from_master_total || sm.missing_in_supplier_sheet || 0).toLocaleString();
+                    document.getElementById('card-ratio').textContent = sm.overall_missing_pct ? `${sm.overall_missing_pct}%` : (sm.match_rate_pct ? `${sm.match_rate_pct}% Match` : 'N/A');
+                }
 
                 currentStudioRecords = data.records || [];
                 renderStudioTable(currentStudioRecords);
@@ -1481,6 +3405,18 @@ JDBC URL: jdbc:mysql://127.0.0.1:3307/beverage_db
 
             records.forEach(r => {
                 const tr = document.createElement('tr');
+                if (currentStudioPreset === 'untrained_brands') {
+                    tr.innerHTML = `
+                        <td><strong>Untrained Brand</strong></td>
+                        <td><code>${(r.upcs || []).join(', ') || 'N/A'}</code></td>
+                        <td>${renderBadgeHtml('Final UPC Missing')}</td>
+                        <td>${r.brand_name || 'N/A'}</td>
+                        <td>${Number(r.record_count || 0).toLocaleString()} Master record(s)</td>
+                        <td style="font-size: 0.78rem; color: var(--text-secondary);">${(r.suppliers || []).join(', ') || 'Supplier unavailable'}</td>
+                    `;
+                    tbody.appendChild(tr);
+                    return;
+                }
                 tr.innerHTML = `
                     <td><strong>${r.category || (r.source_file ? r.source_file.replace('.csv', '') : 'Item')}</strong></td>
                     <td><code>${r.upc || r.clean_upc || r.supplier_code || 'N/A'}</code></td>
@@ -1521,6 +3457,8 @@ JDBC URL: jdbc:mysql://127.0.0.1:3307/beverage_db
 
             renderStudioTable(filtered);
         }
+        switchTab('dashboard', document.getElementById('dashboard-nav-button'));
     </script>
+    </div>
 </body>
 </html>

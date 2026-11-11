@@ -379,7 +379,7 @@ def build_pdf():
         ("Numeric",           "NumPy",              "2.x",      "Array ops, UPC padding"),
         ("Database (local)",  "SQLite",             "Built-in", "Fast local data store, 702K+ rows"),
         ("Database (shared)", "MySQL 8.0",          "8.0.46",   "DBeaver-accessible, port 3307"),
-        ("MySQL Driver",      "PyMySQL",            "1.2.3",    "Python-MySQL connector"),
+        ("MySQL Driver",      "MySQL Connector/Python", "9.x", "Python-MySQL connector"),
         ("Fuzzy Search",      "RapidFuzz",          "latest",   "Fast product name matching"),
         ("BM25 Search",       "rank_bm25",          "latest",   "Keyword-based document retrieval"),
         ("Excel Reports",     "openpyxl",           "latest",   "Multi-sheet Excel output"),
@@ -1039,7 +1039,7 @@ python tools/missing_upc_matcher_v3.py
     pdf.code_block("""flask>=3.0.0
 pandas>=2.0.0
 numpy>=2.0.0
-pymysql>=1.0.0
+mysql-connector-python>=9.0.0
 cryptography>=40.0.0
 python-dotenv>=1.0.0
 rank-bm25>=0.2.2
@@ -1262,4 +1262,3 @@ if __name__ == "__main__":
     sys.stdout.reconfigure(encoding='utf-8')
     out = build_pdf()
     print(f"Report: {out}")
-
